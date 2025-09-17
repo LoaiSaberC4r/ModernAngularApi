@@ -46,7 +46,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   hasPreviousPage = false;
   hasNextPage = false;
 
-  // بيانات الجدول (هاتها من API في loadData)
+  // بيانات الجدول
   signBoxEntity: Pagination<GetAllSignControlBox> = {
     value: {
       data: [],
@@ -62,14 +62,16 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     error: {} as ResultError,
   };
 
+  // ===== Active Filter =====
+  activeFilter: 'ALL' | 'ACTIVE' | 'INACTIVE' = 'ALL';
+  showActiveFilter = false;
+
   // ===== Popup state =====
   popupVisible = false;
   popupX = 0;
   popupY = 0;
-  popupData: PopUpSignBox | null = null; // بيانات العرض (اسم/IP/Lat/Lng + آخر قيم)
-  popupLive: ReceiveMessage | null = null; // آخر L1/L2/T1/T2 لهذا الـ ID
-
-  // نخزن آخر رسالة لكل صندوق حسب ID
+  popupData: PopUpSignBox | null = null;
+  popupLive: ReceiveMessage | null = null;
   latestById: Record<number, ReceiveMessage> = {};
 
   constructor() {
@@ -80,10 +82,8 @@ export class SignBoxComponent implements OnInit, OnDestroy {
         if (!message) return;
         const id = message.ID;
 
-        // 1) خزّن آخر حالة لهذا الـ ID
         this.latestById[id] = message;
 
-        // 2) حدّث حالة الـ Active في الجدول (immutable)
         const cur = this.signBoxEntity;
         this.signBoxEntity = {
           ...cur,
@@ -96,10 +96,8 @@ export class SignBoxComponent implements OnInit, OnDestroy {
           },
         };
 
-        // 3) لو الـ popup مفتوح لنفس الـ ID → حدّث المعروض فورًا
         if (this.popupData?.Id === id) {
           this.popupLive = message;
-          // عدل بيانات popupData الأساسية (اسم/إحداثيات) إن لزم
           const row = this.signBoxEntity.value.data.find((x) => x.id === id);
           if (row) {
             this.popupData = {
@@ -111,23 +109,10 @@ export class SignBoxComponent implements OnInit, OnDestroy {
           }
         }
       });
-
-    // Debug (اختياري)
-    toObservable(this.signalr.status)
-      .pipe(takeUntilDestroyed())
-      .subscribe((s) => console.log('[Hub Status]', s));
-
-    toObservable(this.signalr.lastError)
-      .pipe(takeUntilDestroyed())
-      .subscribe((err) => err && console.warn('[Hub Error]', err));
   }
 
   ngOnInit(): void {
-    this.signalr
-      .connect()
-      .then(() => console.log('[SignalR] Connected'))
-      .catch((err) => console.error('[SignalR] Connect error:', err));
-
+    this.signalr.connect().catch(console.error);
     this.loadData();
   }
 
@@ -135,7 +120,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     this.signalr.disconnect().catch(() => {});
   }
 
-  // تحميل البيانات (بحث/أول مرة)
   loadData(): void {
     this.signBoxControlService.getAll(this.searchParameter).subscribe((data) => {
       this.signBoxEntity = data;
@@ -144,38 +128,44 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     });
   }
 
-  // تنفيذ البحث عند Enter
   onSearchEnter(): void {
-    console.log('Search:', this.searchParameter.searchText);
     this.loadData();
   }
 
-  // ===== Popup Events =====
+  // ===== Active Filter logic =====
+  setActiveFilter(filter: 'ALL' | 'ACTIVE' | 'INACTIVE') {
+    this.activeFilter = filter;
+    this.showActiveFilter = false;
+  }
+
+  get filteredData(): GetAllSignControlBox[] {
+    return this.signBoxEntity.value.data.filter((item) => {
+      if (this.activeFilter === 'ACTIVE') return item.active;
+      if (this.activeFilter === 'INACTIVE') return !item.active;
+      return true;
+    });
+  }
+
+  // ===== Popup =====
   showPopup(row: GetAllSignControlBox, event: MouseEvent) {
     const live = this.latestById[row.id] ?? null;
-
-    // ابنِ كائن العرض مباشرة (بدون JSON.parse)
     this.popupData = {
       Id: row.id,
       name: row.name ?? '—',
       Latitude: row.latitude ?? '—',
       Longitude: row.longitude ?? '—',
-      // لو عايز تحتفظ بنسخة من آخر القيم داخل popupData نفسها (اختياري):
       L1: live?.L1 ?? 'R',
       L2: live?.L2 ?? 'R',
-      T1: typeof live?.T1 === 'number' ? live!.T1 : 0,
-      T2: typeof live?.T2 === 'number' ? live!.T2 : 0,
+      T1: live?.T1 ?? 0,
+      T2: live?.T2 ?? 0,
     } as PopUpSignBox;
-
-    this.popupLive = live; // للعرض الحي
+    this.popupLive = live;
     this.popupVisible = true;
     this.updatePopupPosition(event);
   }
 
   movePopup(event: MouseEvent) {
-    if (this.popupVisible) {
-      this.updatePopupPosition(event);
-    }
+    if (this.popupVisible) this.updatePopupPosition(event);
   }
 
   hidePopup() {
@@ -188,17 +178,14 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     const offset = 5,
       pw = 280,
       ph = 210;
-    let x = event.clientX + offset;
-    let y = event.clientY - ph - offset;
-
+    let x = event.clientX + offset,
+      y = event.clientY - ph - offset;
     if (x + pw > window.innerWidth) x = event.clientX - pw - offset;
     if (y < 0) y = event.clientY + offset;
-
     this.popupX = x + window.scrollX;
     this.popupY = y + window.scrollY;
   }
 
-  // ===== ماب للألوان والإيموجي =====
   mapCodeToClass(code?: 'R' | 'Y' | 'G') {
     return code === 'G' ? 'is-green' : code === 'Y' ? 'is-yellow' : 'is-red';
   }

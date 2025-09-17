@@ -14,25 +14,25 @@
         />
       </div>
 
-      <!-- Active Filter (UI فقط الآن) -->
+      <!-- Active Filter -->
       <div class="filter-dropdown active-filter-dropdown">
-        <button class="filter-button">
+        <button class="filter-button" (click)="showActiveFilter = !showActiveFilter">
           <i class="fas fa-power-off"></i>
-          Active Filter
+          {{ activeFilter }}
           <i class="fas fa-chevron-down"></i>
         </button>
-        <div class="filter-menu">
-          <div class="filter-option">
+        <div class="filter-menu" [class.show]="showActiveFilter">
+          <div class="filter-option" (click)="setActiveFilter('ALL')">
             <span>All</span>
-            <span class="checkmark"> </span>
+            <span class="checkmark">{{ activeFilter === 'ALL' ? '✓' : '' }}</span>
           </div>
-          <div class="filter-option">
+          <div class="filter-option" (click)="setActiveFilter('ACTIVE')">
             <span>Active Only</span>
-            <span class="checkmark"> </span>
+            <span class="checkmark">{{ activeFilter === 'ACTIVE' ? '✓' : '' }}</span>
           </div>
-          <div class="filter-option">
+          <div class="filter-option" (click)="setActiveFilter('INACTIVE')">
             <span>Inactive Only</span>
-            <span class="checkmark"> </span>
+            <span class="checkmark">{{ activeFilter === 'INACTIVE' ? '✓' : '' }}</span>
           </div>
         </div>
       </div>
@@ -51,7 +51,7 @@
     </thead>
     <tbody>
       <tr
-        *ngFor="let item of signBoxEntity.value.data"
+        *ngFor="let item of filteredData"
         (mouseenter)="showPopup(item, $event)"
         (mousemove)="movePopup($event)"
         (mouseleave)="hidePopup()"
@@ -66,19 +66,18 @@
         </td>
       </tr>
 
-      <tr *ngIf="signBoxEntity.value.data.length === 0">
-        <td colspan="4" class="no-results">No traffic signals found matching your criteria</td>
+      <tr *ngIf="filteredData.length === 0">
+        <td colspan="4" class="no-results">No traffic signals found</td>
       </tr>
     </tbody>
   </table>
 
-  <!-- Popup: L1/T1 + L2/T2 بألوان وإيموجي، live من SignalR -->
+  <!-- Popup -->
   <div
     class="traffic-popup"
     *ngIf="popupVisible"
     [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }"
   >
-    <!-- Header -->
     <div class="tp-header">
       <div class="tp-title">
         <span class="tp-dot connected"></span>
@@ -87,75 +86,25 @@
       <span class="tp-chip">Live</span>
     </div>
 
-    <!-- Coordinates -->
-    <div class="tp-meta">
-      <div class="tp-meta__item">
-        <i class="tp-ico">📍</i>
-        <span>{{ popupData?.Latitude || '—' }}</span>
-      </div>
-      <div class="tp-meta__sep">•</div>
-      <div class="tp-meta__item">
-        <i class="tp-ico">🧭</i>
-        <span>{{ popupData?.Longitude || '—' }}</span>
-      </div>
-    </div>
-
-    <!-- Grid -->
     <div class="tp-grid">
-      <!-- L1 -->
       <div class="tp-col">
         <div class="tp-col__head">
           <span class="tp-col__label">L1</span>
-          <span class="tp-timer" [class.tp-timer--warn]="(popupLive?.T1 ?? 0) <= 5">
-            {{ popupLive?.T1 ?? 0 }}s
-          </span>
+          <span class="tp-timer">{{ popupLive?.T1 ?? 0 }}s</span>
         </div>
-
         <div class="tp-lamp" [ngClass]="mapCodeToClass(popupLive?.L1)">
           {{ lightEmoji(popupLive?.L1) }}
         </div>
-
-        <div class="tp-legend">
-          <span class="tp-dot sm red" [class.on]="popupLive?.L1 === 'R'"></span>
-          <span class="tp-dot sm yellow" [class.on]="popupLive?.L1 === 'Y'"></span>
-          <span class="tp-dot sm green" [class.on]="popupLive?.L1 === 'G'"></span>
-        </div>
       </div>
-
-      <!-- L2 -->
       <div class="tp-col">
         <div class="tp-col__head">
           <span class="tp-col__label">L2</span>
-          <span class="tp-timer" [class.tp-timer--warn]="(popupLive?.T2 ?? 0) <= 5">
-            {{ popupLive?.T2 ?? 0 }}s
-          </span>
+          <span class="tp-timer">{{ popupLive?.T2 ?? 0 }}s</span>
         </div>
-
         <div class="tp-lamp" [ngClass]="mapCodeToClass(popupLive?.L2)">
           {{ lightEmoji(popupLive?.L2) }}
         </div>
-
-        <div class="tp-legend">
-          <span class="tp-dot sm red" [class.on]="popupLive?.L2 === 'R'"></span>
-          <span class="tp-dot sm yellow" [class.on]="popupLive?.L2 === 'Y'"></span>
-          <span class="tp-dot sm green" [class.on]="popupLive?.L2 === 'G'"></span>
-        </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Footer / Pagination -->
-  <div class="footer">
-    <p>
-      Showing {{ signBoxEntity.value.pageSize }} of {{ signBoxEntity.value.totalPages }} traffic
-      signals
-    </p>
-    <div class="pagination">
-      <button class="prev-btn" [disabled]="!hasPreviousPage">Previous</button>
-      <span>
-        Page {{ signBoxEntity.value.currentPage }} of {{ signBoxEntity.value.totalPages }}
-      </span>
-      <button class="next-btn" [disabled]="!hasNextPage">Next</button>
     </div>
   </div>
 </div>
