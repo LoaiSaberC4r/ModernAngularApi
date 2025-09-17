@@ -10,31 +10,11 @@
           class="search-input"
           placeholder="Search by name or ID..."
           [(ngModel)]="searchParameter.searchText"
+          (keyup.enter)="onSearchEnter()"
         />
       </div>
 
-      <!-- Status Filter -->
-      <div class="filter-dropdown status-filter-dropdown">
-        <button class="filter-button">
-          <i class="fas fa-filter"></i>
-          Status Filter
-          <i class="fas fa-chevron-down"></i>
-        </button>
-        <div class="filter-menu">
-          <div class="filter-option">
-            <span class="checkmark"> </span>
-            <span>Filter All</span>
-          </div>
-          <div class="filter-divider"></div>
-          <div class="filter-option">
-            <span class="status-dot"></span>
-            <span> </span>
-            <span></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Active Filter -->
+      <!-- Active Filter (UI فقط الآن) -->
       <div class="filter-dropdown active-filter-dropdown">
         <button class="filter-button">
           <i class="fas fa-power-off"></i>
@@ -67,11 +47,15 @@
         <th>IpAddress</th>
         <th>Name</th>
         <th>Active</th>
-        <!-- <th>Current</th> -->
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let item of signBoxEntity.value.data">
+      <tr
+        *ngFor="let item of signBoxEntity.value.data"
+        (mouseenter)="showPopup(item, $event)"
+        (mousemove)="movePopup($event)"
+        (mouseleave)="hidePopup()"
+      >
         <td>{{ item.id }}</td>
         <td>{{ item.ipAddress }}</td>
         <td>{{ item.name }}</td>
@@ -80,104 +64,85 @@
             {{ item.active ? 'active' : 'inactive' }}
           </span>
         </td>
-        <!-- <td>
-          <button
-            class="btn btn-success"
-            (click)="applyCurrent(traffic, $event)"
-          >
-            Apply
-          </button>
-        </td> -->
       </tr>
+
       <tr *ngIf="signBoxEntity.value.data.length === 0">
         <td colspan="4" class="no-results">No traffic signals found matching your criteria</td>
       </tr>
     </tbody>
   </table>
-  <!-- popup -->
-  <!-- <div
+
+  <!-- Popup: L1/T1 + L2/T2 بألوان وإيموجي، live من SignalR -->
+  <div
     class="traffic-popup"
-       >
+    *ngIf="popupVisible"
+    [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }"
+  >
+    <!-- Header -->
     <div class="tp-header">
       <div class="tp-title">
-        <span
-          class="tp-dot"
-                ></span>
-        <span class="tp-name"> </span>
+        <span class="tp-dot connected"></span>
+        <span class="tp-name">{{ popupData?.name || '—' }}</span>
       </div>
-      <span class="tp-chip"  >
-       </span>
+      <span class="tp-chip">Live</span>
     </div>
 
-     <div class="tp-meta">
+    <!-- Coordinates -->
+    <div class="tp-meta">
       <div class="tp-meta__item">
         <i class="tp-ico">📍</i>
-        <span> </span>
+        <span>{{ popupData?.Latitude || '—' }}</span>
       </div>
       <div class="tp-meta__sep">•</div>
       <div class="tp-meta__item">
         <i class="tp-ico">🧭</i>
-        <span> </span>
+        <span>{{ popupData?.Longitude || '—' }}</span>
       </div>
     </div>
 
-     <div class="tp-grid">
+    <!-- Grid -->
+    <div class="tp-grid">
+      <!-- L1 -->
       <div class="tp-col">
         <div class="tp-col__head">
           <span class="tp-col__label">L1</span>
-          <span
-            class="tp-timer"
-            
-            > s</span
-          >
+          <span class="tp-timer" [class.tp-timer--warn]="(popupLive?.T1 ?? 0) <= 5">
+            {{ popupLive?.T1 ?? 0 }}s
+          </span>
         </div>
 
-        <div
-          class="tp-lamp"
-           
-        >
-        
+        <div class="tp-lamp" [ngClass]="mapCodeToClass(popupLive?.L1)">
+          {{ lightEmoji(popupLive?.L1) }}
         </div>
 
         <div class="tp-legend">
-          <span
-            class="tp-dot sm red"
-           ></span>
-          <span
-            class="tp-dot sm green"
-           ></span>
-          <span
-            class="tp-dot sm yellow"
-           ></span>
+          <span class="tp-dot sm red" [class.on]="popupLive?.L1 === 'R'"></span>
+          <span class="tp-dot sm yellow" [class.on]="popupLive?.L1 === 'Y'"></span>
+          <span class="tp-dot sm green" [class.on]="popupLive?.L1 === 'G'"></span>
         </div>
       </div>
 
-       <div class="tp-col">
+      <!-- L2 -->
+      <div class="tp-col">
         <div class="tp-col__head">
           <span class="tp-col__label">L2</span>
-          <span
-            ></span
-          >
+          <span class="tp-timer" [class.tp-timer--warn]="(popupLive?.T2 ?? 0) <= 5">
+            {{ popupLive?.T2 ?? 0 }}s
+          </span>
         </div>
-         <div
-          class="tp-lamp"
-         >
-         </div>
+
+        <div class="tp-lamp" [ngClass]="mapCodeToClass(popupLive?.L2)">
+          {{ lightEmoji(popupLive?.L2) }}
+        </div>
 
         <div class="tp-legend">
-          <span
-            class="tp-dot sm red"
-           ></span>
-          <span
-            class="tp-dot sm green"
-           ></span>
-          <span
-            class="tp-dot sm yellow"
-           ></span>
+          <span class="tp-dot sm red" [class.on]="popupLive?.L2 === 'R'"></span>
+          <span class="tp-dot sm yellow" [class.on]="popupLive?.L2 === 'Y'"></span>
+          <span class="tp-dot sm green" [class.on]="popupLive?.L2 === 'G'"></span>
         </div>
       </div>
     </div>
-  </div>  -->
+  </div>
 
   <!-- Footer / Pagination -->
   <div class="footer">
@@ -186,11 +151,11 @@
       signals
     </p>
     <div class="pagination">
-      <button class="prev-btn" [disabled]="signBoxEntity.value.hasPreviousPage">Previous</button>
-      <span
-        >Page {{ signBoxEntity.value.currentPage }} of {{ signBoxEntity.value.totalPages }}</span
-      >
-      <button class="next-btn" [disabled]="signBoxEntity.value.hasNextPage">Next</button>
+      <button class="prev-btn" [disabled]="!hasPreviousPage">Previous</button>
+      <span>
+        Page {{ signBoxEntity.value.currentPage }} of {{ signBoxEntity.value.totalPages }}
+      </span>
+      <button class="next-btn" [disabled]="!hasNextPage">Next</button>
     </div>
   </div>
 </div>
