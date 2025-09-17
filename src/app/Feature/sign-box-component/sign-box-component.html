@@ -1,0 +1,196 @@
+<div class="container-fluid">
+  <div class="header">
+    <h1 class="title">Traffic Signal Management</h1>
+
+    <div class="search-container">
+      <div class="search-box">
+        <i class="fas fa-search search-icon"></i>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search by name or ID..."
+          [(ngModel)]="searchParameter.searchText"
+        />
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-dropdown status-filter-dropdown">
+        <button class="filter-button">
+          <i class="fas fa-filter"></i>
+          Status Filter
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="filter-menu">
+          <div class="filter-option">
+            <span class="checkmark"> </span>
+            <span>Filter All</span>
+          </div>
+          <div class="filter-divider"></div>
+          <div class="filter-option">
+            <span class="status-dot"></span>
+            <span> </span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Filter -->
+      <div class="filter-dropdown active-filter-dropdown">
+        <button class="filter-button">
+          <i class="fas fa-power-off"></i>
+          Active Filter
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="filter-menu">
+          <div class="filter-option">
+            <span>All</span>
+            <span class="checkmark"> </span>
+          </div>
+          <div class="filter-option">
+            <span>Active Only</span>
+            <span class="checkmark"> </span>
+          </div>
+          <div class="filter-option">
+            <span>Inactive Only</span>
+            <span class="checkmark"> </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <table class="traffic-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>IpAddress</th>
+        <th>Name</th>
+        <th>Active</th>
+        <!-- <th>Current</th> -->
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of signBoxEntity.value.data">
+        <td>{{ item.id }}</td>
+        <td>{{ item.ipAddress }}</td>
+        <td>{{ item.name }}</td>
+        <td>
+          <span [ngClass]="item.active ? 'active' : 'inactive'">
+            {{ item.active ? 'active' : 'inactive' }}
+          </span>
+        </td>
+        <!-- <td>
+          <button
+            class="btn btn-success"
+            (click)="applyCurrent(traffic, $event)"
+          >
+            Apply
+          </button>
+        </td> -->
+      </tr>
+      <tr *ngIf="signBoxEntity.value.data.length === 0">
+        <td colspan="4" class="no-results">No traffic signals found matching your criteria</td>
+      </tr>
+    </tbody>
+  </table>
+  <!-- popup -->
+  <!-- <div
+    class="traffic-popup"
+       >
+    <div class="tp-header">
+      <div class="tp-title">
+        <span
+          class="tp-dot"
+                ></span>
+        <span class="tp-name"> </span>
+      </div>
+      <span class="tp-chip"  >
+       </span>
+    </div>
+
+     <div class="tp-meta">
+      <div class="tp-meta__item">
+        <i class="tp-ico">📍</i>
+        <span> </span>
+      </div>
+      <div class="tp-meta__sep">•</div>
+      <div class="tp-meta__item">
+        <i class="tp-ico">🧭</i>
+        <span> </span>
+      </div>
+    </div>
+
+     <div class="tp-grid">
+      <div class="tp-col">
+        <div class="tp-col__head">
+          <span class="tp-col__label">L1</span>
+          <span
+            class="tp-timer"
+            
+            > s</span
+          >
+        </div>
+
+        <div
+          class="tp-lamp"
+           
+        >
+        
+        </div>
+
+        <div class="tp-legend">
+          <span
+            class="tp-dot sm red"
+           ></span>
+          <span
+            class="tp-dot sm green"
+           ></span>
+          <span
+            class="tp-dot sm yellow"
+           ></span>
+        </div>
+      </div>
+
+       <div class="tp-col">
+        <div class="tp-col__head">
+          <span class="tp-col__label">L2</span>
+          <span
+            ></span
+          >
+        </div>
+         <div
+          class="tp-lamp"
+         >
+         </div>
+
+        <div class="tp-legend">
+          <span
+            class="tp-dot sm red"
+           ></span>
+          <span
+            class="tp-dot sm green"
+           ></span>
+          <span
+            class="tp-dot sm yellow"
+           ></span>
+        </div>
+      </div>
+    </div>
+  </div>  -->
+
+  <!-- Footer / Pagination -->
+  <div class="footer">
+    <p>
+      Showing {{ signBoxEntity.value.pageSize }} of {{ signBoxEntity.value.totalPages }} traffic
+      signals
+    </p>
+    <div class="pagination">
+      <button class="prev-btn" [disabled]="signBoxEntity.value.hasPreviousPage">Previous</button>
+      <span
+        >Page {{ signBoxEntity.value.currentPage }} of {{ signBoxEntity.value.totalPages }}</span
+      >
+      <button class="next-btn" [disabled]="signBoxEntity.value.hasNextPage">Next</button>
+    </div>
+  </div>
+</div>
