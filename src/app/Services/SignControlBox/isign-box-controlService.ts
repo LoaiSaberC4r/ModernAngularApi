@@ -7,6 +7,7 @@ import { catchError, map, Observable, of, shareReplay } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
 import { GetAllSignControlBoxWithLightPattern } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
 import { Result } from '../../Domain/ResultPattern/Result';
+import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern';
 
 @Injectable({
   providedIn: 'root',
@@ -102,6 +103,31 @@ export class ISignBoxControlService {
           }
           // نفس النمط: نرجّع الـ Result كما هو بعد التحقق
           const mapped: Result = resp;
+          return mapped;
+        }),
+        catchError((err) => {
+          console.error('Failed to apply sign box', err);
+          return of({} as Result);
+        }),
+        shareReplay(1)
+      );
+  }
+
+  AddWithUpdateLightPattern(payload: AddSignBoxWithUpdateLightPattern): Observable<Result> {
+    return this.http
+      .post<Result>(
+        // لو عايز تستعمل الـ baseUrl بدل الثابت: `${environment.baseUrl}/SignControlBox/ApplySignBox`
+        `${environment.baseUrl}/SignControlBox/AddWithUpdateLightPattern`,
+        payload
+      )
+      .pipe(
+        map((resp) => {
+          if (!resp.isSuccess) {
+            throw new Error(resp.error?.description ?? 'Unknown error');
+          }
+          // نفس النمط: نرجّع الـ Result كما هو بعد التحقق
+          const mapped: Result = resp;
+          alert('Success');
           return mapped;
         }),
         catchError((err) => {
