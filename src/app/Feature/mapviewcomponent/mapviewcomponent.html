@@ -1,0 +1,170 @@
+<div class="bg-signin">
+  <div class="map-container">
+    <div class="nav-side"></div>
+
+    <!-- Form Section -->
+    <div class="point-select">
+      <form class="traffic-form">
+        <!-- Governorate -->
+        <div class="form-group">
+          <label class="form-label"> Governorate <span class="required">*</span> </label>
+          <select class="form-control" formControlName="governorate">
+            <option value="">-- Select Governorate --</option>
+            <option></option>
+          </select>
+          <div class="invalid-feedback">Governorate is required</div>
+        </div>
+
+        <!-- Area -->
+        <div class="form-group">
+          <label class="form-label"> Area <span class="required">*</span> </label>
+          <select class="form-control" formControlName="area" [disabled]="false">
+            <option value="">-- Select Area --</option>
+            <option></option>
+          </select>
+          <div class="invalid-feedback">Area is required</div>
+        </div>
+
+        <!-- Name -->
+        <div class="form-group">
+          <label class="form-label"> Name <span class="required">*</span> </label>
+          <input
+            class="form-control"
+            type="text"
+            formControlName="name"
+            placeholder="Descriptive name"
+          />
+          <div class="invalid-feedback">Name is required</div>
+        </div>
+
+        <!-- Coordinates -->
+        <div class="coordinates-container">
+          <div class="form-group coordinate-field">
+            <label class="form-label">Latitude <span class="required">*</span></label>
+            <input
+              class="form-control"
+              type="text"
+              formControlName="latitude"
+              placeholder="Latitude"
+            />
+            <div class="invalid-feedback">Valid latitude is required</div>
+          </div>
+
+          <div class="form-group coordinate-field">
+            <label class="form-label">Longitude <span class="required">*</span></label>
+            <input
+              class="form-control"
+              type="text"
+              formControlName="longitude"
+              placeholder="Longitude"
+            />
+            <div class="invalid-feedback">Valid longitude is required</div>
+          </div>
+        </div>
+
+        <!-- IP -->
+        <div class="form-group">
+          <label class="form-label">IP Address <span class="required">*</span></label>
+          <input
+            class="form-control"
+            type="text"
+            formControlName="ipAddress"
+            placeholder="IP Address"
+          />
+          <div class="invalid-feedback">Valid IP address is required</div>
+        </div>
+
+        <!-- Light Pattern -->
+        <div class="light-pattern-section">
+          <h5 class="section-header">Light Pattern</h5>
+
+          <div class="form-group">
+            <label class="form-label">Select Template</label>
+            <select class="form-control" formControlName="template">
+              <option value="0">- N/A -</option>
+              <option></option>
+            </select>
+          </div>
+
+          <div class="template-patterns-section">
+            <h6 class="template-patterns-header">Template Patterns</h6>
+            <div class="pattern-item">
+              <span class="pattern-icon">
+                <img src="assets/img/traffic-light-305721.png" height="30" alt="Traffic Pattern" />
+              </span>
+              <span class="pattern-badge"> </span>
+              <span class="pattern-time">From: </span>
+              <span class="pattern-time">To: </span>
+            </div>
+          </div>
+
+          <div class="light-timing-controls mt-3">
+            <div class="light-control">
+              <img src="assets/img/g.png" height="45" alt="Green Light" />
+              <div class="time-input-container">
+                <input
+                  class="form-control"
+                  type="number"
+                  formControlName="greenTime"
+                  min="0"
+                  max="1000"
+                  step="1"
+                />
+                <span class="time-unit">sec.</span>
+              </div>
+              <div class="invalid-feedback">Value must be between 0 and 1000</div>
+            </div>
+
+            <div class="light-control">
+              <img src="assets/img/a.png" height="45" alt="Amber Light" />
+              <div class="time-input-container">
+                <input
+                  class="form-control"
+                  type="number"
+                  formControlName="amberTime"
+                  min="0"
+                  max="1000"
+                  step="1"
+                />
+                <span class="time-unit">sec.</span>
+              </div>
+              <div class="invalid-feedback">Value must be between 0 and 1000</div>
+            </div>
+
+            <div class="light-control">
+              <img src="assets/img/r.png" height="45" alt="Red Light" />
+              <div class="time-input-container">
+                <input
+                  class="form-control"
+                  type="number"
+                  formControlName="redTime"
+                  [disabled]="true"
+                />
+                <span class="time-unit">sec.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="template-details"></div>
+      </form>
+    </div>
+
+    <!-- Map Section -->
+    <div class="map-view">
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="point-settings">
+    <button class="btn btn-outline-success">
+      <strong>Apply &#10097;</strong>
+    </button>
+    <button class="btn btn-outline-danger ms-2">
+      <strong>Delete &#10006;</strong>
+    </button>
+  </div>
+
+  <img class="sticky" src="assets/img/nile.png" alt="Nile" />
+</div>

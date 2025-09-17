@@ -1,0 +1,168 @@
+<div class="container-fluid">
+  <div class="header">
+    <h1 class="title">Traffic Controller</h1>
+
+    <div class="search-container">
+      <div class="search-box">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" class="search-input" placeholder="Search by name or ID..." />
+      </div>
+
+      <!-- Status Filter -->
+      <div class="filter-dropdown status-filter-dropdown">
+        <button class="filter-button">
+          <i class="fas fa-filter"></i>
+          Status Filter
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="filter-menu">
+          <div class="filter-option">
+            <span class="checkmark"> </span>
+            <span>Filter All</span>
+          </div>
+          <div class="filter-divider"></div>
+          <div class="filter-option">
+            <span class="status-dot"></span>
+            <span>Active</span>
+            <span class="checkmark">✓</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Filter -->
+      <div class="filter-dropdown active-filter-dropdown">
+        <button class="filter-button">
+          <i class="fas fa-power-off"></i>
+          Active Filter
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="filter-menu">
+          <div class="filter-option">
+            <span>All</span>
+            <span class="checkmark"> </span>
+          </div>
+          <div class="filter-option">
+            <span>Active Only</span>
+            <span class="checkmark"> </span>
+          </div>
+          <div class="filter-option">
+            <span>Inactive Only</span>
+            <span class="checkmark"> </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <table class="traffic-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>IpAddress</th>
+        <th>Name</th>
+        <th>Pattern</th>
+        <th>Current</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>127.0.0.1</td>
+        <td>Signal 1</td>
+
+        <!-- Pattern column (اختيار افتراضي من LightPatternId) -->
+        <td class="pattern-cell">
+          <select class="form-select custom-select" title="Choose a pattern for this signal">
+            <!-- يظهر فقط لو مفيش قيمة مختارة -->
+            <option disabled selected>Choose...</option>
+
+            <!-- القائمة الفعلية -->
+            <option></option>
+          </select>
+        </td>
+
+        <!-- Apply column -->
+        <td class="apply-cell">
+          <button class="btn btn-success" title="Apply selected pattern to this signal">
+            Apply
+          </button>
+        </td>
+      </tr>
+
+      <tr>
+        <td colspan="6" class="no-results">No traffic signals found matching your criteria</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Popup -->
+  <div class="traffic-popup">
+    <!-- Header -->
+    <div class="tp-header">
+      <div class="tp-title">
+        <span class="tp-dot"></span>
+        <span class="tp-name"> </span>
+      </div>
+      <span class="tp-chip"> Live </span>
+    </div>
+
+    <!-- Coordinates -->
+    <div class="tp-meta">
+      <div class="tp-meta__item">
+        <i class="tp-ico">📍</i>
+        <span> </span>
+      </div>
+      <div class="tp-meta__sep">•</div>
+      <div class="tp-meta__item">
+        <i class="tp-ico">🧭</i>
+        <span> </span>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="tp-grid">
+      <!-- L1 -->
+      <div class="tp-col">
+        <div class="tp-col__head">
+          <span class="tp-col__label">L1</span>
+          <span class="tp-timer"></span>
+        </div>
+
+        <div class="tp-lamp"></div>
+
+        <div class="tp-legend">
+          <span class="tp-dot sm red"></span>
+          <span class="tp-dot sm green"></span>
+          <span class="tp-dot sm yellow"></span>
+        </div>
+      </div>
+
+      <!-- L2 -->
+      <div class="tp-col">
+        <div class="tp-col__head">
+          <span class="tp-col__label">L2</span>
+          <span class="tp-timer">s</span>
+        </div>
+
+        <div class="tp-lamp"></div>
+
+        <div class="tp-legend">
+          <span class="tp-dot sm red"></span>
+          <span class="tp-dot sm green"></span>
+          <span class="tp-dot sm yellow"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer / Pagination -->
+  <div class="footer">
+    <p>Showing traffic signals</p>
+    <div class="pagination">
+      <button class="prev-btn">Previous</button>
+      <span>Page Of </span>
+      <button class="next-btn">Next</button>
+    </div>
+  </div>
+</div>

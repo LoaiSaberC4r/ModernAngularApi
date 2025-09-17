@@ -1,0 +1,157 @@
+<div class="traffic-control-container mt-5">
+  <h2 class="main-header">Traffic Point Configuration</h2>
+
+  <form class="traffic-form">
+    <div class="form-row">
+      <!-- Governorate -->
+      <div class="form-group">
+        <label class="form-label required">Governorate</label>
+        <select class="form-control">
+          <option>-- Select --</option>
+          <option></option>
+        </select>
+      </div>
+
+      <!-- Area -->
+      <div class="form-group">
+        <label class="form-label required">Area</label>
+        <select formControlName="area" class="form-control">
+          <option>-- Select --</option>
+          <option></option>
+        </select>
+      </div>
+
+      <!-- Name -->
+      <div class="form-group">
+        <label class="form-label required">Name</label>
+        <input formControlName="name" class="form-control" placeholder="Descriptive name" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label required">Latitude</label>
+        <input type="number" formControlName="latitude" class="form-control" step="0.0001" />
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Longitude</label>
+        <input type="number" formControlName="longitude" class="form-control" step="0.0001" />
+      </div>
+      <div class="form-group">
+        <label class="form-label required">IP Address</label>
+        <input formControlName="ipAddress" class="form-control" placeholder="192.168.1.50" />
+      </div>
+    </div>
+
+    <!-- Light Pattern -->
+    <div class="form-group">
+      <label class="form-label">Light Pattern</label>
+      <select formControlName="pattern" class="form-control">
+        <option>-- Select Pattern --</option>
+        <option></option>
+      </select>
+    </div>
+
+    <!-- Point Configuration -->
+    <div class="point-configuration">
+      <h3 class="section-title">Point Configuration</h3>
+
+      <div class="light-intervals">
+        <div class="light-control">
+          <img src="assets/img/g.png" height="50" alt="Green" class="light-icon" />
+          <label class="light-label">GREEN</label>
+          <input type="number" formControlName="green" class="time-input" min="0" max="255" />
+          <span class="time-unit">sec</span>
+        </div>
+
+        <div class="light-control">
+          <img src="assets/img/a.png" height="50" alt="Yellow" class="light-icon" />
+          <label class="light-label">YELLOW</label>
+          <input type="number" formControlName="yellow" class="time-input" min="0" max="255" />
+          <span class="time-unit">sec</span>
+        </div>
+
+        <div class="light-control">
+          <img src="assets/img/r.png" height="50" alt="Red" class="light-icon" />
+          <label class="light-label">RED</label>
+          <input type="number" formControlName="red" class="time-input" min="0" max="255" />
+          <span class="time-unit">sec</span>
+        </div>
+      </div>
+
+      <!-- Current Status -->
+      <!-- <div class="current-status">
+          <h4>Current Status</h4>
+          <div class="status-display">
+            <div class="status-values">
+              <span ghts">
+                <img
+                  [src]="'assets/img/' + light.icon"
+                  height="50"
+                  [alt]="(light.color | titlecase) + ' Light'"
+                  class="light-icon"
+                  [style.filter]="
+                    form.value[light.blink] && !light.active
+                      ? 'grayscale(1)'
+                      : 'grayscale(0)'
+                  "
+                />
+                : {{ light.value }}s
+              </span>
+            </div>
+          </div>
+        </div> -->
+
+      <!-- Blink Options -->
+      <div class="blink-options">
+        <div class="blink-title">Blink Options</div>
+        <div class="blink-controls">
+          <label class="blink-checkbox">
+            <input class="checkbox-blink" type="checkbox" formControlName="blinkGreen" />
+            Blink Green
+          </label>
+
+          <label class="blink-checkbox">
+            <input type="checkbox" formControlName="blinkYellow" />
+            Blink Yellow
+          </label>
+
+          <label class="blink-checkbox">
+            <input type="checkbox" formControlName="blinkRed" />
+            Blink Red
+          </label>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Blink (ms)</label>
+            <input type="number" formControlName="blinkMs" class="form-control" placeholder="500" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Pedestrian Timer:</label>
+            <input type="number" formControlName="blinkMs" class="form-control" placeholder="500" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Toggle Main Set -->
+      <!-- <div class="toggle-main">
+          <label class="toggle-switch">
+            <input type="checkbox" formControlName="toggleMain" />
+            <span class="slider"></span>
+            <span class="toggle-label">Toggle main-set</span>
+          </label>
+        </div> -->
+    </div>
+
+    <!-- Actions -->
+    <div class="action-buttons">
+      <!-- <button type="button" class="btn btn-run" (click)="runCommand()">
+          <span class="btn-icon">▶</span> Run
+        </button> -->
+      <button type="button" class="btn btn-apply"><span class="btn-icon">✔</span> Apply</button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,20 @@
+<div class="map-container">
+  <!-- @if (isLoading) {
+  <div class="map-loading">
+    <div class="spinner-border text-primary"></div>
+    <p>Loading map...</p>
+  </div>
+  } @if (mapError) {
+  <div class="alert alert-danger">
+    {{ mapError }}
+    <button class="btn btn-sm btn-primary">Retry</button>
+  </div>
+  } -->
+
+  <div #mapContainer id="map"></div>
+
+  <div class="map-controls">
+    <button class="btn btn-success btn-sm">Add Marker</button>
+    <button class="btn btn-danger btn-sm">Clear Markers</button>
+  </div>
+</div>

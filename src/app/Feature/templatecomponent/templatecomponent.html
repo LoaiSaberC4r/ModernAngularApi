@@ -1,0 +1,163 @@
+<!-- Alerts -->
+<!-- <div *ngIf="errorMsg" class="alert alert-danger container-fluid mt-2">
+  {{ errorMsg }}
+</div>
+<div *ngIf="loading" class="text-center mt-2">Loading…</div> -->
+
+<div class="container-fluid my-3 mt-5">
+  <div class="row g-3">
+    <!-- Left: col-lg-6 Templates -->
+    <div class="col-12 col-lg-7">
+      <section class="card shadow-sm h-100">
+        <!-- Header -->
+        <div class="card-header bg-brand">
+          <div class="row align-items-center g-2">
+            <!-- Title -->
+            <div class="col-12 col-sm-3">
+              <span class="fw-semibold">Templates</span>
+            </div>
+
+            <!-- Label + Dropdown aligned right -->
+            <div class="col-12 col-sm-6 ms-auto">
+              <div class="d-flex align-items-center justify-content-end gap-2">
+                <label class="col-form-label mb-0">Select Template</label>
+                <select class="form-select form-select-sm shadow-sm w-auto pe-4">
+                  <option></option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="card-body">
+          <!-- Template Name -->
+          <div class="row g-2 align-items-center mb-3">
+            <div class="col-auto">
+              <label class="col-form-label"> Name <span class="text-danger">*</span> </label>
+            </div>
+            <div class="col">
+              <input type="text" class="form-control" placeholder="Descriptive name" />
+            </div>
+          </div>
+
+          <!-- Rows list -->
+          <div class="schedule-list mb-3">
+            <div class="schedule-item border rounded p-2 mb-2">
+              <!-- Row header -->
+              <div class="item-head d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                  <img src="assets/img/traffic-light-30625.png" alt="tl" height="22" />
+                  <span class="fw-semibold"> </span>
+                </div>
+                <button class="btn btn-outline-danger btn-sm" type="button">✖</button>
+              </div>
+
+              <!-- Row body -->
+              <div class="item-body row g-2 mt-2">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small text-muted">From</label>
+                  <input type="time" class="form-control" />
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small text-muted">To</label>
+                  <input type="time" class="form-control" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div class="alert alert-info mb-0">
+              No rows. Pick a pattern on the left then press “Send”.
+            </div>
+          </div>
+
+          <!-- Add Pattern Row -->
+          <div class="row g-2 align-items-center mb-3">
+            <div class="col-auto">
+              <label class="col-form-label">Select</label>
+            </div>
+            <div class="col">
+              <select class="form-select">
+                <option></option>
+              </select>
+            </div>
+            <div class="col-auto">
+              <button class="btn btn-outline-success" type="button">Add To Template</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- right: col-lg-4 Light Pattern -->
+    <div class="col-12 col-lg-5">
+      <section class="card shadow-sm h-100">
+        <div class="card-header bg-brand text-dark text-center fw-semibold">Light Pattern</div>
+
+        <div class="card-body">
+          <form class="mt-3">
+            <label class="form-label">Name <span class="text-danger">*</span></label>
+            <input
+              type="text"
+              class="form-control"
+              formControlName="name"
+              placeholder="descriptive name"
+            />
+
+            <div class="row g-3 align-items-center mt-2">
+              <div class="col-12 d-flex align-items-center gap-2">
+                <img src="assets/img/g.png" alt="g" height="36" />
+                <input
+                  type="number"
+                  class="form-control w-auto"
+                  formControlName="green"
+                  min="0"
+                  max="1000"
+                  step="1"
+                />
+                <span class="fw-semibold">sec.</span>
+              </div>
+              <div class="col-12 d-flex align-items-center gap-2">
+                <img src="assets/img/a.png" alt="a" height="36" />
+                <input
+                  type="number"
+                  class="form-control w-auto"
+                  formControlName="amber"
+                  min="0"
+                  max="1000"
+                  step="1"
+                />
+                <span class="fw-semibold">sec.</span>
+              </div>
+              <div class="col-12 d-flex align-items-center gap-2">
+                <img src="assets/img/r.png" alt="r" height="36" />
+                <input
+                  type="number"
+                  class="form-control w-auto"
+                  formControlName="red"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  readonly
+                />
+                <span class="fw-semibold">sec.</span>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-3">
+              <button class="btn btn-outline-danger" type="button">Delete</button>
+              <button class="btn btn-success" type="button">Create Pattern</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="card-footer d-flex justify-content-center gap-2">
+  <button class="btn btn-outline-danger" type="button">Delete ✖</button>
+  <button class="btn btn-success" type="button">Save Template ›</button>
+</div>
