@@ -1,14 +1,16 @@
 <div class="traffic-control-container mt-5">
   <h2 class="main-header">Traffic Point Configuration</h2>
 
-  <form class="traffic-form">
+  <form [formGroup]="trafficForm" class="traffic-form">
     <div class="form-row">
       <!-- Governorate -->
       <div class="form-group">
         <label class="form-label required">Governorate</label>
-        <select class="form-control">
-          <option>-- Select --</option>
-          <option></option>
+        <select formControlName="governorate" class="form-control">
+          <option [ngValue]="null">-- Select --</option>
+          <option *ngFor="let g of governorates" [ngValue]="g">
+            {{ g.name }}
+          </option>
         </select>
       </div>
 
@@ -16,8 +18,10 @@
       <div class="form-group">
         <label class="form-label required">Area</label>
         <select formControlName="area" class="form-control">
-          <option>-- Select --</option>
-          <option></option>
+          <option [ngValue]="null">-- Select --</option>
+          <option *ngFor="let a of areas" [ngValue]="a">
+            {{ a.name }}
+          </option>
         </select>
       </div>
 

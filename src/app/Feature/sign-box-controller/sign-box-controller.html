@@ -62,7 +62,7 @@
         <td>{{ item.name }}</td>
         <td>
           <select
-            class="lp-select"
+            class="form-select lp-select"
             [(ngModel)]="item.lightPatternId"
             (ngModelChange)="onPatternChanged(item, $event)"
           >
@@ -70,11 +70,10 @@
               {{ p.name }}
             </option>
           </select>
-          <!-- (اختياري) لو عايز تظهر الاسم المختار أسفل الـ select -->
-          <!-- <div class="lp-current">Selected: {{ item.lightPatternName || '—' }}</div> -->
         </td>
+
         <td>
-          <button class="apply-button" (click)="applyPattern(item)">Apply</button>
+          <button class="apply-button btn btn-success" (click)="applyPattern(item)">Apply</button>
         </td>
       </tr>
 
