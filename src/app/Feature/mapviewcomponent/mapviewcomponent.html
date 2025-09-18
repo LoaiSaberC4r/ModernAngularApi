@@ -4,37 +4,57 @@
 
     <!-- Form Section -->
     <div class="point-select">
-      <form class="traffic-form">
+      <form class="traffic-form" [formGroup]="trafficForm" (ngSubmit)="onApply()">
         <!-- Governorate -->
         <div class="form-group">
-          <label class="form-label"> Governorate <span class="required">*</span> </label>
-          <select class="form-control" formControlName="governorate">
-            <option value="">-- Select Governorate --</option>
-            <option></option>
+          <label class="form-label">Governorate <span class="required">*</span></label>
+          <select
+            class="form-control"
+            formControlName="governorate"
+            (change)="onGovernorateChange($event)"
+            [class.is-invalid]="f['governorate'].touched && f['governorate'].invalid"
+          >
+            <option value="">-- Select --</option>
+            <option *ngFor="let g of governates" [value]="g.id">
+              {{ g.name }}
+            </option>
           </select>
-          <div class="invalid-feedback">Governorate is required</div>
+          <div class="invalid-feedback" *ngIf="f['governorate'].touched && f['governorate'].invalid">
+            Governorate is required
+          </div>
         </div>
 
         <!-- Area -->
         <div class="form-group">
-          <label class="form-label"> Area <span class="required">*</span> </label>
-          <select class="form-control" formControlName="area" [disabled]="false">
-            <option value="">-- Select Area --</option>
-            <option></option>
+          <label class="form-label">Area <span class="required">*</span></label>
+          <select
+            class="form-control"
+            formControlName="area"
+            [class.is-invalid]="f['area'].touched && f['area'].invalid"
+          >
+            <option [ngValue]="null">-- Select --</option>
+            <option *ngFor="let a of areas" [value]="a.id">
+              {{ a.name }}
+            </option>
           </select>
-          <div class="invalid-feedback">Area is required</div>
+          <div class="invalid-feedback" *ngIf="f['area'].touched && f['area'].invalid">
+            Area is required
+          </div>
         </div>
 
         <!-- Name -->
         <div class="form-group">
-          <label class="form-label"> Name <span class="required">*</span> </label>
+          <label class="form-label">Name <span class="required">*</span></label>
           <input
             class="form-control"
             type="text"
             formControlName="name"
             placeholder="Descriptive name"
+            [class.is-invalid]="f['name'].touched && f['name'].invalid"
           />
-          <div class="invalid-feedback">Name is required</div>
+          <div class="invalid-feedback" *ngIf="f['name'].touched && f['name'].invalid">
+            Name is required
+          </div>
         </div>
 
         <!-- Coordinates -->
@@ -46,8 +66,11 @@
               type="text"
               formControlName="latitude"
               placeholder="Latitude"
+              [class.is-invalid]="f['latitude'].touched && f['latitude'].invalid"
             />
-            <div class="invalid-feedback">Valid latitude is required</div>
+            <div class="invalid-feedback" *ngIf="f['latitude'].touched && f['latitude'].invalid">
+              Valid latitude is required
+            </div>
           </div>
 
           <div class="form-group coordinate-field">
@@ -57,8 +80,11 @@
               type="text"
               formControlName="longitude"
               placeholder="Longitude"
+              [class.is-invalid]="f['longitude'].touched && f['longitude'].invalid"
             />
-            <div class="invalid-feedback">Valid longitude is required</div>
+            <div class="invalid-feedback" *ngIf="f['longitude'].touched && f['longitude'].invalid">
+              Valid longitude is required
+            </div>
           </div>
         </div>
 
@@ -70,8 +96,11 @@
             type="text"
             formControlName="ipAddress"
             placeholder="IP Address"
+            [class.is-invalid]="f['ipAddress'].touched && f['ipAddress'].invalid"
           />
-          <div class="invalid-feedback">Valid IP address is required</div>
+          <div class="invalid-feedback" *ngIf="f['ipAddress'].touched && f['ipAddress'].invalid">
+            Valid IP address is required
+          </div>
         </div>
 
         <!-- Light Pattern -->
@@ -109,10 +138,13 @@
                   min="0"
                   max="1000"
                   step="1"
+                  [class.is-invalid]="f['greenTime'].touched && f['greenTime'].invalid"
                 />
                 <span class="time-unit">sec.</span>
               </div>
-              <div class="invalid-feedback">Value must be between 0 and 1000</div>
+              <div class="invalid-feedback" *ngIf="f['greenTime'].touched && f['greenTime'].invalid">
+                Value must be between 0 and 1000
+              </div>
             </div>
 
             <div class="light-control">
@@ -125,21 +157,19 @@
                   min="0"
                   max="1000"
                   step="1"
+                  [class.is-invalid]="f['amberTime'].touched && f['amberTime'].invalid"
                 />
                 <span class="time-unit">sec.</span>
               </div>
-              <div class="invalid-feedback">Value must be between 0 and 1000</div>
+              <div class="invalid-feedback" *ngIf="f['amberTime'].touched && f['amberTime'].invalid">
+                Value must be between 0 and 1000
+              </div>
             </div>
 
             <div class="light-control">
               <img src="assets/img/r.png" height="45" alt="Red Light" />
               <div class="time-input-container">
-                <input
-                  class="form-control"
-                  type="number"
-                  formControlName="redTime"
-                  [disabled]="true"
-                />
+                <input class="form-control" type="number" formControlName="redTime" [disabled]="true" />
                 <span class="time-unit">sec.</span>
               </div>
             </div>
@@ -147,6 +177,16 @@
         </div>
 
         <div class="template-details"></div>
+
+        <!-- Actions -->
+        <div class="point-settings">
+          <button class="btn btn-outline-success" type="submit">
+            <strong>Apply &#10097;</strong>
+          </button>
+          <button class="btn btn-outline-danger ms-2" type="button">
+            <strong>Delete &#10006;</strong>
+          </button>
+        </div>
       </form>
     </div>
 
@@ -154,16 +194,6 @@
     <div class="map-view">
       <div #mapContainer id="map"></div>
     </div>
-  </div>
-
-  <!-- Actions -->
-  <div class="point-settings">
-    <button class="btn btn-outline-success">
-      <strong>Apply &#10097;</strong>
-    </button>
-    <button class="btn btn-outline-danger ms-2">
-      <strong>Delete &#10006;</strong>
-    </button>
   </div>
 
   <img class="sticky" src="assets/img/nile.png" alt="Nile" />

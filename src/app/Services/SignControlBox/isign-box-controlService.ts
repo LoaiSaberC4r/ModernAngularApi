@@ -8,6 +8,8 @@ import { environment } from '../../Shared/environment/environment';
 import { GetAllSignControlBoxWithLightPattern } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
 import { Result } from '../../Domain/ResultPattern/Result';
 import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern';
+import { ResultV } from '../../Domain/ResultPattern/ResultV';
+import { GetAllSignBoxLocation } from '../../Domain/Entity/SignControlBox/GetAllSignBoxLocation';
 
 @Injectable({
   providedIn: 'root',
@@ -15,6 +17,7 @@ import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignContro
 export class ISignBoxControlService {
   private readonly http = inject(HttpClient);
   private cache = new Map<string, Pagination<GetAllSignControlBox>>();
+  private cacheLocation = new Map<string, ResultV<GetAllSignBoxLocation>>();
   private cahceWithLightPattern = new Map<
     string,
     Pagination<GetAllSignControlBoxWithLightPattern>
@@ -133,6 +136,38 @@ export class ISignBoxControlService {
         catchError((err) => {
           console.error('Failed to apply sign box', err);
           return of({} as Result);
+        }),
+        shareReplay(1)
+      );
+  }
+
+  getAllLocatopn(): Observable<ResultV<GetAllSignBoxLocation>> {
+    const query = new HttpParams();
+
+    const cacheKey = query.toString();
+    if (this.cacheLocation.has(cacheKey)) {
+      return of(this.cacheLocation.get(cacheKey)!);
+    }
+
+    return this.http
+      .get<ResultV<GetAllSignBoxLocation>>(
+        `${environment.baseUrl}/SignControlBox/GetSignControlBoxLocations`,
+        {
+          params: query,
+        }
+      )
+      .pipe(
+        map((resp) => {
+          if (!resp.isSuccess) {
+            throw new Error(resp.error?.description ?? 'Unknown error');
+          }
+          const mapped: ResultV<GetAllSignBoxLocation> = resp;
+          this.cacheLocation.set(cacheKey, mapped);
+          return mapped;
+        }),
+        catchError((err) => {
+          console.error('Failed to load control boxes', err);
+          return of({} as ResultV<GetAllSignBoxLocation>);
         }),
         shareReplay(1)
       );

@@ -91,7 +91,21 @@ export class SignBoxController {
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
-        if (!message) return;
+        if (!message) {
+          const cur = this.signBoxEntity;
+
+          this.signBoxEntity = {
+            ...cur,
+            value: {
+              ...cur.value,
+              data: cur.value.data.map((x) => ({
+                ...x,
+                active: false,
+              })),
+            },
+          };
+        }
+        console.log(message);
 
         const id = message.ID;
 
