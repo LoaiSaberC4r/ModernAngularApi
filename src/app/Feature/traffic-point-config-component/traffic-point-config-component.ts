@@ -1,5 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule, NgFor } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
 import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
@@ -13,7 +13,7 @@ import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-
 @Component({
   selector: 'app-traffic-point-config-component',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, NgFor],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './traffic-point-config-component.html',
   styleUrls: ['./traffic-point-config-component.css'],
 })
