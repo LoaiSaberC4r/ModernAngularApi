@@ -7,6 +7,7 @@ import {
   LightPatternForTemplatePattern,
   TemplatePattern,
 } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
+import { Result } from '../../Domain/ResultPattern/Result';
 
 @Injectable({
   providedIn: 'root',
@@ -68,5 +69,21 @@ export class ITemplatePatternService {
         }),
         shareReplay(1)
       );
+  } 
+deleteTemplate(templateId: number): Observable<Result> {
+    const params = new HttpParams().set('templateId', String(templateId));
+    return this.http
+      .delete<Result>(`${environment.baseUrl}/TemplatePattern/DeleteTemplate`, { params })
+      .pipe(
+        map((resp) => {
+          if (!resp.isSuccess) throw new Error(resp.error?.description ?? 'Unknown error');
+          return resp;
+        }),
+        catchError((err) => {
+          console.error('Delete Template failed', err);
+          return of({ isSuccess: false, error: { description: 'Delete failed' } } as Result);
+        })
+      );
   }
+  
 }

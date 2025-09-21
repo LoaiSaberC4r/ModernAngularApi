@@ -16,19 +16,11 @@ import { LightPatternService } from '../../Services/LightPattern/light-pattern-s
 import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
 import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern';
 import { AddLightPatternCommand } from '../../Domain/Entity/LightPattern/AddLightPattern';
-
-export interface TemplatePattern {
-  templateId: number;
-  templateName: string;
-  lightPatterns: LightPatternForTemplatePattern[];
-}
-
-export interface LightPatternForTemplatePattern {
-  lightPatternId: number;
-  startFrom: string; // "HH:mm" أو "HH:mm:ss"
-  finishBy: string; // "HH:mm" أو "HH:mm:ss"
-  lightPatternName: string; // تمت الإضافة
-}
+import {
+  LightPatternForTemplatePattern,
+  TemplatePattern,
+} from '../../Domain/Entity/TemplatePattern/TemplatePattern';
+import { ResultV } from '../../Domain/ResultPattern/ResultV';
 
 @Component({
   selector: 'app-templatecomponent',
@@ -47,57 +39,60 @@ export class Templatecomponent implements OnInit {
   // Data
   templates: GetAllTemplate[] = [];
   lightPatterns: GetAllLightPattern[] = [];
-  patternForm!: FormGroup;
+
+  // UI state
   submitting = false;
 
-  // Reactive Form
+  // =========================
+  // Forms (templateId يبدأ بـ 0 دائمًا)
+  // =========================
   templateForm: FormGroup = this.fb.group({
-    templateId: new FormControl<number | null>(null),
+    templateId: new FormControl<number>(0, { nonNullable: true }), // 👈 default = 0
     templateName: new FormControl<string>('', {
       nonNullable: true,
       validators: [Validators.required],
     }),
     rows: this.fb.array<FormGroup>([]),
   });
-  constructor(private fbb: FormBuilder) {}
+
+  patternForm: FormGroup = this.fb.group({
+    name: ['', Validators.required],
+    selectedPattern: [null as GetAllLightPattern | null],
+    green: [0, [Validators.required, Validators.min(0)]],
+    yellow: [0, [Validators.required, Validators.min(0)]],
+    red: [0, [Validators.required, Validators.min(0)]],
+  });
 
   get rows(): FormArray<FormGroup> {
     return this.templateForm.get('rows') as FormArray<FormGroup>;
   }
 
+  // =========================
+  // Lifecycle
+  // =========================
   ngOnInit(): void {
-    this.patternForm = this.fb.group({
-      name: ['', Validators.required],
-      selectedPattern: [null],
-      green: [0, [Validators.required, Validators.min(0)]],
-      yellow: [0, [Validators.required, Validators.min(0)]],
-      red: [0],
-    }); 
+    this.loadTemplates();
+    this.loadLightPatterns();
+
+    // Auto-fill من الاختيار
     this.patternForm.get('selectedPattern')!.valueChanges.subscribe((p: GetAllLightPattern | null) => {
       if (p) {
-        this.patternForm.patchValue({
-          name: p.name,
-          green: p.green,
-          yellow: p.yellow,
-          red: p.red,
-        }, { emitEvent: false });
+        this.patternForm.patchValue(
+          { name: p.name, green: p.green, yellow: p.yellow, red: p.red },
+          { emitEvent: false }
+        );
       } else {
-        // Reset للقيم لو لغى الاختيار
-        this.patternForm.patchValue({
-          name: '',
-          green: 0,
-          yellow: 0,
-          red: 0,
-        }, { emitEvent: false });
+        this.patternForm.patchValue(
+          { name: '', green: 0, yellow: 0, red: 0 },
+          { emitEvent: false }
+        );
       }
     });
-    this.loadTemplates();
-    this.loadLightPatterns(); 
-
-    
   }
 
+  // =========================
   // Loaders
+  // =========================
   private loadTemplates() {
     this.templateService.GetAll().subscribe((resp) => {
       this.templates = resp?.value ?? [];
@@ -110,38 +105,46 @@ export class Templatecomponent implements OnInit {
     });
   }
 
-  // On select template
+  // =========================
+  // Template selection
+  // =========================
   onTemplateChange(e: Event) {
     const select = e.target as HTMLSelectElement;
-    const id = select.value ? Number(select.value) : null;
+    const id = select.value ? Number(select.value) : 0; // 👈 لو فاضي يبقى 0
 
     if (!id) {
-      this.templateForm.reset({ templateId: null, templateName: '' });
+      // رجّع 0 بدل null
+      this.templateForm.reset({ templateId: 0, templateName: '' });
       this.rows.clear();
       return;
     }
 
-    this.templatePatternService.GetAllByTemplateId(id).subscribe((resp) => {
-      // backend بيرجع name؟ لو لأ، هنجيب الاسم من كاش lightPatterns
-      const patterns: LightPatternForTemplatePattern[] = (resp?.value ?? []).map((p) => ({
-        ...p,
-        lightPatternName:
-          p.lightPatternName ||
-          this.lightPatterns.find((lp) => lp.id === p.lightPatternId)?.name ||
-          `#${p.lightPatternId}`,
-      }));
+    this.templatePatternService
+      .GetAllByTemplateId(id)
+      .subscribe((resp: ResultV<LightPatternForTemplatePattern>) => {
+        const list = resp?.value ?? [];
 
-      this.templateForm.patchValue({
-        templateId: id,
-        templateName: this.templates.find((t) => t.id === id)?.name ?? '',
+        const patterns: LightPatternForTemplatePattern[] = list.map((p) => ({
+          ...p,
+          lightPatternName:
+            p.lightPatternName ||
+            this.lightPatterns.find((lp) => lp.id === p.lightPatternId)?.name ||
+            `#${p.lightPatternId}`,
+        }));
+
+        this.templateForm.patchValue({
+          templateId: id,
+          templateName: this.templates.find((t) => t.id === id)?.name ?? '',
+        });
+
+        this.rows.clear();
+        patterns.forEach((p) => this.rows.push(this.createRow(p)));
       });
-
-      this.rows.clear();
-      patterns.forEach((p) => this.rows.push(this.createRow(p)));
-    });
   }
 
+  // =========================
   // Row helpers
+  // =========================
   private createRow(p: LightPatternForTemplatePattern): FormGroup {
     return this.fb.group({
       lightPatternId: new FormControl<number>(p.lightPatternId, { nonNullable: true }),
@@ -154,6 +157,7 @@ export class Templatecomponent implements OnInit {
   }
 
   addRowFromSelect(lightPatternId: number) {
+    if (!lightPatternId) return;
     const lp = this.lightPatterns.find((x) => x.id === lightPatternId);
     this.rows.push(
       this.createRow({
@@ -169,43 +173,76 @@ export class Templatecomponent implements OnInit {
     this.rows.removeAt(index);
   }
 
-  // Save
+  // =========================
+  // Save / Delete (Templates)
+  // =========================
   saveTemplatePattern() {
-    if (!this.templateForm.valid) return;
+    if (!this.templateForm.valid || this.rows.length === 0) {
+      this.templateForm.markAllAsTouched();
+      return;
+    }
 
     const payload: TemplatePattern = {
-      templateId: this.templateForm.value.templateId!,
-      templateName: this.templateForm.value.templateName!,
-      lightPatterns: this.rows.value.map((r) => ({
+      // 👇 هيكون 0 لو مفيش اختيار
+      templateId: this.templateForm.value.templateId as number,
+      templateName: this.templateForm.value.templateName as string,
+      lightPatterns: this.rows.value.map((r: any) => ({
         lightPatternId: r.lightPatternId,
-        lightPatternName: r.lightPatternName, // نحافظ عليها لو الـ API بقى يدعمها
+        lightPatternName: r.lightPatternName, // هيتجاهل لو الـ API مش بيدعمه
         startFrom: this.toHHmmss(r.startFrom),
         finishBy: this.toHHmmss(r.finishBy),
       })),
     };
 
-    // بدّل بالميثود الصحيح في خدمتك
-    this.templatePatternService.AddOrUpdateLightPattern(payload).subscribe(() => {
-      // TODO: Toast/Alert success
-      alert('success');
+    this.submitting = true;
+    this.templatePatternService.AddOrUpdateLightPattern(payload).subscribe((resp) => {
+      this.submitting = false;
+      if (resp?.isSuccess) {
+        alert('Template saved successfully ✅');
+
+        // لو فيه id (حتى لو 0) هنعمل refresh مناسب:
+        const currentId = payload.templateId || 0;
+        if (currentId > 0) {
+          const fakeEvent = { target: { value: String(currentId) } } as unknown as Event;
+          this.onTemplateChange(fakeEvent);
+        } else {
+          // لو 0 امسح الجدول وخلي الاسم فاضي
+          this.templateForm.reset({ templateId: 0, templateName: '' });
+          this.rows.clear();
+        }
+      } else {
+        alert(resp?.error?.description ?? 'Save failed');
+      }
     });
   }
 
-  // Time utils
-  private toHHmm(s?: string | null): string {
-    if (!s) return '00:00';
-    const [h = '00', m = '00'] = s.split(':');
-    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+  deleteTemplate() {
+    const id = (this.templateForm.value.templateId as number) || 0;
+    if (id <= 0) {
+      alert('Please select a template to delete.');
+      return;
+    }
+    if (!confirm('Are you sure you want to delete this template?')) return;
+
+    this.submitting = true;
+    this.templatePatternService.deleteTemplate(id).subscribe((resp) => {
+      this.submitting = false;
+      if (resp?.isSuccess) {
+        alert('Template deleted successfully 🗑️');
+        this.templateForm.reset({ templateId: 0, templateName: '' }); // 👈 ارجاع 0
+        this.rows.clear();
+        this.loadTemplates();
+      } else {
+        alert(resp?.error?.description ?? 'Delete failed');
+      }
+    });
   }
 
-  private toHHmmss(s?: string | null): string {
-    if (!s) return '00:00:00';
-    const [h = '00', m = '00'] = s.split(':');
-    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
-  }
-  onPatternChange(event: any): void {
-    const selected: GetAllLightPattern = this.patternForm.value.selectedPattern;
-
+  // =========================
+  // Light Pattern CRUD (اختياري)
+  // =========================
+  onPatternChange(): void {
+    const selected: GetAllLightPattern | null = this.patternForm.value.selectedPattern;
     if (selected) {
       this.patternForm.patchValue({
         red: selected.red,
@@ -213,7 +250,7 @@ export class Templatecomponent implements OnInit {
         yellow: selected.yellow,
       });
     }
-  } 
+  }
 
   createPattern(): void {
     if (this.patternForm.invalid) return;
@@ -223,7 +260,7 @@ export class Templatecomponent implements OnInit {
     const selected: GetAllLightPattern | null = raw.selectedPattern;
 
     const payload: AddLightPatternCommand = {
-      id: selected ? selected.id : 0, // 👈 لو في اختيار ياخد id وإلا 0
+      id: selected ? selected.id : 0,
       name: raw.name,
       greenTime: Number(raw.green) || 0,
       yellowTime: Number(raw.yellow) || 0,
@@ -241,41 +278,50 @@ export class Templatecomponent implements OnInit {
           yellow: 0,
           red: 0,
         });
+        this.loadLightPatterns();
       } else {
         alert(resp?.error?.description ?? 'Failed to save pattern');
       }
     });
-  } 
-
-
-  deletePattern(): void {
-  const selected: GetAllLightPattern | null = this.patternForm.value.selectedPattern;
-  if (!selected) {
-    alert('Please select a pattern to delete.');
-    return;
   }
 
-  if (!confirm(`Delete "${selected.name}"?`)) return;
-
-  this.lightPatternService.delete(selected.id).subscribe((resp) => {
-    if (resp?.isSuccess) {
-      alert('Pattern deleted successfully!');
-      // امسح الفورم بعد الحذف
-      this.patternForm.reset({
-        name: '',
-        selectedPattern: null,
-        green: 0,
-        yellow: 0,
-        red: 0,
-      });
-      // تقدر تعمل reload للـ list
-      // this.loadPatterns();
-    } else {
-      alert(resp?.error?.description ?? 'Delete failed');
+  deletePattern(): void {
+    const selected: GetAllLightPattern | null = this.patternForm.value.selectedPattern;
+    if (!selected) {
+      alert('Please select a pattern to delete.');
+      return;
     }
-  });
+    if (!confirm(`Delete "${selected.name}"?`)) return;
+
+    this.lightPatternService.delete(selected.id).subscribe((resp) => {
+      if (resp?.isSuccess) {
+        alert('Pattern deleted successfully!');
+        this.patternForm.reset({
+          name: '',
+          selectedPattern: null,
+          green: 0,
+          yellow: 0,
+          red: 0,
+        });
+        this.loadLightPatterns();
+      } else {
+        alert(resp?.error?.description ?? 'Delete failed');
+      }
+    });
+  }
+
+  // =========================
+  // Time utils
+  // =========================
+  private toHHmm(s?: string | null): string {
+    if (!s) return '00:00';
+    const [h = '00', m = '00'] = s.split(':');
+    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+  }
+
+  private toHHmmss(s?: string | null): string {
+    if (!s) return '00:00:00';
+    const [h = '00', m = '00'] = s.split(':');
+    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
+  }
 }
-
-} 
-
-

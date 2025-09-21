@@ -8,7 +8,7 @@
 <div *ngIf="loading" class="text-center mt-2">Loading…</div>
 -->
 
-<div class="container-fluid my-3 mt-5">
+<div class="container-fluid my-3 mt-5" [formGroup]="templateForm">
   <div class="row g-3">
     <!-- =========================
       Left: Templates Card
@@ -24,22 +24,26 @@
             </div>
 
             <!-- Template selector (right aligned) -->
-            <div class="col-12 col-sm-6 ms-auto">
-              <div class="d-flex align-items-center justify-content-end gap-2">
-                <label for="templateSelect" class="col-form-label mb-0">Select Template</label>
-                <select id="templateSelect" class="form-control" (change)="onTemplateChange($event)">
-                  <option value="">-- Select --</option>
-                  <option *ngFor="let t of templates" [value]="t.id">
-                    {{ t.name }}
-                  </option>
-                </select>
-              </div>
-            </div>
           </div>
         </div>
 
         <!-- Body -->
-        <div class="card-body" [formGroup]="templateForm">
+        <div class="card-body">
+          <div class="col-12 col-sm-6 ms-auto">
+            <div class="d-flex align-items-center justify-content-end gap-2">
+              <label for="templateSelect" class="col-form-label mb-0 w-100">Select Template</label>
+              <select
+                id="templateSelect"
+                class="form-control w-100"
+                (change)="onTemplateChange($event)"
+              >
+                <option value="">-- Select --</option>
+                <option *ngFor="let t of templates" [value]="t.id">
+                  {{ t.name }}
+                </option>
+              </select>
+            </div>
+          </div>
           <!-- Template Name -->
           <div class="row g-2 align-items-center mb-3">
             <div class="col-auto">
@@ -54,9 +58,18 @@
                 class="form-control"
                 placeholder="Descriptive name"
                 formControlName="templateName"
-                [class.is-invalid]="templateForm.get('templateName')?.invalid && templateForm.get('templateName')?.touched"
+                [class.is-invalid]="
+                  templateForm.get('templateName')?.invalid &&
+                  templateForm.get('templateName')?.touched
+                "
               />
-              <div class="invalid-feedback" *ngIf="templateForm.get('templateName')?.invalid && templateForm.get('templateName')?.touched">
+              <div
+                class="invalid-feedback"
+                *ngIf="
+                  templateForm.get('templateName')?.invalid &&
+                  templateForm.get('templateName')?.touched
+                "
+              >
                 Template name is required.
               </div>
             </div>
@@ -94,18 +107,18 @@
               <!-- Row body -->
               <div class="item-body row g-2 mt-2">
                 <div class="col-12 col-md-6">
-                  <label class="form-label small text-muted" for="startFrom{{i}}">From</label>
+                  <label class="form-label small text-muted" for="startFrom{{ i }}">From</label>
                   <input
-                    id="startFrom{{i}}"
+                    id="startFrom{{ i }}"
                     type="time"
                     class="form-control"
                     formControlName="startFrom"
                   />
                 </div>
                 <div class="col-12 col-md-6">
-                  <label class="form-label small text-muted" for="finishBy{{i}}">To</label>
+                  <label class="form-label small text-muted" for="finishBy{{ i }}">To</label>
                   <input
-                    id="finishBy{{i}}"
+                    id="finishBy{{ i }}"
                     type="time"
                     class="form-control"
                     formControlName="finishBy"
@@ -129,7 +142,7 @@
               <select id="lpSel" class="form-select" #lpSel>
                 <option value="">-- choose --</option>
                 <option *ngFor="let lp of lightPatterns" [value]="lp.id">
-                  {{ lp.name || ('ID ' + lp.id) }}
+                  {{ lp.name || 'ID ' + lp.id }}
                 </option>
               </select>
             </div>
@@ -144,97 +157,121 @@
             </div>
           </div>
         </div>
+
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <!-- Delete -->
+          <button
+            class="btn btn-outline-danger"
+            type="button"
+            (click)="deleteTemplate()"
+            [disabled]="!templateForm.value.templateId || submitting"
+          >
+            Delete Template ✖
+          </button>
+
+          <!-- Save/Update -->
+          <button
+            class="btn btn-primary"
+            type="button"
+            (click)="saveTemplatePattern()"
+            [disabled]="submitting || templateForm.invalid || rows.length === 0"
+          >
+            {{ submitting ? 'Saving…' : 'Save Template 💾' }}
+          </button>
+        </div>
       </section>
+      <!-- Footer -->
     </div>
 
     <!-- =========================
       Right: Light Pattern Editor
     ========================= -->
     <div class="col-12 col-lg-5">
-      <section class="card shadow-sm h-100">
+      <section class="card shadow-sm h-100" [formGroup]="patternForm">
         <div class="card-header">
           <span class="fw-semibold">Light Pattern</span>
         </div>
 
         <div class="card-body">
-          <form [formGroup]="patternForm" novalidate>
-            <!-- Name -->
-            <label for="lpName" class="form-label">Name <span class="text-danger">*</span></label>
-            <input
-              id="lpName"
-              type="text"
-              class="form-control"
-              placeholder="Descriptive name"
-              formControlName="name"
-              [class.is-invalid]="patternForm.get('name')?.invalid && patternForm.get('name')?.touched"
-            />
-            <div class="invalid-feedback" *ngIf="patternForm.get('name')?.invalid && patternForm.get('name')?.touched">
-              Name is required.
+          <!-- Name -->
+          <label for="lpName" class="form-label">Name <span class="text-danger">*</span></label>
+          <input
+            id="lpName"
+            type="text"
+            class="form-control"
+            placeholder="Descriptive name"
+            formControlName="name"
+            [class.is-invalid]="
+              patternForm.get('name')?.invalid && patternForm.get('name')?.touched
+            "
+          />
+          <div
+            class="invalid-feedback"
+            *ngIf="patternForm.get('name')?.invalid && patternForm.get('name')?.touched"
+          >
+            Name is required.
+          </div>
+
+          <!-- Select Pattern -->
+          <label for="patternSelect" class="form-label mt-3">Select Pattern (optional)</label>
+          <select
+            id="patternSelect"
+            class="form-select"
+            formControlName="selectedPattern"
+            (change)="onPatternChange()"
+          >
+            <option [ngValue]="null">-- No Selection --</option>
+            <option *ngFor="let p of lightPatterns" [ngValue]="p">
+              {{ p.name }}
+            </option>
+          </select>
+
+          <!-- Times -->
+          <div class="row g-3 align-items-center mt-2">
+            <div class="col-12 d-flex align-items-center gap-2">
+              <img src="assets/img/g.png" alt="green" height="36" />
+              <input
+                type="number"
+                class="form-control w-auto"
+                formControlName="green"
+                min="0"
+                max="1000"
+                step="1"
+                aria-label="Green seconds"
+              />
+              <span class="fw-semibold">sec.</span>
             </div>
 
-            <!-- Select Pattern -->
-            <label for="patternSelect" class="form-label mt-3">Select Pattern (optional)</label>
-            <select
-              id="patternSelect"
-              class="form-select"
-              formControlName="selectedPattern"
-              (change)="onPatternChange($event)"
-            >
-              <option [ngValue]="null">-- No Selection --</option>
-              <option *ngFor="let p of lightPatterns" [ngValue]="p">
-                {{ p.name }}
-              </option>
-            </select>
-
-            <!-- Times -->
-            <div class="row g-3 align-items-center mt-2">
-              <div class="col-12 d-flex align-items-center gap-2">
-                <img src="assets/img/g.png" alt="green" height="36" />
-                <input
-                  type="number"
-                  class="form-control w-auto"
-                  formControlName="green"
-                  min="0"
-                  max="1000"
-                  step="1"
-                  aria-label="Green seconds"
-                />
-                <span class="fw-semibold">sec.</span>
-              </div>
-
-              <div class="col-12 d-flex align-items-center gap-2">
-                <img src="assets/img/a.png" alt="yellow" height="36" />
-                <input
-                  type="number"
-                  class="form-control w-auto"
-                  formControlName="yellow"
-                  min="0"
-                  max="1000"
-                  step="1"
-                  aria-label="Yellow seconds"
-                />
-                <span class="fw-semibold">sec.</span>
-              </div>
-
-              <div class="col-12 d-flex align-items-center gap-2">
-                <img src="assets/img/r.png" alt="red" height="36" />
-                <input
-                  type="number"
-                  class="form-control w-auto"
-                  formControlName="red"
-                  min="0"
-                  max="1000"
-                  step="1"
-                  readonly
-                  aria-label="Red seconds"
-                />
-                <span class="fw-semibold">sec.</span>
-              </div>
+            <div class="col-12 d-flex align-items-center gap-2">
+              <img src="assets/img/a.png" alt="yellow" height="36" />
+              <input
+                type="number"
+                class="form-control w-auto"
+                formControlName="yellow"
+                min="0"
+                max="1000"
+                step="1"
+                aria-label="Yellow seconds"
+              />
+              <span class="fw-semibold">sec.</span>
             </div>
-          </form>
+
+            <div class="col-12 d-flex align-items-center gap-2">
+              <img src="assets/img/r.png" alt="red" height="36" />
+              <input
+                type="number"
+                class="form-control w-auto"
+                formControlName="red"
+                min="0"
+                max="1000"
+                step="1"
+                aria-label="Red seconds"
+              />
+              <span class="fw-semibold">sec.</span>
+            </div>
+          </div>
         </div>
 
-        <!-- Footer -->
         <div class="card-footer d-flex justify-content-center gap-2">
           <button
             class="btn btn-outline-danger"
