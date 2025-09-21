@@ -15,6 +15,7 @@ import { LightPatternService } from '../../Services/LightPattern/light-pattern-s
 
 import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
 import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern';
+import { AddLightPatternCommand } from '../../Domain/Entity/LightPattern/AddLightPattern';
 
 export interface TemplatePattern {
   templateId: number;
@@ -46,6 +47,8 @@ export class Templatecomponent implements OnInit {
   // Data
   templates: GetAllTemplate[] = [];
   lightPatterns: GetAllLightPattern[] = [];
+  patternForm!: FormGroup;
+  submitting = false;
 
   // Reactive Form
   templateForm: FormGroup = this.fb.group({
@@ -56,14 +59,42 @@ export class Templatecomponent implements OnInit {
     }),
     rows: this.fb.array<FormGroup>([]),
   });
+  constructor(private fbb: FormBuilder) {}
 
   get rows(): FormArray<FormGroup> {
     return this.templateForm.get('rows') as FormArray<FormGroup>;
   }
 
   ngOnInit(): void {
+    this.patternForm = this.fb.group({
+      name: ['', Validators.required],
+      selectedPattern: [null],
+      green: [0, [Validators.required, Validators.min(0)]],
+      yellow: [0, [Validators.required, Validators.min(0)]],
+      red: [0],
+    }); 
+    this.patternForm.get('selectedPattern')!.valueChanges.subscribe((p: GetAllLightPattern | null) => {
+      if (p) {
+        this.patternForm.patchValue({
+          name: p.name,
+          green: p.green,
+          yellow: p.yellow,
+          red: p.red,
+        }, { emitEvent: false });
+      } else {
+        // Reset للقيم لو لغى الاختيار
+        this.patternForm.patchValue({
+          name: '',
+          green: 0,
+          yellow: 0,
+          red: 0,
+        }, { emitEvent: false });
+      }
+    });
     this.loadTemplates();
-    this.loadLightPatterns();
+    this.loadLightPatterns(); 
+
+    
   }
 
   // Loaders
@@ -156,6 +187,7 @@ export class Templatecomponent implements OnInit {
     // بدّل بالميثود الصحيح في خدمتك
     this.templatePatternService.AddOrUpdateLightPattern(payload).subscribe(() => {
       // TODO: Toast/Alert success
+      alert('success');
     });
   }
 
@@ -171,4 +203,79 @@ export class Templatecomponent implements OnInit {
     const [h = '00', m = '00'] = s.split(':');
     return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
   }
+  onPatternChange(event: any): void {
+    const selected: GetAllLightPattern = this.patternForm.value.selectedPattern;
+
+    if (selected) {
+      this.patternForm.patchValue({
+        red: selected.red,
+        green: selected.green,
+        yellow: selected.yellow,
+      });
+    }
+  } 
+
+  createPattern(): void {
+    if (this.patternForm.invalid) return;
+    this.submitting = true;
+
+    const raw = this.patternForm.getRawValue();
+    const selected: GetAllLightPattern | null = raw.selectedPattern;
+
+    const payload: AddLightPatternCommand = {
+      id: selected ? selected.id : 0, // 👈 لو في اختيار ياخد id وإلا 0
+      name: raw.name,
+      greenTime: Number(raw.green) || 0,
+      yellowTime: Number(raw.yellow) || 0,
+      redTime: Number(raw.red) || 0,
+    };
+
+    this.lightPatternService.add(payload).subscribe((resp) => {
+      this.submitting = false;
+      if (resp?.isSuccess) {
+        alert('Pattern saved successfully!');
+        this.patternForm.reset({
+          name: '',
+          selectedPattern: null,
+          green: 0,
+          yellow: 0,
+          red: 0,
+        });
+      } else {
+        alert(resp?.error?.description ?? 'Failed to save pattern');
+      }
+    });
+  } 
+
+
+  deletePattern(): void {
+  const selected: GetAllLightPattern | null = this.patternForm.value.selectedPattern;
+  if (!selected) {
+    alert('Please select a pattern to delete.');
+    return;
+  }
+
+  if (!confirm(`Delete "${selected.name}"?`)) return;
+
+  this.lightPatternService.delete(selected.id).subscribe((resp) => {
+    if (resp?.isSuccess) {
+      alert('Pattern deleted successfully!');
+      // امسح الفورم بعد الحذف
+      this.patternForm.reset({
+        name: '',
+        selectedPattern: null,
+        green: 0,
+        yellow: 0,
+        red: 0,
+      });
+      // تقدر تعمل reload للـ list
+      // this.loadPatterns();
+    } else {
+      alert(resp?.error?.description ?? 'Delete failed');
+    }
+  });
 }
+
+} 
+
+

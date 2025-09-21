@@ -1,4 +1,6 @@
-<!-- Alerts (موقوفة) -->
+<!-- =========================
+  Alerts (اختياري)
+========================= -->
 <!--
 <div *ngIf="errorMsg" class="alert alert-danger container-fluid mt-2">
   {{ errorMsg }}
@@ -8,7 +10,9 @@
 
 <div class="container-fluid my-3 mt-5">
   <div class="row g-3">
-    <!-- Left: Templates -->
+    <!-- =========================
+      Left: Templates Card
+    ========================= -->
     <div class="col-12 col-lg-7">
       <section class="card shadow-sm h-100">
         <!-- Header -->
@@ -19,34 +23,48 @@
               <span class="fw-semibold">Templates</span>
             </div>
 
-            <!-- Label + Dropdown aligned right -->
+            <!-- Template selector (right aligned) -->
             <div class="col-12 col-sm-6 ms-auto">
               <div class="d-flex align-items-center justify-content-end gap-2">
-                <label class="col-form-label mb-0">Select Template</label>
-                <select class="form-control" (change)="onTemplateChange($event)">
+                <label for="templateSelect" class="col-form-label mb-0">Select Template</label>
+                <select id="templateSelect" class="form-control" (change)="onTemplateChange($event)">
                   <option value="">-- Select --</option>
-                  <option *ngFor="let t of templates" [value]="t.id">{{ t.name }}</option>
+                  <option *ngFor="let t of templates" [value]="t.id">
+                    {{ t.name }}
+                  </option>
                 </select>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Body (مربوط بالفورم) -->
+        <!-- Body -->
         <div class="card-body" [formGroup]="templateForm">
           <!-- Template Name -->
           <div class="row g-2 align-items-center mb-3">
             <div class="col-auto">
-              <label class="col-form-label"> Name <span class="text-danger">*</span> </label>
+              <label for="templateName" class="col-form-label">
+                Name <span class="text-danger">*</span>
+              </label>
             </div>
             <div class="col">
-              <input type="text" class="form-control" placeholder="Descriptive name" formControlName="templateName" />
+              <input
+                id="templateName"
+                type="text"
+                class="form-control"
+                placeholder="Descriptive name"
+                formControlName="templateName"
+                [class.is-invalid]="templateForm.get('templateName')?.invalid && templateForm.get('templateName')?.touched"
+              />
+              <div class="invalid-feedback" *ngIf="templateForm.get('templateName')?.invalid && templateForm.get('templateName')?.touched">
+                Template name is required.
+              </div>
             </div>
           </div>
 
           <!-- Rows list -->
           <div class="schedule-list mb-3" formArrayName="rows">
-            <!-- عناصر موجودة -->
+            <!-- Existing items -->
             <div
               class="schedule-item border rounded p-2 mb-2"
               *ngFor="let row of rows.controls; let i = index"
@@ -55,41 +73,60 @@
               <!-- Row header -->
               <div class="item-head d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
-                  <img src="assets/img/traffic-light-30625.png" alt="tl" height="22" />
-                  <!-- اسم النمط بدل #ID -->
+                  <img src="assets/img/traffic-light-30625.png" alt="traffic light" height="22" />
                   <span class="fw-semibold">
-                    {{ rows.at(i).get('lightPatternName')?.value || ('LightPattern #' + rows.at(i).get('lightPatternId')?.value) }}
+                    {{
+                      rows.at(i).get('lightPatternName')?.value ||
+                        'LightPattern #' + rows.at(i).get('lightPatternId')?.value
+                    }}
                   </span>
                 </div>
-                <button class="btn btn-outline-danger btn-sm" type="button" (click)="removeRow(i)">✖</button>
+                <button
+                  class="btn btn-outline-danger btn-sm"
+                  type="button"
+                  (click)="removeRow(i)"
+                  aria-label="Remove row"
+                >
+                  ✖
+                </button>
               </div>
 
               <!-- Row body -->
               <div class="item-body row g-2 mt-2">
                 <div class="col-12 col-md-6">
-                  <label class="form-label small text-muted">From</label>
-                  <input type="time" class="form-control" formControlName="startFrom" />
+                  <label class="form-label small text-muted" for="startFrom{{i}}">From</label>
+                  <input
+                    id="startFrom{{i}}"
+                    type="time"
+                    class="form-control"
+                    formControlName="startFrom"
+                  />
                 </div>
                 <div class="col-12 col-md-6">
-                  <label class="form-label small text-muted">To</label>
-                  <input type="time" class="form-control" formControlName="finishBy" />
+                  <label class="form-label small text-muted" for="finishBy{{i}}">To</label>
+                  <input
+                    id="finishBy{{i}}"
+                    type="time"
+                    class="form-control"
+                    formControlName="finishBy"
+                  />
                 </div>
               </div>
             </div>
 
             <!-- Empty State -->
             <div class="alert alert-info mb-0" *ngIf="rows.length === 0">
-              No rows. Pick a pattern on the left then press “Send”.
+              No rows. Pick a pattern on the right, then press “Add To Template”.
             </div>
           </div>
 
           <!-- Add Pattern Row -->
           <div class="row g-2 align-items-center mb-3">
             <div class="col-auto">
-              <label class="col-form-label">Select</label>
+              <label for="lpSel" class="col-form-label">Select</label>
             </div>
             <div class="col">
-              <select class="form-select" #lpSel>
+              <select id="lpSel" class="form-select" #lpSel>
                 <option value="">-- choose --</option>
                 <option *ngFor="let lp of lightPatterns" [value]="lp.id">
                   {{ lp.name || ('ID ' + lp.id) }}
@@ -110,47 +147,114 @@
       </section>
     </div>
 
-    <!-- Right: Light Pattern (كما هو) -->
+    <!-- =========================
+      Right: Light Pattern Editor
+    ========================= -->
     <div class="col-12 col-lg-5">
       <section class="card shadow-sm h-100">
-        <div class="card-header bg-brand text-dark text-center fw-semibold">Light Pattern</div>
+        <div class="card-header">
+          <span class="fw-semibold">Light Pattern</span>
+        </div>
 
         <div class="card-body">
-          <form class="mt-3">
-            <label class="form-label">Name <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" placeholder="descriptive name" />
+          <form [formGroup]="patternForm" novalidate>
+            <!-- Name -->
+            <label for="lpName" class="form-label">Name <span class="text-danger">*</span></label>
+            <input
+              id="lpName"
+              type="text"
+              class="form-control"
+              placeholder="Descriptive name"
+              formControlName="name"
+              [class.is-invalid]="patternForm.get('name')?.invalid && patternForm.get('name')?.touched"
+            />
+            <div class="invalid-feedback" *ngIf="patternForm.get('name')?.invalid && patternForm.get('name')?.touched">
+              Name is required.
+            </div>
 
+            <!-- Select Pattern -->
+            <label for="patternSelect" class="form-label mt-3">Select Pattern (optional)</label>
+            <select
+              id="patternSelect"
+              class="form-select"
+              formControlName="selectedPattern"
+              (change)="onPatternChange($event)"
+            >
+              <option [ngValue]="null">-- No Selection --</option>
+              <option *ngFor="let p of lightPatterns" [ngValue]="p">
+                {{ p.name }}
+              </option>
+            </select>
+
+            <!-- Times -->
             <div class="row g-3 align-items-center mt-2">
               <div class="col-12 d-flex align-items-center gap-2">
-                <img src="assets/img/g.png" alt="g" height="36" />
-                <input type="number" class="form-control w-auto" min="0" max="1000" step="1" />
+                <img src="assets/img/g.png" alt="green" height="36" />
+                <input
+                  type="number"
+                  class="form-control w-auto"
+                  formControlName="green"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  aria-label="Green seconds"
+                />
                 <span class="fw-semibold">sec.</span>
               </div>
-              <div class="col-12 d-flex align-items-center gap-2">
-                <img src="assets/img/a.png" alt="a" height="36" />
-                <input type="number" class="form-control w-auto" min="0" max="1000" step="1" />
-                <span class="fw-semibold">sec.</span>
-              </div>
-              <div class="col-12 d-flex align-items-center gap-2">
-                <img src="assets/img/r.png" alt="r" height="36" />
-                <input type="number" class="form-control w-auto" min="0" max="1000" step="1" readonly />
-                <span class="fw-semibold">sec.</span>
-              </div>
-            </div>
 
-            <div class="d-flex justify-content-end gap-2 mt-3">
-              <button class="btn btn-outline-danger" type="button">Delete</button>
-              <button class="btn btn-success" type="button">Create Pattern</button>
+              <div class="col-12 d-flex align-items-center gap-2">
+                <img src="assets/img/a.png" alt="yellow" height="36" />
+                <input
+                  type="number"
+                  class="form-control w-auto"
+                  formControlName="yellow"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  aria-label="Yellow seconds"
+                />
+                <span class="fw-semibold">sec.</span>
+              </div>
+
+              <div class="col-12 d-flex align-items-center gap-2">
+                <img src="assets/img/r.png" alt="red" height="36" />
+                <input
+                  type="number"
+                  class="form-control w-auto"
+                  formControlName="red"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  readonly
+                  aria-label="Red seconds"
+                />
+                <span class="fw-semibold">sec.</span>
+              </div>
             </div>
           </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="card-footer d-flex justify-content-center gap-2">
+          <button
+            class="btn btn-outline-danger"
+            type="button"
+            (click)="deletePattern()"
+            [disabled]="!patternForm.value.selectedPattern"
+          >
+            Delete ✖
+          </button>
+
+          <button
+            class="btn btn-success"
+            type="button"
+            (click)="createPattern()"
+            [disabled]="patternForm.invalid || submitting"
+          >
+            {{ submitting ? 'Saving…' : 'Create Pattern ›' }}
+          </button>
         </div>
       </section>
     </div>
   </div>
-</div>
-
-<!-- Footer -->
-<div class="card-footer d-flex justify-content-center gap-2">
-  <button class="btn btn-outline-danger" type="button" (click)="rows.clear()">Delete ✖</button>
-  <button class="btn btn-success" type="button" (click)="saveTemplatePattern()">Save Template ›</button>
 </div>
