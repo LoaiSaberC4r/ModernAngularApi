@@ -13,6 +13,8 @@
 
 /* Card header */
 .card-header {
+  background: linear-gradient(135deg, #9ed0a6 0%, #9ed0a6 100%) !important;
+  color: #fff !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   padding: 10px 12px;
   font-size: 0.9rem;
