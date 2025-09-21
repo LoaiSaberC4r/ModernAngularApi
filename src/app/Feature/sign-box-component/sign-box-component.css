@@ -8,7 +8,7 @@
   background: linear-gradient(135deg, #9ed0a6 0%, #bac7db 100%);
   min-height: 100vh;
   padding: 20px;
-  font-family: "Inter", sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .container-fluid {
@@ -178,7 +178,7 @@
 }
 
 .traffic-table th:not(:last-child):after {
-  content: "";
+  content: '';
   position: absolute;
   right: 0;
   top: 50%;
@@ -525,4 +525,43 @@
     right: auto;
     left: 0;
   }
+}
+.traffic-light {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+}
+
+.tp-lamp {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+  font-size: 20px;
+}
+
+.tp-lamp.active {
+  opacity: 1;
+}
+
+.is-red {
+  color: red;
+}
+
+.is-yellow {
+  color: gold;
+}
+
+.is-green {
+  color: green;
+}
+
+.tp-lamp.disconnected {
+  color: gray !important;
+  opacity: 0.5;
 }

@@ -51,12 +51,7 @@
       </tr>
     </thead>
     <tbody>
-      <tr
-        *ngFor="let item of filteredData"
-        (mouseenter)="showPopup(item, $event)"
-        (mousemove)="movePopup($event)"
-        (mouseleave)="hidePopup()"
-      >
+      <tr *ngFor="let item of filteredData">
         <td>{{ item.id }}</td>
         <td>{{ item.ipAddress }}</td>
         <td>{{ item.name }}</td>
@@ -78,13 +73,13 @@
       </tr>
 
       <tr *ngIf="filteredData.length === 0">
-        <td colspan="4" class="no-results">No traffic signals found</td>
+        <td colspan="5" class="no-results">No traffic signals found</td>
       </tr>
     </tbody>
   </table>
 
   <!-- Popup -->
-  <div
+  <!-- <div
     class="traffic-popup"
     *ngIf="popupVisible"
     [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }"
@@ -117,5 +112,5 @@
         </div>
       </div>
     </div>
-  </div>
+  </div> -->
 </div>

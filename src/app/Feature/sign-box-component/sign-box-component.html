@@ -23,7 +23,7 @@
         </button>
         <div class="filter-menu" [class.show]="showActiveFilter">
           <div class="filter-option" (click)="setActiveFilter('ALL')">
-            <span>All</span>
+            <span>Filter All</span>
             <span class="checkmark">{{ activeFilter === 'ALL' ? '✓' : '' }}</span>
           </div>
           <div class="filter-option" (click)="setActiveFilter('ACTIVE')">
@@ -87,22 +87,87 @@
     </div>
 
     <div class="tp-grid">
+      <!-- L1 -->
       <div class="tp-col">
         <div class="tp-col__head">
           <span class="tp-col__label">L1</span>
-          <span class="tp-timer">{{ popupLive?.T1 ?? 0 }}s</span>
+          <span class="tp-timer">
+            {{ !isDisconnected ? (popupLive?.T1 ?? 0) + 's' : '--' }}
+          </span>
         </div>
-        <div class="tp-lamp" [ngClass]="mapCodeToClass(popupLive?.L1)">
-          {{ lightEmoji(popupLive?.L1) }}
+        <div class="traffic-light">
+          <div
+            class="tp-lamp"
+            [ngClass]="{
+              'is-red': true,
+              disconnected: isDisconnected,
+              active: !isDisconnected && popupLive?.L1 === 'R'
+            }"
+          >
+            🔴
+          </div>
+          <div
+            class="tp-lamp"
+            [ngClass]="{
+              'is-yellow': true,
+              disconnected: isDisconnected,
+              active: !isDisconnected && popupLive?.L1 === 'Y'
+            }"
+          >
+            🟡
+          </div>
+          <div
+            class="tp-lamp"
+            [ngClass]="{
+              'is-green': true,
+              disconnected: isDisconnected,
+              active: !isDisconnected && popupLive?.L1 === 'G'
+            }"
+          >
+            🟢
+          </div>
         </div>
       </div>
+
+      <!-- L2 -->
       <div class="tp-col">
         <div class="tp-col__head">
           <span class="tp-col__label">L2</span>
-          <span class="tp-timer">{{ popupLive?.T2 ?? 0 }}s</span>
+          <span class="tp-timer">
+            {{ !isDisconnected ? (popupLive?.T2 ?? 0) + 's' : '--' }}
+          </span>
         </div>
-        <div class="tp-lamp" [ngClass]="mapCodeToClass(popupLive?.L2)">
-          {{ lightEmoji(popupLive?.L2) }}
+        <div class="traffic-light">
+          <div
+            class="tp-lamp"
+            [ngClass]="{
+              'is-red': true,
+              disconnected: isDisconnected,
+              active: !isDisconnected && popupLive?.L2 === 'R'
+            }"
+          >
+            🔴
+          </div>
+          <div
+            class="tp-lamp"
+            [ngClass]="{
+              'is-yellow': true,
+              disconnected: isDisconnected,
+              active: !isDisconnected && popupLive?.L2 === 'Y'
+            }"
+          >
+            🟡
+          </div>
+          <div
+            class="tp-lamp"
+            [ngClass]="{
+              'is-green': true,
+              disconnected: isDisconnected,
+              active: !isDisconnected && popupLive?.L2 === 'G'
+            }"
+          >
+            🟢
+          </div>
         </div>
       </div>
     </div>

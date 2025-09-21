@@ -12,8 +12,8 @@ import { ResultError } from '../../Domain/ResultPattern/Error';
 
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { PopUpSignBox } from '../../Domain/PopUpSignBox/PopUpSignBox';
+import { Subscription, timer } from 'rxjs';
 
-// --- أنواع رسائل الهَب (لو عندكها جاهزة في دومينك، استوردها بدل التعريف ده)
 export interface ReceiveMessage {
   L1: 'R' | 'Y' | 'G';
   L2: 'R' | 'Y' | 'G';
@@ -41,6 +41,9 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   readonly status = this.signalr.status;
   readonly lastError = this.signalr.lastError;
   readonly messages = this.signalr.messages;
+
+  isDisconnected = false;
+  private disconnectTimerSub?: Subscription;
 
   searchParameter: SearchParameters = {};
   hasPreviousPage = false;
@@ -75,12 +78,14 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   latestById: Record<number, ReceiveMessage> = {};
 
   constructor() {
-    // استماع لرسائل SignalR
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
         if (!message) return;
         const id = message.ID;
+
+        this.disconnectTimerSub?.unsubscribe();
+        this.isDisconnected = false;
 
         this.latestById[id] = message;
 
@@ -109,6 +114,30 @@ export class SignBoxComponent implements OnInit, OnDestroy {
           }
         }
       });
+
+    toObservable(this.signalr.status)
+      .pipe(takeUntilDestroyed())
+      .subscribe((s) => {
+        if (s === 'disconnected') {
+          this.disconnectTimerSub?.unsubscribe();
+          this.disconnectTimerSub = timer(4000).subscribe(() => {
+            try {
+              const current =
+                typeof this.signalr.status === 'function'
+                  ? (this.signalr.status() as any)
+                  : (this.signalr.status as any);
+              if (current === 'disconnected') {
+                this.isDisconnected = true;
+              }
+            } catch {
+              this.isDisconnected = true;
+            }
+          });
+        } else {
+          this.disconnectTimerSub?.unsubscribe();
+          this.isDisconnected = false;
+        }
+      });
   }
 
   ngOnInit(): void {
@@ -118,6 +147,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.signalr.disconnect().catch(() => {});
+    this.disconnectTimerSub?.unsubscribe();
   }
 
   loadData(): void {

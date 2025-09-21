@@ -87,7 +87,7 @@ export class SignBoxController {
   latestById: Record<number, ReceiveMessage> = {};
 
   constructor() {
-    // استماع لرسائل SignalR
+    //  SignalR
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
@@ -104,8 +104,8 @@ export class SignBoxController {
               })),
             },
           };
+          return;
         }
-        console.log(message);
 
         const id = message.ID;
 
@@ -123,18 +123,19 @@ export class SignBoxController {
           },
         };
 
-        if (this.popupData?.Id === id) {
-          this.popupLive = message;
-          const row = this.signBoxEntity.value.data.find((x) => x.id === id);
-          if (row) {
-            this.popupData = {
-              ...this.popupData,
-              name: row.name ?? this.popupData.name,
-              Latitude: row.latitude ?? this.popupData.Latitude,
-              Longitude: row.longitude ?? this.popupData.Longitude,
-            };
-          }
-        }
+        // ===== Popup disabled =====
+        // if (this.popupData?.Id === id) {
+        //   this.popupLive = message;
+        //   const row = this.signBoxEntity.value.data.find((x) => x.id === id);
+        //   if (row) {
+        //     this.popupData = {
+        //       ...this.popupData,
+        //       name: row.name ?? this.popupData.name,
+        //       Latitude: row.latitude ?? this.popupData.Latitude,
+        //       Longitude: row.longitude ?? this.popupData.Longitude,
+        //     };
+        //   }
+        // }
       });
   }
 
