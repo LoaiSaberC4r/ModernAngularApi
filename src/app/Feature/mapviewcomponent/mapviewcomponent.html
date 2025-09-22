@@ -68,11 +68,7 @@
               placeholder="Latitude"
               [class.is-invalid]="f['latitude'].touched && f['latitude'].invalid"
             />
-            <div class="invalid-feedback" *ngIf="f['latitude'].touched && f['latitude'].invalid">
-              Valid latitude is required
-            </div>
           </div>
-
           <div class="form-group coordinate-field">
             <label class="form-label">Longitude <span class="required">*</span></label>
             <input
@@ -82,9 +78,6 @@
               placeholder="Longitude"
               [class.is-invalid]="f['longitude'].touched && f['longitude'].invalid"
             />
-            <div class="invalid-feedback" *ngIf="f['longitude'].touched && f['longitude'].invalid">
-              Valid longitude is required
-            </div>
           </div>
         </div>
 
@@ -98,9 +91,6 @@
             placeholder="IP Address"
             [class.is-invalid]="f['ipAddress'].touched && f['ipAddress'].invalid"
           />
-          <div class="invalid-feedback" *ngIf="f['ipAddress'].touched && f['ipAddress'].invalid">
-            Valid IP address is required
-          </div>
         </div>
 
         <!-- Light Pattern -->
@@ -109,83 +99,63 @@
 
           <div class="form-group">
             <label class="form-label">Select Template</label>
-            <select class="form-control" formControlName="template">
-              <option value="0">- N/A -</option>
-              <option></option>
+            <select class="form-control" formControlName="template" (change)="onTemplateChange($event)">
+              <option value="">-- Select --</option>
+              <option *ngFor="let g of templates" [value]="g.id">
+                {{ g.name }}
+              </option>
             </select>
           </div>
 
           <div class="template-patterns-section">
             <h6 class="template-patterns-header">Template Patterns</h6>
-            <div class="pattern-item">
+            <div *ngIf="!templatePatterns?.length" class="text-muted small">
+              No patterns to show. Select a template.
+            </div>
+            <div
+              class="pattern-item d-flex align-items-center gap-2 py-2 border-bottom"
+              *ngFor="let p of templatePatterns;"
+            >
               <span class="pattern-icon">
-                <img src="assets/img/traffic-light-305721.png" height="30" alt="Traffic Pattern" />
+                <img src="assets/img/traffic-light-305721.png" height="30" />
               </span>
-              <span class="pattern-badge"> </span>
-              <span class="pattern-time">From: </span>
-              <span class="pattern-time">To: </span>
+              <span class="pattern-badge badge bg-secondary">
+                {{ p.lightPatternName }}
+              </span>
+              <span class="pattern-time">From: {{ p.startFrom }}</span>
+              <span class="pattern-time">To: {{ p.finishBy }}</span>
+
+              <button
+                class="btn btn-sm"
+                [ngClass]="p.lightPatternId === selectedLightPatternId ? 'btn-success' : 'btn-outline-primary'"
+                type="button"
+                (click)="onTemplatePatternChange(p.lightPatternId)"
+              >
+                {{ p.lightPatternId === selectedLightPatternId ? 'Selected' : 'Select' }}
+              </button>
             </div>
           </div>
 
+          <!-- Timing Controls -->
           <div class="light-timing-controls mt-3">
             <div class="light-control">
               <img src="assets/img/g.png" height="45" alt="Green Light" />
-              <div class="time-input-container">
-                <input
-                  class="form-control"
-                  type="number"
-                  formControlName="greenTime"
-                  min="0"
-                  max="1000"
-                  step="1"
-                  [class.is-invalid]="f['greenTime'].touched && f['greenTime'].invalid"
-                />
-                <span class="time-unit">sec.</span>
-              </div>
-              <div class="invalid-feedback" *ngIf="f['greenTime'].touched && f['greenTime'].invalid">
-                Value must be between 0 and 1000
-              </div>
+              <input class="form-control" type="number" formControlName="greenTime" min="0" max="1000" step="1" />
             </div>
-
             <div class="light-control">
               <img src="assets/img/a.png" height="45" alt="Amber Light" />
-              <div class="time-input-container">
-                <input
-                  class="form-control"
-                  type="number"
-                  formControlName="amberTime"
-                  min="0"
-                  max="1000"
-                  step="1"
-                  [class.is-invalid]="f['amberTime'].touched && f['amberTime'].invalid"
-                />
-                <span class="time-unit">sec.</span>
-              </div>
-              <div class="invalid-feedback" *ngIf="f['amberTime'].touched && f['amberTime'].invalid">
-                Value must be between 0 and 1000
-              </div>
+              <input class="form-control" type="number" formControlName="amberTime" min="0" max="1000" step="1" />
             </div>
-
             <div class="light-control">
               <img src="assets/img/r.png" height="45" alt="Red Light" />
-              <div class="time-input-container">
-                <input class="form-control" type="number" formControlName="redTime" [disabled]="true" />
-                <span class="time-unit">sec.</span>
-              </div>
+              <input class="form-control" type="number" formControlName="redTime" [disabled]="true" />
             </div>
           </div>
         </div>
 
-        <div class="template-details"></div>
-
         <!-- Actions -->
         <div class="point-settings">
-          <button class="btn btn-outline-success" type="submit">
-            <strong>Apply &#10097;</strong>
-          </button>
-          <button class="btn btn-outline-danger ms-2" type="button">
-            <strong>Delete &#10006;</strong>
-          </button>
+          <button class="btn btn-outline-success" type="submit"><strong>Apply</strong></button>
         </div>
       </form>
     </div>
@@ -195,6 +165,4 @@
       <div #mapContainer id="map"></div>
     </div>
   </div>
-
-  <img class="sticky" src="assets/img/nile.png" alt="Nile" />
 </div>

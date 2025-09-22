@@ -10,6 +10,7 @@ import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLight
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { AddLightPatternCommand } from '../../Domain/Entity/LightPattern/AddLightPattern';
 import { Result } from '../../Domain/ResultPattern/Result';
+import { GetLightPattern } from '../../Domain/Entity/LightPattern/GetLightPattern';
 
 @Injectable({
   providedIn: 'root',
@@ -50,6 +51,35 @@ export class LightPatternService {
         catchError((err) => {
           console.error('Failed to load control boxes', err);
           return of({} as ResultV<GetAllLightPattern>);
+        }),
+        shareReplay(1)
+      );
+  }
+
+  getById(params: number): Observable<ResultV<GetLightPattern>> {
+    const query = new HttpParams().set('id', params ?? '');
+
+    const cacheKey = query.toString();
+    if (this.cache.has(cacheKey)) {
+      return of(this.cache.get(cacheKey)!);
+    }
+
+    return this.http
+      .get<ResultV<GetAllLightPattern>>(`${environment.baseUrl}/LightPattern/GetById`, {
+        params: query,
+      })
+      .pipe(
+        map((resp) => {
+          if (!resp.isSuccess) {
+            throw new Error(resp.error?.description ?? 'Unknown error');
+          }
+          const mapped: ResultV<GetAllLightPattern> = resp;
+          this.cache.set(cacheKey, mapped);
+          return mapped;
+        }),
+        catchError((err) => {
+          console.error('Failed to load control boxes', err);
+          return of({} as ResultV<GetLightPattern>);
         }),
         shareReplay(1)
       );

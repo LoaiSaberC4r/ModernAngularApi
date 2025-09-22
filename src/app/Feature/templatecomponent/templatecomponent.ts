@@ -75,19 +75,21 @@ export class Templatecomponent implements OnInit {
     this.loadLightPatterns();
 
     // Auto-fill من الاختيار
-    this.patternForm.get('selectedPattern')!.valueChanges.subscribe((p: GetAllLightPattern | null) => {
-      if (p) {
-        this.patternForm.patchValue(
-          { name: p.name, green: p.green, yellow: p.yellow, red: p.red },
-          { emitEvent: false }
-        );
-      } else {
-        this.patternForm.patchValue(
-          { name: '', green: 0, yellow: 0, red: 0 },
-          { emitEvent: false }
-        );
-      }
-    });
+    this.patternForm
+      .get('selectedPattern')!
+      .valueChanges.subscribe((p: GetAllLightPattern | null) => {
+        if (p) {
+          this.patternForm.patchValue(
+            { name: p.name, green: p.green, yellow: p.yellow, red: p.red },
+            { emitEvent: false }
+          );
+        } else {
+          this.patternForm.patchValue(
+            { name: '', green: 0, yellow: 0, red: 0 },
+            { emitEvent: false }
+          );
+        }
+      });
   }
 
   // =========================
@@ -120,7 +122,7 @@ export class Templatecomponent implements OnInit {
     }
 
     this.templatePatternService
-      .GetAllByTemplateId(id)
+      .GetAllTemplatePatternByTemplateId(id)
       .subscribe((resp: ResultV<LightPatternForTemplatePattern>) => {
         const list = resp?.value ?? [];
 
@@ -183,12 +185,11 @@ export class Templatecomponent implements OnInit {
     }
 
     const payload: TemplatePattern = {
-      // 👇 هيكون 0 لو مفيش اختيار
       templateId: this.templateForm.value.templateId as number,
       templateName: this.templateForm.value.templateName as string,
       lightPatterns: this.rows.value.map((r: any) => ({
         lightPatternId: r.lightPatternId,
-        lightPatternName: r.lightPatternName, // هيتجاهل لو الـ API مش بيدعمه
+        lightPatternName: r.lightPatternName,
         startFrom: this.toHHmmss(r.startFrom),
         finishBy: this.toHHmmss(r.finishBy),
       })),

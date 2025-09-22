@@ -41,7 +41,7 @@ export class ITemplatePatternService {
       );
   }
 
-  GetAllByTemplateId(Id: number): Observable<ResultV<LightPatternForTemplatePattern>> {
+  GetAllTemplatePatternByTemplateId(Id: number): Observable<ResultV<LightPatternForTemplatePattern>> {
     const query = new HttpParams().set('templateId', Id ?? '');
 
     const cacheKey = query.toString();
