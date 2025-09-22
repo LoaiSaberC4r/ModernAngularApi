@@ -39,17 +39,35 @@ export class TrafficPointConfigComponent implements OnInit {
       pattern: [],
       green: 0,
       yellow: 0,
-      red: 0,
+      red: [{ value: 0, disabled: true }],
       blinkGreen: [{ value: false, disabled: true }],
       blinkYellow: [{ value: false, disabled: true }],
       blinkRed: [{ value: false, disabled: true }],
       blinkMs: [500],
     });
+    this.trafficForm.get('green')?.valueChanges.subscribe(() => this.updateRedTime());
+    this.trafficForm.get('yellow')?.valueChanges.subscribe(() => this.updateRedTime());
 
     this.trafficForm.get('blinkGreen')?.disable();
     this.trafficForm.get('blinkYellow')?.disable();
     this.trafficForm.get('blinkRed')?.disable();
   }
+
+  // Update red time
+  private updateRedTime(): void {
+    const selectedPattern = this.trafficForm.get('pattern')?.value;
+
+    if (selectedPattern) return;
+
+    const green = Number(this.trafficForm.get('green')?.value) || 0;
+    const yellow = Number(this.trafficForm.get('yellow')?.value) || 0;
+    const redCtrl = this.trafficForm.get('red');
+
+    if (redCtrl) {
+      redCtrl.setValue(green + yellow, { emitEvent: false });
+    }
+  }
+
   ngOnInit(): void {
     this.loadGovernate();
     this.loadLightPattern();
@@ -76,21 +94,17 @@ export class TrafficPointConfigComponent implements OnInit {
     }
   }
   onLightPatternChange(): void {
-    // هتاخد الـ Object المختار (لأننا مستخدمين [ngValue]="p" في الـ <option>)
     const selected = this.trafficForm.get('pattern')!.value as GetAllLightPattern | null;
     if (!selected) return;
 
-    // Helper صغير لضبط القيمة بين 0..255 وتحويلها لرقم
     const clampByte = (n: unknown) => Math.max(0, Math.min(255, Number(n) || 0));
 
-    // حدّث القيم كلها مرة واحدة
     this.trafficForm.patchValue(
       {
         green: clampByte((selected as any).green),
         yellow: clampByte((selected as any).yellow),
         red: clampByte((selected as any).red),
       },
-      // لو مش عايز تشغّل valueChanges لكونترولز تانية خليه false
       { emitEvent: true }
     );
   }
