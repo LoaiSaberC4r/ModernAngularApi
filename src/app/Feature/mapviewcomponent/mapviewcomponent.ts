@@ -24,9 +24,14 @@ import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignContro
 })
 export class Mapviewcomponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
-    throw new Error('Method not implemented.');
+    if (this.map) {
+      this.map.off();
+      this.map.remove();
+    }
   }
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
+  private map!: L.Map;
+  private marker!: L.Marker;
 
   private fb = inject(FormBuilder);
   private readonly governateService = inject(IGovernateService);
@@ -61,19 +66,48 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
     this.loadGovernate();
     this.loadAllTemplates();
   }
+  private initMap(): void {
+    if (this.map) return; // prevent re-initialization
+    this.map = L.map(this.mapContainer.nativeElement).setView([30.0444, 31.2357], 13);
 
-  get f() { return this.trafficForm.controls; }
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(this.map);
+
+    this.map.on('click', (e: L.LeafletMouseEvent) => {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+
+      if (this.marker) {
+        this.map.removeLayer(this.marker);
+      }
+
+      this.marker = L.marker([lat, lng]).addTo(this.map);
+
+      this.trafficForm.patchValue({
+        latitude: lat,
+        longitude: lng,
+      });
+    });
+  }
+
+  ngAfterViewInit(): void {
+    this.initMap();
+  }
+  get f() {
+    return this.trafficForm.controls;
+  }
 
   loadGovernate() {
-    this.governateService.getAll({}).subscribe((data) => this.governates = data.value);
+    this.governateService.getAll({}).subscribe((data) => (this.governates = data.value));
   }
 
   getAreas(id: number) {
-    this.areaService.getAll(id).subscribe((data) => this.areas = data.value);
+    this.areaService.getAll(id).subscribe((data) => (this.areas = data.value));
   }
 
   loadAllTemplates() {
-    this.templateService.GetAll().subscribe((result) => this.templates = result.value);
+    this.templateService.GetAll().subscribe((result) => (this.templates = result.value));
   }
 
   onGovernorateChange(e: Event) {
@@ -83,9 +117,13 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
 
   onTemplateChange(e: Event) {
     const templateId = Number((e.target as HTMLSelectElement).value);
-    if (!templateId) { this.templatePatterns = []; return; }
-    this.templatePatternService.GetAllTemplatePatternByTemplateId(templateId)
-      .subscribe((result) => this.templatePatterns = result.value);
+    if (!templateId) {
+      this.templatePatterns = [];
+      return;
+    }
+    this.templatePatternService
+      .GetAllTemplatePatternByTemplateId(templateId)
+      .subscribe((result) => (this.templatePatterns = result.value));
   }
 
   onTemplatePatternChange(lightPatternId: number) {
@@ -94,7 +132,8 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
       const lp = Array.isArray(result.value) ? result.value[0] : result.value;
       if (!lp) return;
       this.lightPattern = lp;
-      const redCtrl = this.trafficForm.get('redTime'); redCtrl?.enable();
+      const redCtrl = this.trafficForm.get('redTime');
+      redCtrl?.enable();
       this.trafficForm.patchValue({ greenTime: lp.green, amberTime: lp.yellow, redTime: lp.red });
       redCtrl?.disable();
     });

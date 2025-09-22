@@ -1,168 +1,221 @@
 <div class="bg-signin">
-  <div class="map-container">
-    <div class="nav-side"></div>
-
-    <!-- Form Section -->
-    <div class="point-select">
-      <form class="traffic-form" [formGroup]="trafficForm" (ngSubmit)="onApply()">
-        <!-- Governorate -->
-        <div class="form-group">
-          <label class="form-label">Governorate <span class="required">*</span></label>
-          <select
-            class="form-control"
-            formControlName="governorate"
-            (change)="onGovernorateChange($event)"
-            [class.is-invalid]="f['governorate'].touched && f['governorate'].invalid"
-          >
-            <option value="">-- Select --</option>
-            <option *ngFor="let g of governates" [value]="g.id">
-              {{ g.name }}
-            </option>
-          </select>
-          <div class="invalid-feedback" *ngIf="f['governorate'].touched && f['governorate'].invalid">
-            Governorate is required
-          </div>
-        </div>
-
-        <!-- Area -->
-        <div class="form-group">
-          <label class="form-label">Area <span class="required">*</span></label>
-          <select
-            class="form-control"
-            formControlName="area"
-            [class.is-invalid]="f['area'].touched && f['area'].invalid"
-          >
-            <option [ngValue]="null">-- Select --</option>
-            <option *ngFor="let a of areas" [value]="a.id">
-              {{ a.name }}
-            </option>
-          </select>
-          <div class="invalid-feedback" *ngIf="f['area'].touched && f['area'].invalid">
-            Area is required
-          </div>
-        </div>
-
-        <!-- Name -->
-        <div class="form-group">
-          <label class="form-label">Name <span class="required">*</span></label>
-          <input
-            class="form-control"
-            type="text"
-            formControlName="name"
-            placeholder="Descriptive name"
-            [class.is-invalid]="f['name'].touched && f['name'].invalid"
-          />
-          <div class="invalid-feedback" *ngIf="f['name'].touched && f['name'].invalid">
-            Name is required
-          </div>
-        </div>
-
-        <!-- Coordinates -->
-        <div class="coordinates-container">
-          <div class="form-group coordinate-field">
-            <label class="form-label">Latitude <span class="required">*</span></label>
-            <input
+  <div class="container-fluid p-0">
+    <div class="row g-0 map-container">
+      <!-- Form Section -->
+      <div class="col-12 col-md-4 point-select">
+        <form class="traffic-form p-3" [formGroup]="trafficForm" (ngSubmit)="onApply()">
+          <!-- Governorate -->
+          <div class="form-group mb-3">
+            <label class="form-label d-block">Governorate <span class="required">*</span></label>
+            <select
               class="form-control"
-              type="text"
-              formControlName="latitude"
-              placeholder="Latitude"
-              [class.is-invalid]="f['latitude'].touched && f['latitude'].invalid"
-            />
-          </div>
-          <div class="form-group coordinate-field">
-            <label class="form-label">Longitude <span class="required">*</span></label>
-            <input
-              class="form-control"
-              type="text"
-              formControlName="longitude"
-              placeholder="Longitude"
-              [class.is-invalid]="f['longitude'].touched && f['longitude'].invalid"
-            />
-          </div>
-        </div>
-
-        <!-- IP -->
-        <div class="form-group">
-          <label class="form-label">IP Address <span class="required">*</span></label>
-          <input
-            class="form-control"
-            type="text"
-            formControlName="ipAddress"
-            placeholder="IP Address"
-            [class.is-invalid]="f['ipAddress'].touched && f['ipAddress'].invalid"
-          />
-        </div>
-
-        <!-- Light Pattern -->
-        <div class="light-pattern-section">
-          <h5 class="section-header">Light Pattern</h5>
-
-          <div class="form-group">
-            <label class="form-label">Select Template</label>
-            <select class="form-control" formControlName="template" (change)="onTemplateChange($event)">
-              <option value="">-- Select --</option>
-              <option *ngFor="let g of templates" [value]="g.id">
-                {{ g.name }}
-              </option>
-            </select>
-          </div>
-
-          <div class="template-patterns-section">
-            <h6 class="template-patterns-header">Template Patterns</h6>
-            <div *ngIf="!templatePatterns?.length" class="text-muted small">
-              No patterns to show. Select a template.
-            </div>
-            <div
-              class="pattern-item d-flex align-items-center gap-2 py-2 border-bottom"
-              *ngFor="let p of templatePatterns;"
+              formControlName="governorate"
+              (change)="onGovernorateChange($event)"
+              [class.is-invalid]="f['governorate'].touched && f['governorate'].invalid"
             >
-              <span class="pattern-icon">
-                <img src="assets/img/traffic-light-305721.png" height="30" />
-              </span>
-              <span class="pattern-badge badge bg-secondary">
-                {{ p.lightPatternName }}
-              </span>
-              <span class="pattern-time">From: {{ p.startFrom }}</span>
-              <span class="pattern-time">To: {{ p.finishBy }}</span>
+              <option value="">-- Select --</option>
+              <option *ngFor="let g of governates" [value]="g.id">{{ g.name }}</option>
+            </select>
+            <div
+              class="invalid-feedback"
+              *ngIf="f['governorate'].touched && f['governorate'].invalid"
+            >
+              Governorate is required
+            </div>
+          </div>
 
-              <button
-                class="btn btn-sm"
-                [ngClass]="p.lightPatternId === selectedLightPatternId ? 'btn-success' : 'btn-outline-primary'"
-                type="button"
-                (click)="onTemplatePatternChange(p.lightPatternId)"
+          <!-- Area -->
+          <div class="form-group mb-3">
+            <label class="form-label d-block">Area <span class="required">*</span></label>
+            <select
+              class="form-control"
+              formControlName="area"
+              [class.is-invalid]="f['area'].touched && f['area'].invalid"
+            >
+              <option [ngValue]="null">-- Select --</option>
+              <option *ngFor="let a of areas" [value]="a.id">{{ a.name }}</option>
+            </select>
+            <div class="invalid-feedback" *ngIf="f['area'].touched && f['area'].invalid">
+              Area is required
+            </div>
+          </div>
+
+          <!-- Name -->
+          <div class="form-group mb-3">
+            <label class="form-label d-block">Name <span class="required">*</span></label>
+            <input
+              class="form-control"
+              type="text"
+              formControlName="name"
+              placeholder="Descriptive name"
+              [class.is-invalid]="f['name'].touched && f['name'].invalid"
+            />
+            <div class="invalid-feedback" *ngIf="f['name'].touched && f['name'].invalid">
+              Name is required
+            </div>
+          </div>
+
+          <!-- Coordinates -->
+          <div class="form-group mb-3">
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label d-block">Latitude <span class="required">*</span></label>
+                <input
+                  class="form-control"
+                  type="text"
+                  formControlName="latitude"
+                  placeholder="Latitude"
+                  [class.is-invalid]="f['latitude'].touched && f['latitude'].invalid"
+                />
+              </div>
+              <div class="col-6">
+                <label class="form-label d-block">Longitude <span class="required">*</span></label>
+                <input
+                  class="form-control"
+                  type="text"
+                  formControlName="longitude"
+                  placeholder="Longitude"
+                  [class.is-invalid]="f['longitude'].touched && f['longitude'].invalid"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- IP -->
+          <div class="form-group mb-3">
+            <label class="form-label d-block">IP Address <span class="required">*</span></label>
+            <input
+              class="form-control"
+              type="text"
+              formControlName="ipAddress"
+              placeholder="IP Address"
+              [class.is-invalid]="f['ipAddress'].touched && f['ipAddress'].invalid"
+            />
+          </div>
+
+          <!-- Light Pattern -->
+          <div class="light-pattern-section p-3 mb-3">
+            <h5 class="section-header text-center mb-3">LIGHT PATTERN</h5>
+
+            <!-- Template Selector -->
+            <div class="form-group mb-3">
+              <label class="form-label d-block">Select Template</label>
+              <select
+                class="form-control"
+                formControlName="template"
+                (change)="onTemplateChange($event)"
               >
-                {{ p.lightPatternId === selectedLightPatternId ? 'Selected' : 'Select' }}
-              </button>
+                <option value="">-- Select --</option>
+                <option *ngFor="let g of templates" [value]="g.id">{{ g.name }}</option>
+              </select>
+            </div>
+
+            <!-- Template Patterns -->
+            <div class="template-patterns-section mb-3">
+              <h6 class="template-patterns-header">Template Patterns</h6>
+              <div *ngIf="!templatePatterns?.length" class="text-muted small mb-3">
+                No patterns to show. Select a template.
+              </div>
+
+              <div
+                class="pattern-item row align-items-center py-2 border-bottom mb-2 gx-2 gy-2"
+                *ngFor="let p of templatePatterns"
+              >
+                <!-- Icon -->
+                <div class="col-auto">
+                  <img src="assets/img/traffic-light-305721.png" height="30" alt="Traffic Light" />
+                </div>
+
+                <!-- Name -->
+                <div class="col-auto">
+                  <span class="pattern-name badge px-3 py-1">{{ p.lightPatternName }}</span>
+                </div>
+
+                <!-- From -->
+                <div class="col text-center">
+                  <small class="text-muted d-block">From:</small>
+                  <span class="time-text">{{ p.startFrom }}</span>
+                </div>
+
+                <!-- To -->
+                <div class="col text-center">
+                  <small class="text-muted d-block">To:</small>
+                  <span class="time-text">{{ p.finishBy }}</span>
+                </div>
+
+                <!-- Select Button -->
+                <div class="col-auto text-end">
+                  <button
+                    class="btn btn-sm"
+                    type="button"
+                    (click)="onTemplatePatternChange(p.lightPatternId)"
+                    [ngClass]="{
+                      'btn-success': p.lightPatternId === selectedLightPatternId,
+                      'btn-outline-primary': p.lightPatternId !== selectedLightPatternId
+                    }"
+                  >
+                    {{ p.lightPatternId === selectedLightPatternId ? 'Selected' : 'Select' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Timing Controls -->
+            <div class="light-timing-controls">
+              <div class="light-control d-flex align-items-center gap-3 mb-2">
+                <img src="assets/img/g.png" height="40" alt="Green Light" />
+                <input
+                  class="form-control text-center flex-grow-1"
+                  type="number"
+                  formControlName="greenTime"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  placeholder="0"
+                />
+              </div>
+
+              <div class="light-control d-flex align-items-center gap-3 mb-2">
+                <img src="assets/img/a.png" height="40" alt="Amber Light" />
+                <input
+                  class="form-control text-center flex-grow-1"
+                  type="number"
+                  formControlName="amberTime"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  placeholder="0"
+                />
+              </div>
+
+              <div class="light-control d-flex align-items-center gap-3">
+                <img src="assets/img/r.png" height="40" alt="Red Light" />
+                <input
+                  class="form-control text-center flex-grow-1"
+                  type="number"
+                  formControlName="redTime"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  placeholder="0"
+                />
+              </div>
             </div>
           </div>
 
-          <!-- Timing Controls -->
-          <div class="light-timing-controls mt-3">
-            <div class="light-control">
-              <img src="assets/img/g.png" height="45" alt="Green Light" />
-              <input class="form-control" type="number" formControlName="greenTime" min="0" max="1000" step="1" />
-            </div>
-            <div class="light-control">
-              <img src="assets/img/a.png" height="45" alt="Amber Light" />
-              <input class="form-control" type="number" formControlName="amberTime" min="0" max="1000" step="1" />
-            </div>
-            <div class="light-control">
-              <img src="assets/img/r.png" height="45" alt="Red Light" />
-              <input class="form-control" type="number" formControlName="redTime" [disabled]="true" />
-            </div>
+          <!-- Actions -->
+          <div class="point-settings mt-3">
+            <button class="btn btn-outline-success w-100" type="submit">
+              <strong>Apply</strong>
+            </button>
           </div>
-        </div>
+        </form>
+      </div>
 
-        <!-- Actions -->
-        <div class="point-settings">
-          <button class="btn btn-outline-success" type="submit"><strong>Apply</strong></button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Map Section -->
-    <div class="map-view">
-      <div #mapContainer id="map"></div>
+      <!-- Map Section -->
+      <div class="col-12 col-md-8 map-view">
+        <div #mapContainer id="map"></div>
+      </div>
     </div>
   </div>
 </div>
