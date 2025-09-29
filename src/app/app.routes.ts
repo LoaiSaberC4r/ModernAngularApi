@@ -5,6 +5,7 @@ import { SignBoxController } from './Feature/sign-box-controller/sign-box-contro
 import { Mapviewcomponent } from './Feature/mapviewcomponent/mapviewcomponent';
 import { TrafficPointConfigComponent } from './Feature/traffic-point-config-component/traffic-point-config-component';
 import { Templatecomponent } from './Feature/templatecomponent/templatecomponent';
+import { TrafficWizard } from './Feature/traffic-wizard/traffic-wizard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'map', pathMatch: 'full' },
@@ -15,5 +16,6 @@ export const routes: Routes = [
   { path: 'mapview', component: Mapviewcomponent },
   { path: 'trafficPointConfig', component: TrafficPointConfigComponent },
   { path: 'template', component: Templatecomponent },
+  { path: 'trafficWizard', component: TrafficWizard },
   { path: '**', redirectTo: 'map' },
 ];

@@ -1,0 +1,244 @@
+/* Traffic Wizard Styles - Pure CSS */
+
+.traffic-control-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.traffic-control-container .main-header {
+  text-align: center;
+  color: #4caf50;
+  font-weight: 600;
+  margin-bottom: 24px;
+  font-size: 28px;
+}
+
+.traffic-control-container .traffic-form {
+  background: #ffffff;
+  border-radius: 16px;
+  /* padding: 24px; */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e0e0e0;
+}
+
+/* Stepper Header Styling */
+.traffic-control-container ::ng-deep .mat-horizontal-stepper-header-container {
+  justify-content: space-around;
+}
+
+.traffic-control-container ::ng-deep .mat-step-icon {
+  background-color: #f8f9fa !important;
+  color: #757575 !important;
+  border: 2px solid #e0e0e0 !important;
+}
+
+.traffic-control-container ::ng-deep .mat-step-icon-selected {
+  background-color: #4caf50 !important;
+  color: white !important;
+  border-color: #4caf50 !important;
+}
+
+.traffic-control-container ::ng-deep .mat-step-label {
+  font-weight: 500;
+  color: #555;
+}
+
+.traffic-control-container ::ng-deep .mat-step-label-active {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+/* Form Layout */
+.traffic-control-container .form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.traffic-control-container .form-row .form-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.traffic-control-container .full-width {
+  width: 100%;
+}
+
+/* Action Buttons */
+.traffic-control-container .step-actions,
+.traffic-control-container .action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.traffic-control-container .step-actions button,
+.traffic-control-container .action-buttons button {
+  border-radius: 24px;
+  padding: 0 20px;
+  font-weight: 500;
+}
+
+.traffic-control-container .step-actions button.mat-raised-button,
+.traffic-control-container .action-buttons button.mat-raised-button {
+  background: #4caf50;
+  color: white;
+}
+
+.traffic-control-container .step-actions button.mat-raised-button:hover,
+.traffic-control-container .action-buttons button.mat-raised-button:hover {
+  background: #43a047;
+}
+
+.traffic-control-container .step-actions button.mat-raised-button:disabled,
+.traffic-control-container .action-buttons button.mat-raised-button:disabled {
+  background: #bdbdbd;
+  color: #757575;
+}
+
+.traffic-control-container .step-actions button.mat-button,
+.traffic-control-container .action-buttons button.mat-button {
+  color: #2196f3;
+}
+
+/* Point Configuration Section */
+.traffic-control-container .point-configuration {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 14px;
+  margin: 24px 0;
+}
+
+.traffic-control-container .point-configuration .section-title {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #4caf50;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.traffic-control-container .point-configuration .light-intervals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.traffic-control-container .point-configuration .light-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  min-width: 120px;
+}
+
+.traffic-control-container .point-configuration .light-control .light-icon {
+  margin-bottom: 8px;
+}
+
+.traffic-control-container .point-configuration .light-control .light-label {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.traffic-control-container .point-configuration .light-control .time-field {
+  width: 80px;
+  margin-bottom: 4px;
+}
+
+.traffic-control-container .point-configuration .light-control .time-unit {
+  font-size: 12px;
+  color: #666;
+}
+
+.traffic-control-container .point-configuration .blink-options .blink-title {
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #444;
+}
+
+.traffic-control-container .point-configuration .blink-options .blink-controls {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.traffic-control-container .point-configuration .blink-options .form-row {
+  margin-bottom: 0;
+}
+
+/* Material Form Field Focus Color Override */
+.traffic-control-container
+  ::ng-deep
+  .mat-form-field-appearance-outline
+  .mat-form-field-outline-thick {
+  color: #4caf50 !important;
+}
+
+.traffic-control-container ::ng-deep .mat-form-field.mat-focused .mat-form-field-label {
+  color: #4caf50 !important;
+}
+
+.traffic-control-container ::ng-deep .mat-select-value-text,
+.traffic-control-container ::ng-deep .mat-input-element {
+  color: #333;
+}
+/* ===== FIX FOR LABEL CLIPPING IN NUMBER INPUTS ===== */
+
+.traffic-control-container ::ng-deep .mat-form-field-appearance-outline .mat-form-field-label {
+  transform: translateY(-1.25rem) scale(0.75) !important;
+}
+
+.traffic-control-container ::ng-deep .mat-form-field.mat-focused .mat-form-field-label,
+.traffic-control-container
+  ::ng-deep
+  .mat-form-field:not(.mat-form-field-has-value)
+  .mat-form-field-label {
+  transform: translateY(-1.25rem) scale(0.75) !important;
+}
+
+.traffic-control-container
+  ::ng-deep
+  .mat-form-field-appearance-outline
+  .mat-form-field-infix
+  input[type='number'] {
+  padding-right: 36px !important;
+}
+
+.traffic-control-container
+  ::ng-deep
+  .mat-form-field-appearance-outline
+  input[type='number']::-webkit-inner-spin-button,
+.traffic-control-container
+  ::ng-deep
+  .mat-form-field-appearance-outline
+  input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.light-pattern-section {
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.pattern-item.selected-pattern {
+  border: 2px solid #00796b;
+  background: #e0f2f1;
+}
+
+.pattern-name {
+  font-weight: 500;
+}
+
+.light-timing-controls img {
+  border-radius: 6px;
+}
