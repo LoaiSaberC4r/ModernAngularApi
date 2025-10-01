@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray } from '@angular/forms';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -21,6 +21,13 @@ import { ITemplateService } from '../../Services/Template/itemplate-service';
 import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
 import { GetLightPattern } from '../../Domain/Entity/LightPattern/GetLightPattern';
 import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
+import { MatIconModule } from '@angular/material/icon';
+import { Pagination } from '../../Domain/ResultPattern/Pagination';
+import { ResultError } from '../../Domain/ResultPattern/Error';
+import { ResultV } from '../../Domain/ResultPattern/ResultV';
+import { MatDividerModule } from '@angular/material/divider';
+import { RoundaboutComponent } from '../roundabout-component/roundabout-component';
+import { GetAllSignControlBoxWithLightPattern } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
 
 @Component({
   selector: 'app-traffic-wizard',
@@ -36,6 +43,9 @@ import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
     MatCheckboxModule,
     MatButtonModule,
     MatCardModule,
+    MatIconModule,
+    MatDividerModule,
+    RoundaboutComponent,
   ],
   templateUrl: './traffic-wizard.html',
   styleUrl: './traffic-wizard.css',
@@ -47,7 +57,7 @@ export class TrafficWizard implements OnInit {
   private map!: L.Map;
   private marker!: L.Marker;
 
-  private fb = inject(FormBuilder);
+  public fb = inject(FormBuilder);
   private readonly areaService = inject(IAreaService);
   private readonly signBoxService = inject(ISignBoxControlService);
   private readonly templatePatternService = inject(ITemplatePatternService);
@@ -68,11 +78,13 @@ export class TrafficWizard implements OnInit {
       // Step 1
       governorate: ['', Validators.required],
       area: [null, Validators.required],
-      name: ['', Validators.required],
+      // name: ['', Validators.required],
+
       // Step 2
       latitude: ['', Validators.required],
       longitude: ['', Validators.required],
       ipAddress: ['', Validators.required],
+
       // Step 3
       pattern: [],
       template: ['0'],
@@ -87,6 +99,14 @@ export class TrafficWizard implements OnInit {
       greenTime: [0],
       amberTime: [0],
       redTime: [{ value: 0, disabled: true }],
+
+      directions: this.fb.array([
+        this.fb.group({
+          name: ['', Validators.required],
+          lightPatternId: [null, Validators.required],
+          order: [1, [Validators.required, Validators.min(1)]],
+        }),
+      ]),
     });
 
     // Auto-calc red
@@ -99,6 +119,27 @@ export class TrafficWizard implements OnInit {
     this.trafficForm.get('blinkRed')?.disable();
   }
 
+  signBoxEntity: Pagination<GetAllSignControlBoxWithLightPattern> = {
+    value: {
+      data: [],
+      pageSize: 0,
+      totalPages: 0,
+      currentPage: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+      totalItems: 0,
+    },
+    isSuccess: false,
+    isFailure: false,
+    error: {} as ResultError,
+  };
+  lightPatternEntity: ResultV<GetAllLightPattern> = {
+    value: [],
+    isSuccess: false,
+    isFailure: false,
+    error: {} as ResultError,
+  };
+
   ngOnInit(): void {
     this.loadGovernate();
     this.loadAllTemplates();
@@ -109,7 +150,7 @@ export class TrafficWizard implements OnInit {
   // Data loading
   loadLightPattern() {
     this.lightPatternService.getAll({}).subscribe((data) => {
-      this.pattern = data.value;
+      this.lightPatternEntity = data;
     });
   }
 
@@ -235,5 +276,43 @@ export class TrafficWizard implements OnInit {
   }
   loadAllTemplates() {
     this.templateService.GetAll().subscribe((result) => (this.templates = result.value));
+  }
+  get directions(): FormArray {
+    return this.trafficForm.get('directions') as FormArray;
+  }
+  addDirection() {
+    if (this.directions.length < 4) {
+      this.directions.push(
+        this.fb.group({
+          name: ['', Validators.required],
+          lightPatternId: [null, Validators.required],
+          order: [this.directions.length + 1, Validators.required],
+        })
+      );
+    }
+  }
+
+  removeDirection(index: number) {
+    if (this.directions.length > 1) {
+      this.directions.removeAt(index);
+    }
+  }
+  onPatternChanged(item: GetAllSignControlBoxWithLightPattern, lightPatternId: number) {
+    item.lightPatternId = lightPatternId;
+  }
+
+  getGovernorateName(id: number | null): string {
+    if (!id) return '';
+    return this.governates.find((g) => g.id === id)?.name ?? '';
+  }
+
+  getAreaName(id: number | null): string {
+    if (!id) return '';
+    return this.areas.find((a) => a.id === id)?.name ?? '';
+  }
+
+  getPatternName(id: number | null): string {
+    if (!id) return '';
+    return this.lightPatternEntity.value.find((p) => p.id === id)?.name ?? '';
   }
 }

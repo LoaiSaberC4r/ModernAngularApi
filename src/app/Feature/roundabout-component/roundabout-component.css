@@ -1,0 +1,416 @@
+/* Sizes */
+:root {
+  --roundabout-size: 250px;
+  --road-width: 120px;
+  --lane-width: 55px;
+  --median-width: 5px;
+  --light-width: 70px;
+  --light-height: 150px;
+
+  /* Colors */
+  --road-color: #000;
+  --road-border: #ccc;
+  --median-color: #fff;
+  --roundabout-color: #d0d0d0;
+  --light-bg: #222;
+  --label-bg: rgba(255, 255, 255, 0.7);
+
+  /* Effects */
+  --shadow-strong: 0 10px 30px rgba(0, 0, 0, 0.2);
+  --shadow-inner: inset 0 0 5px rgba(0, 0, 0, 0.2);
+  --transition-fast: all 0.3s ease;
+}
+
+/* Main Container */
+.container {
+  position: relative;
+  width: min(100%, 800px);
+  height: clamp(480px, 62vw, 665px);
+  background: #fff;
+  box-shadow: var(--shadow-strong);
+  border-radius: 15px;
+  padding: 20px;
+  overflow: hidden;
+  margin: 0 auto; /* لتوسيطه لو اتحط في مكان فارغ */
+}
+
+/* Roundabout */
+.roundabout {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--roundabout-size);
+  height: var(--roundabout-size);
+  transform: translate(-50%, -50%);
+  border: 4px solid #888;
+  border-radius: 50%;
+  background: var(--roundabout-color);
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: #555;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+/* .roundabout:hover {
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.4), inset 0 0 12px rgba(0, 0, 0, 0.15);
+  transform: translate(-50%, -50%) scale(1.05);
+} */
+
+/* Roads */
+.road {
+  position: absolute;
+  background: var(--road-color);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+}
+
+.north-road,
+.south-road {
+  width: var(--road-width);
+  height: 300px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.north-road {
+  top: 0;
+  border-radius: 50px 50px 0 0;
+}
+
+.south-road {
+  bottom: 0;
+  border-radius: 0 0 50px 50px;
+}
+
+.east-road,
+.west-road {
+  height: var(--road-width);
+  width: 400px;
+  top: 50%;
+  transform: translateY(-50%);
+  flex-direction: column;
+}
+
+.east-road {
+  right: 0;
+  border-radius: 0 50px 50px 0;
+}
+
+.west-road {
+  left: 0;
+  border-radius: 50px 0 0 50px;
+}
+
+/* Lanes & Median */
+.lane-in,
+.lane-out {
+  width: var(--lane-width);
+  height: 100%;
+  background: var(--road-color);
+  border: 1px solid var(--road-border);
+  border-radius: 3px;
+  position: relative;
+  box-shadow: var(--shadow-inner);
+}
+
+.east-road .lane-in,
+.west-road .lane-in,
+.east-road .lane-out,
+.west-road .lane-out {
+  width: 100%;
+  height: var(--lane-width);
+}
+
+.median {
+  background: var(--median-color);
+  border-radius: 1px;
+  margin: 2px;
+  width: var(--median-width);
+  height: 100%;
+}
+
+/* Lane White Line */
+.white-line {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 100%;
+  transform: translateX(-50%);
+  background: repeating-linear-gradient(
+    to bottom,
+    white,
+    white 10px,
+    transparent 10px,
+    transparent 20px
+  );
+  z-index: 2;
+}
+
+.east-road .white-line,
+.west-road .white-line {
+  width: 100%;
+  height: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(
+    to right,
+    white,
+    white 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
+/* Traffic Lights */
+.traffic-light {
+  position: absolute;
+  width: var(--light-width);
+  height: var(--light-height);
+  background: var(--light-bg);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px;
+  z-index: 15;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  transition: var(--transition-fast);
+}
+
+.light {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--light-bg);
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+  transition: var(--transition-fast);
+}
+
+.light.red.active {
+  background: #ff0000;
+  box-shadow: 0 0 15px #ff0000;
+}
+
+.light.yellow.active {
+  background: #ffff00;
+  box-shadow: 0 0 15px #ffff00;
+}
+
+.light.green.active {
+  background: #00ff00;
+  box-shadow: 0 0 15px #00ff00;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Lights Position */
+.north-light {
+  width: 50px;
+  height: 80px;
+  top: 179px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.south-light {
+  width: 50px;
+  height: 80px;
+  bottom: 180px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.east-light {
+  width: 50px;
+  height: 80px;
+  right: 179px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.west-light {
+  width: 50px;
+  height: 80px;
+  left: 179px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Labels */
+.direction-label {
+  position: absolute;
+  font-size: 20px;
+  font-weight: bold;
+  color: #000;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  background: var(--label-bg);
+  padding: 5px 10px;
+  border-radius: 5px;
+  z-index: 20;
+}
+
+.north-label {
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.south-label {
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.east-label {
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.west-label {
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Arrows */
+.arrow-btn {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 50%;
+  user-select: none;
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.2);
+  transition: var(--transition-fast);
+  z-index: 15;
+}
+
+.arrow-btn:hover {
+  transform: scale(1.2);
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.arrow-btn:active {
+  transform: scale(0.95);
+}
+
+.arrow-btn.active {
+  background: #ffcc00;
+  color: #333;
+  box-shadow: 0 0 30px #ffcc00;
+  transform: scale(1.3);
+  animation: arrowPulse 0.5s infinite alternate;
+}
+
+@keyframes arrowPulse {
+  from {
+    box-shadow: 0 0 20px #ffcc00;
+  }
+  to {
+    box-shadow: 0 0 40px #ffcc00;
+  }
+}
+
+.arrow-btn i {
+  font-size: 30px;
+}
+
+/* Arrow Placement */
+.north-road .lane-in .arrow-btn,
+.south-road .lane-in .arrow-btn {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.north-road .lane-in .arrow-btn {
+  bottom: 120px;
+}
+.south-road .lane-in .arrow-btn {
+  top: 120px;
+}
+.north-road .lane-out .arrow-btn,
+.south-road .lane-out .arrow-btn {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.north-road .lane-out .arrow-btn {
+  top: 90px;
+}
+.south-road .lane-out .arrow-btn {
+  bottom: 120px;
+}
+
+.east-road .lane-in .arrow-btn {
+  left: 100px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.east-road .lane-out .arrow-btn {
+  right: 120px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.west-road .lane-in .arrow-btn {
+  right: 123px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.west-road .lane-out .arrow-btn {
+  left: 112px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Notifications */
+.notification {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 10px;
+  font-size: 18px;
+  text-align: center;
+  max-width: 500px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 1000;
+}
+
+.notification.show {
+  opacity: 1;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .light.green.active {
+    animation: none;
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  :root {
+    --roundabout-size: 200px;
+    --road-width: 90px;
+    --lane-width: 42px;
+    --light-width: 58px;
+    --light-height: 120px;
+  }
+}

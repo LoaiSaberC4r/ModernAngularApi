@@ -14,7 +14,7 @@ export const routes: Routes = [
   { path: 'trafficController', component: SignBoxController },
 
   { path: 'mapview', component: Mapviewcomponent },
-  { path: 'trafficPointConfig', component: TrafficPointConfigComponent },
+  // { path: 'trafficPointConfig', component: TrafficPointConfigComponent },
   { path: 'template', component: Templatecomponent },
   { path: 'trafficWizard', component: TrafficWizard },
   { path: '**', redirectTo: 'map' },

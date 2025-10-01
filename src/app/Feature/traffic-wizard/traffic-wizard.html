@@ -3,7 +3,7 @@
 
   <form [formGroup]="trafficForm" class="traffic-form">
     <mat-horizontal-stepper labelPosition="bottom">
-      <!-- Step 1: Location and Name -->
+      <!-- Step 1: Location -->
       <mat-step [stepControl]="trafficForm">
         <ng-template matStepLabel>Location</ng-template>
 
@@ -26,9 +26,7 @@
               <mat-label>Area</mat-label>
               <mat-select formControlName="area">
                 <mat-option [value]="null">-- Select --</mat-option>
-                <mat-option *ngFor="let a of areas" [value]="a.id">
-                  {{ a.name }}
-                </mat-option>
+                <mat-option *ngFor="let a of areas" [value]="a.id">{{ a.name }}</mat-option>
               </mat-select>
             </mat-form-field>
           </div>
@@ -46,7 +44,7 @@
         </div>
       </mat-step>
 
-      <!-- Step 2: Coordinates/IP -->
+      <!-- Step 2: Basic Information -->
       <mat-step [stepControl]="trafficForm">
         <ng-template matStepLabel>Basic Information</ng-template>
 
@@ -54,154 +52,145 @@
           <div class="form-group">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>IP Address</mat-label>
-              <input matInput formControlName="ipAddress" placeholder="192.168.1.50" />
+              <input matInput formControlName="ipAddress" placeholder="e.g. 192.168.1.50" />
             </mat-form-field>
           </div>
           <div class="form-group">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Latitude</mat-label>
-              <input matInput type="number" formControlName="latitude" step="0.0001" />
+              <input
+                matInput
+                type="number"
+                formControlName="latitude"
+                step="0.0001"
+                min="-90"
+                max="90"
+              />
             </mat-form-field>
           </div>
           <div class="form-group">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Longitude</mat-label>
-              <input matInput type="number" formControlName="longitude" step="0.0001" />
+              <input
+                matInput
+                type="number"
+                formControlName="longitude"
+                step="0.0001"
+                min="-180"
+                max="180"
+              />
             </mat-form-field>
           </div>
         </div>
 
-        <div class="step-actions">
-          <button mat-button matStepperPrevious>Back</button>
+        <!-- Directions -->
+        <div class="form-row py-3" formArrayName="directions">
+          <div
+            class="form-group direction-row"
+            *ngFor="let dir of directions.controls; let i = index"
+            [formGroupName]="i"
+          >
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Direction {{ i + 1 }} Name</mat-label>
+              <input matInput formControlName="name" placeholder="e.g. Direction: Suez" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Light Pattern</mat-label>
+              <mat-select
+                formControlName="lightPatternId"
+                (selectionChange)="onPatternChanged(dir.value, $event.value)"
+              >
+                <mat-option *ngFor="let p of lightPatternEntity.value" [value]="p.id">
+                  {{ p.name }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Order</mat-label>
+              <input matInput type="number" formControlName="order" min="1" />
+            </mat-form-field>
+
+            <button
+              mat-icon-button
+              color="warn"
+              (click)="removeDirection(i)"
+              [disabled]="directions.length === 1"
+              aria-label="Remove direction"
+            >
+              <mat-icon>remove_circle</mat-icon>
+            </button>
+          </div>
+
           <button
             mat-raised-button
             color="primary"
-            matStepperNext
-            [disabled]="
-              !(
-                trafficForm.get('latitude')?.valid &&
-                trafficForm.get('longitude')?.valid &&
-                trafficForm.get('ipAddress')?.valid
-              )
-            "
+            (click)="addDirection()"
+            [disabled]="directions.length >= 4"
           >
+            Add Direction
+          </button>
+        </div>
+
+        <div class="step-actions">
+          <button mat-button matStepperPrevious>Back</button>
+          <button mat-raised-button color="primary" matStepperNext [disabled]="trafficForm.invalid">
             Next
           </button>
         </div>
       </mat-step>
 
-      <!-- Step 3: Pattern & Timings -->
-      <mat-step [stepControl]="trafficForm">
-        <ng-template matStepLabel>Configuration</ng-template>
+      <!-- Step 3: Roundabout -->
+      <mat-step>
+        <ng-template matStepLabel>Roundabout</ng-template>
+        <app-roundabout-component></app-roundabout-component>
 
-        <mat-card class="light-pattern-section p-3 mb-3">
+        <div class="step-actions">
+          <button mat-button matStepperPrevious>Back</button>
+          <button mat-raised-button color="primary" matStepperNext>Next</button>
+        </div>
+      </mat-step>
+
+      <!-- Step 4: Review & Apply -->
+      <mat-step [stepControl]="trafficForm">
+        <ng-template matStepLabel>Review & Apply</ng-template>
+
+        <mat-card class="p-3 mb-3">
           <mat-card-header>
-            <!-- <mat-card-title class="text-center w-100">LIGHT PATTERN</mat-card-title> -->
+            <mat-card-title>Summary</mat-card-title>
           </mat-card-header>
           <mat-card-content>
-            <!-- Template Selector -->
-            <mat-form-field appearance="outline" class="w-100 mb-3">
-              <mat-label>Select Template</mat-label>
-              <mat-select formControlName="template" (selectionChange)="onTemplateChange($event)">
-                <mat-option [value]="0">-- Select --</mat-option>
-                <mat-option *ngFor="let g of templates" [value]="g.id">{{ g.name }}</mat-option>
-              </mat-select>
-            </mat-form-field>
+            <h4>Basic Info</h4>
+            <p>
+              <strong>Governorate:</strong> {{ getGovernorateName(trafficForm.value.governorate) }}
+            </p>
+            <p><strong>Area:</strong> {{ getAreaName(trafficForm.value.area) }}</p>
 
-            <!-- Template Patterns -->
-            <div class="template-patterns-section mb-3">
-              <h6>Template Patterns</h6>
+            <mat-divider class="my-2"></mat-divider>
 
-              <div *ngIf="!templatePatterns?.length" class="text-muted small mb-3">
-                No patterns to show. Select a template.
-              </div>
+            <h4>Location & Network</h4>
+            <p><strong>Latitude:</strong> {{ trafficForm.value.latitude | number : '1.4-4' }}</p>
+            <p><strong>Longitude:</strong> {{ trafficForm.value.longitude | number : '1.4-4' }}</p>
+            <p><strong>IP Address:</strong> {{ trafficForm.value.ipAddress }}</p>
 
-              <mat-card
-                class="pattern-item mb-2"
-                *ngFor="let p of templatePatterns"
-                [ngClass]="{ 'selected-pattern': p.lightPatternId === selectedLightPatternId }"
-              >
-                <mat-card-content class="d-flex align-items-center justify-content-between">
-                  <!-- Icon -->
-                  <img src="assets/img/traffic-light-305721.png" height="30" alt="Traffic Light" />
+            <mat-divider class="my-2"></mat-divider>
 
-                  <!-- Name -->
-                  <span class="pattern-name mat-badge px-2 py-1">{{ p.lightPatternName }}</span>
-
-                  <!-- From / To -->
-                  <div class="text-center mx-2">
-                    <small class="text-muted d-block">From:</small>
-                    <span>{{ p.startFrom }}</span>
-                  </div>
-                  <div class="text-center mx-2">
-                    <small class="text-muted d-block">To:</small>
-                    <span>{{ p.finishBy }}</span>
-                  </div>
-
-                  <!-- Select Button -->
-                  <button
-                    mat-stroked-button
-                    color="{{ p.lightPatternId === selectedLightPatternId ? 'primary' : 'accent' }}"
-                    (click)="onTemplatePatternChange(p.lightPatternId)"
-                  >
-                    {{ p.lightPatternId === selectedLightPatternId ? 'Selected' : 'Select' }}
-                  </button>
-                </mat-card-content>
-              </mat-card>
+            <h4>Directions</h4>
+            <div *ngIf="directions.controls.length; else noDir">
+              <ul>
+                <li *ngFor="let d of directions.controls; let i = index">
+                  <strong>{{ d.value.name }}</strong>
+                  (Order: {{ d.value.order }}) → Pattern:
+                  {{ getPatternName(d.value.lightPatternId) }}
+                </li>
+              </ul>
             </div>
+            <ng-template #noDir>
+              <p class="text-muted">No directions added</p>
+            </ng-template>
           </mat-card-content>
         </mat-card>
-
-        <!-- <div class="point-configuration">
-          <h3 class="section-title">Point Configuration</h3>
-
-          <div class="light-intervals">
-            <div class="light-control">
-              <img src="assets/img/g.png" height="50" alt="Green" class="light-icon" />
-              <label class="light-label">GREEN</label>
-              <mat-form-field appearance="outline" class="time-field">
-                <input matInput type="number" formControlName="green" min="0" max="255" />
-              </mat-form-field>
-              <span class="time-unit">sec</span>
-            </div>
-
-            <div class="light-control">
-              <img src="assets/img/a.png" height="50" alt="Yellow" class="light-icon" />
-              <label class="light-label">YELLOW</label>
-              <mat-form-field appearance="outline" class="time-field">
-                <input matInput type="number" formControlName="yellow" min="0" max="255" />
-              </mat-form-field>
-              <span class="time-unit">sec</span>
-            </div>
-
-            <div class="light-control">
-              <img src="assets/img/r.png" height="50" alt="Red" class="light-icon" />
-              <label class="light-label">RED</label>
-              <mat-form-field appearance="outline" class="time-field">
-                <input matInput type="number" formControlName="red" min="0" max="255" />
-              </mat-form-field>
-              <span class="time-unit">sec</span>
-            </div>
-          </div>
-
-          <div class="blink-options">
-            <div class="blink-title">Blink Options</div>
-            <div class="blink-controls">
-              <mat-checkbox formControlName="blinkGreen">Blink Green</mat-checkbox>
-              <mat-checkbox formControlName="blinkYellow">Blink Yellow</mat-checkbox>
-              <mat-checkbox formControlName="blinkRed">Blink Red</mat-checkbox>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Blink (ms)</mat-label>
-                  <input matInput type="number" formControlName="blinkMs" placeholder="500" />
-                </mat-form-field>
-              </div>
-            </div>
-          </div>
-        </div> -->
 
         <div class="action-buttons">
           <button mat-button matStepperPrevious>Back</button>
@@ -214,7 +203,6 @@
             Apply
           </button>
         </div>
-        l
       </mat-step>
     </mat-horizontal-stepper>
   </form>
