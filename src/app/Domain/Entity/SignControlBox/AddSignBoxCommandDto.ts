@@ -1,14 +1,16 @@
+
 export interface AddSignBoxCommandDto {
   name: string;
   areaId: number;
   ipAddress: string;
   latitude: string;
   longitude: string;
-  directions: DirectionDto[];
+  directions: DirectionWithPatternDto[];
 }
 
-export interface DirectionDto {
+export interface DirectionWithPatternDto {
   name: string;
-  lightPatternId: number;
   order: number;
+  lightPatternId: number;
+
 }

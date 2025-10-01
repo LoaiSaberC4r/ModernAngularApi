@@ -220,6 +220,7 @@ export class TrafficWizard implements OnInit {
 
   // Submit
   onApply(): void {
+    console.log(this.trafficForm);
     if (this.trafficForm.invalid) {
       this.trafficForm.markAllAsTouched();
       return;
@@ -252,10 +253,10 @@ export class TrafficWizard implements OnInit {
     }
 
     // تحقق من قيم الـ pattern
-    if (selectedPattern.red <= 0 || selectedPattern.yellow <= 0 || selectedPattern.green <= 0) {
-      console.error('Light pattern times must be greater than 0');
-      return;
-    }
+    // if (selectedPattern.red <= 0 || selectedPattern.yellow <= 0 || selectedPattern.green <= 0) {
+    //   console.error('Light pattern times must be greater than 0');
+    //   return;
+    // }
 
     // استخدم القيم الآمنة (مع التأكد أنها > 0)
     const redTime = Math.max(1, selectedPattern.red);
@@ -269,16 +270,12 @@ export class TrafficWizard implements OnInit {
       return;
     }
 
-    const payload: AddSignBoxWithUpdateLightPattern = {
+    const payload: AddSignBoxCommandDto = {
       name: v.name,
       areaId: v.area,
       ipAddress: v.ipAddress,
       latitude: v.latitude,
       longitude: v.longitude,
-      lightPatternId: this.selectedLightPatternId ?? 0,
-      redTime: v.redTime,
-      yellowTime: v.amberTime,
-      greenTime: v.greenTime,
       directions: v.directions.map((d: any, index: number) => ({
         name: d.name,
         order: index + 1,
@@ -288,7 +285,7 @@ export class TrafficWizard implements OnInit {
         greenTime: d.greenTime,
       })),
     };
-    
+
     this.signBoxService.AddWithUpdateLightPattern(payload).subscribe({
       next: (res) => {
         console.log('تم إضافة SignBox بنجاح', res);

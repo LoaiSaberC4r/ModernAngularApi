@@ -1,11 +1,3 @@
-export interface DirectionWithPatternDto {
-  name: string;
-  order: number;
-  lightPatternId: number;
-  redTime: number;
-  yellowTime: number;
-  greenTime: number;
-}
 
 export interface AddSignBoxWithUpdateLightPattern {
   name: string;
@@ -18,5 +10,4 @@ export interface AddSignBoxWithUpdateLightPattern {
   redTime: number;
   yellowTime: number;
   greenTime: number;
-  directions: DirectionWithPatternDto[];
 }
