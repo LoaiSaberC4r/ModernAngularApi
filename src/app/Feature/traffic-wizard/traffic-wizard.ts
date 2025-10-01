@@ -207,6 +207,10 @@ export class TrafficWizard implements OnInit {
     this.signBoxService.AddSignBox(payload).subscribe({
       next: (res) => {
         console.log('تم إضافة SignBox بنجاح', res);
+        this.loadGovernate();
+        this.trafficForm.reset();
+        this.directions.clear();
+        this.addDirection();
       },
       error: (err) => {
         console.error('فشل الإضافة', err);

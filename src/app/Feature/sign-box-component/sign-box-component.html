@@ -87,22 +87,17 @@
     </div>
 
     <div class="tp-grid">
-      <!-- L1 -->
-      <div class="tp-col">
+      <div class="tp-col" *ngFor="let dir of popupData?.directions; let i = index">
         <div class="tp-col__head">
-          <span class="tp-col__label">اتجاة : </span>
+          <span class="tp-col__label">اتجاه: {{ dir.name }}</span>
           <span class="tp-timer">
-            {{ !isDisconnected ? (popupLive?.T1 ?? 0) + 's' : '--' }}
+            {{ !isDisconnected ? dir.timer + 's' : '--' }}
           </span>
         </div>
         <div class="traffic-light">
           <div
             class="tp-lamp"
-            [ngClass]="{
-              'is-red': true,
-              disconnected: isDisconnected,
-              active: !isDisconnected && popupLive?.L1 === 'R'
-            }"
+            [ngClass]="{ 'is-red': true, disconnected: isDisconnected, active: dir.code === 'R' }"
           >
             🔴
           </div>
@@ -111,60 +106,14 @@
             [ngClass]="{
               'is-yellow': true,
               disconnected: isDisconnected,
-              active: !isDisconnected && popupLive?.L1 === 'Y'
+              active: dir.code === 'Y'
             }"
           >
             🟡
           </div>
           <div
             class="tp-lamp"
-            [ngClass]="{
-              'is-green': true,
-              disconnected: isDisconnected,
-              active: !isDisconnected && popupLive?.L1 === 'G'
-            }"
-          >
-            🟢
-          </div>
-        </div>
-      </div>
-
-      <!-- L2 -->
-      <div class="tp-col">
-        <div class="tp-col__head">
-          <span class="tp-col__label">اتجاة : </span>
-          <span class="tp-timer">
-            {{ !isDisconnected ? (popupLive?.T2 ?? 0) + 's' : '--' }}
-          </span>
-        </div>
-        <div class="traffic-light">
-          <div
-            class="tp-lamp"
-            [ngClass]="{
-              'is-red': true,
-              disconnected: isDisconnected,
-              active: !isDisconnected && popupLive?.L2 === 'R'
-            }"
-          >
-            🔴
-          </div>
-          <div
-            class="tp-lamp"
-            [ngClass]="{
-              'is-yellow': true,
-              disconnected: isDisconnected,
-              active: !isDisconnected && popupLive?.L2 === 'Y'
-            }"
-          >
-            🟡
-          </div>
-          <div
-            class="tp-lamp"
-            [ngClass]="{
-              'is-green': true,
-              disconnected: isDisconnected,
-              active: !isDisconnected && popupLive?.L2 === 'G'
-            }"
+            [ngClass]="{ 'is-green': true, disconnected: isDisconnected, active: dir.code === 'G' }"
           >
             🟢
           </div>

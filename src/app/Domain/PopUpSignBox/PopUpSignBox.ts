@@ -1,12 +1,19 @@
+export interface PopUpDirection {
+  name: string;
+  lightCode: TrafficColor;
+  time: number;
+}
+
 export interface PopUpSignBox {
-  L1: TrafficColor;
-  L2: TrafficColor;
-  T1: number;
-  T2: number;
   Id: number;
   name: string;
   Latitude: string;
   Longitude: string;
+  directions: {
+    name: string;
+    code: TrafficColor;
+    timer: number;
+  }[];
 }
 
 export type TrafficColor = 'R' | 'G' | 'Y';

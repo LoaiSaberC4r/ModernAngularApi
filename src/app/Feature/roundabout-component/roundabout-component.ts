@@ -30,9 +30,9 @@ export class RoundaboutComponent implements AfterViewInit {
   constructor(private renderer: Renderer2) {}
 
   ngAfterViewInit(): void {
-    setTimeout(() => {
-      this.initSystem();
-    }, 0);
+    // setTimeout(() => {
+    //   this.initSystem();
+    // }, 0);
   }
 
   private initSystem(): void {

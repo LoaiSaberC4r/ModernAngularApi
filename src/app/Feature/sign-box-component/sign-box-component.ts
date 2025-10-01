@@ -11,7 +11,7 @@ import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllS
 import { ResultError } from '../../Domain/ResultPattern/Error';
 
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { PopUpSignBox } from '../../Domain/PopUpSignBox/PopUpSignBox';
+import { PopUpDirection, PopUpSignBox, TrafficColor } from '../../Domain/PopUpSignBox/PopUpSignBox';
 import { Subscription, timer } from 'rxjs';
 
 export interface ReceiveMessage {
@@ -179,16 +179,19 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   // ===== Popup =====
   showPopup(row: GetAllSignControlBox, event: MouseEvent) {
     const live = this.latestById[row.id] ?? null;
+
     this.popupData = {
       Id: row.id,
       name: row.name ?? '—',
       Latitude: row.latitude ?? '—',
       Longitude: row.longitude ?? '—',
-      L1: live?.L1 ?? 'R',
-      L2: live?.L2 ?? 'R',
-      T1: live?.T1 ?? 0,
-      T2: live?.T2 ?? 0,
-    } as PopUpSignBox;
+      directions: (row.directions ?? []).map((d, idx) => ({
+        name: d.name,
+        code: (live ? (live as any)[`L${idx + 1}`] : 'R') as TrafficColor,
+        timer: (live ? (live as any)[`T${idx + 1}`] : 0) as number,
+      })),
+    };
+
     this.popupLive = live;
     this.popupVisible = true;
     this.updatePopupPosition(event);

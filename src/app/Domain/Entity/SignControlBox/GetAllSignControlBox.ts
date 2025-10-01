@@ -1,9 +1,16 @@
 export interface GetAllSignControlBox {
-    id: number;
-    name: string;
-latitude?: string | null;
-  longitude?: string | null; 
-    ipAddress: string;
-    active?: boolean;
+  id: number;
+  name: string;
+  latitude: string;
+  longitude: string;
+  ipAddress: string;
+  active?: boolean;
+  directions?: DirectionDto[];
+}
 
+export interface DirectionDto {
+  id?: number;
+  name: string;
+  order: number;
+  lightPatternId: number;
 }
