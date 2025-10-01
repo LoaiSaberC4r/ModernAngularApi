@@ -1,6 +1,6 @@
 /* Sizes */
 :root {
-  --roundabout-size: 250px;
+  --roundabout-size: 150px;
   --road-width: 120px;
   --lane-width: 55px;
   --median-width: 5px;
@@ -8,16 +8,14 @@
   --light-height: 150px;
 
   /* Colors */
-  --road-color: #000;
-  --road-border: #ccc;
-  --median-color: #fff;
-  --roundabout-color: #d0d0d0;
-  --light-bg: #222;
-  --label-bg: rgba(255, 255, 255, 0.7);
+  --road-color: #333;
+  --road-border: #666;
+  --median-color: #ffeb3b;
+  --roundabout-color: #4caf50;
+  --label-bg: rgba(255, 255, 255, 0.9);
 
   /* Effects */
   --shadow-strong: 0 10px 30px rgba(0, 0, 0, 0.2);
-  --shadow-inner: inset 0 0 5px rgba(0, 0, 0, 0.2);
   --transition-fast: all 0.3s ease;
 }
 
@@ -31,7 +29,10 @@
   border-radius: 15px;
   padding: 20px;
   overflow: hidden;
-  margin: 0 auto; /* لتوسيطه لو اتحط في مكان فارغ */
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Roundabout */
@@ -44,94 +45,29 @@
   transform: translate(-50%, -50%);
   border-radius: 50%;
   z-index: 10;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  transition: var(--transition-fast);
-
-  /* خلفية الدوائر المتدرجة (طوب) */
-  background: radial-gradient(
-    circle at 50% 50%,
-    #d4a373 0%,
-    #c99875 20%,
-    #b98e6f 40%,
-    #a67c52 60%,
-    #966e4b 80%,
-    #8a6242 100%
-  );
-
-  /* حافة خضراء (عشب) */
-  box-shadow: inset 0 0 0 15px #4caf50, /* حافة خضراء داخلية */ inset 0 0 0 20px #388e3c,
-    /* حافة خضراء أعمق */ 0 0 20px rgba(0, 0, 0, 0.3); /* ظل خارجي */
-
-  /* نصب تذكاري في المنتصف */
-  &::before {
-    content: '';
-    position: absolute;
-    width: 60px;
-    height: 120px;
-    background: linear-gradient(to bottom, #d2b48c, #8b4513);
-    border-radius: 5px 5px 0 0;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-    z-index: 2;
-  }
-
-  /* &::after {
-    content: '';
-    position: absolute;
-    width: 20px;
-    height: 10px;
-    background: #ffd700;
-    top: -10px;
-    border-radius: 50%;
-    box-shadow: 0 0 10px #ffd700;
-    z-index: 3;
-  } */
-
-  /* تفاصيل طوب على السطح */
-  &::before {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 10px,
-      rgba(0, 0, 0, 0.05) 10px,
-      rgba(0, 0, 0, 0.05) 20px
-    );
-    border-radius: 50%;
-    opacity: 0.3;
-    z-index: 1;
-  }
-
-  /* ظل تحت الدوار */
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 0 0 15px #4caf50, inset 0 0 0 20px #388e3c;
-
-  /* تأثير إضاءة */
-  filter: brightness(1.05);
-}
-.monument {
-  position: absolute;
-  width: 60px;
-  height: 120px;
-  background: url('https://via.placeholder.com/60x120/8B4513/FFFFFF?text=Monument') no-repeat center;
-  background-size: contain;
-  z-index: 2;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-  border-radius: 5px 5px 0 0;
+  background: radial-gradient(circle, #8bc34a 0%, #4caf50 70%, #388e3c 100%);
+  box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
+  animation: rotateRoundabout 20s linear infinite;
 }
 
-/* Roads */
+@keyframes rotateRoundabout {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Roads - استخدام Flexbox للتحكم في التوزيع */
 .road {
   position: absolute;
   background: var(--road-color);
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.6);
   z-index: 5;
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 
 .north-road,
@@ -146,7 +82,6 @@
   top: 0;
   border-radius: 50px 50px 0 0;
 }
-
 .south-road {
   bottom: 0;
   border-radius: 0 0 50px 50px;
@@ -159,168 +94,139 @@
   top: 50%;
   transform: translateY(-50%);
   flex-direction: column;
+  justify-content: center;
 }
 
 .east-road {
   right: 0;
   border-radius: 0 50px 50px 0;
 }
-
 .west-road {
   left: 0;
   border-radius: 50px 0 0 50px;
 }
 
-/* Lanes & Median */
-.lane-in,
-.lane-out {
+/* Lanes - استخدام Flexbox لمحاذاة الأسهم */
+.lane {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: var(--lane-width);
   height: 100%;
-  background: var(--road-color);
+  background: #444;
   border: 1px solid var(--road-border);
-  border-radius: 3px;
-  position: relative;
-  box-shadow: var(--shadow-inner);
 }
 
-.east-road .lane-in,
-.west-road .lane-in,
-.east-road .lane-out,
-.west-road .lane-out {
+.east-road .lane,
+.west-road .lane {
   width: 100%;
   height: var(--lane-width);
+  flex-direction: column;
 }
 
+/* Median */
 .median {
   background: var(--median-color);
-  border-radius: 1px;
-  margin: 2px;
   width: var(--median-width);
   height: 100%;
+  box-shadow: 0 0 5px rgba(255, 235, 59, 0.8);
 }
 
-/* Lane White Line */
-.white-line {
+.east-road .median,
+.west-road .median {
+  width: 100%;
+  height: var(--median-width);
+}
+
+/* White Lines */
+/* .white-line {
   position: absolute;
-  top: 0;
-  left: 50%;
-  width: 2px;
-  height: 100%;
-  transform: translateX(-50%);
   background: repeating-linear-gradient(
     to bottom,
-    white,
+    white 0px,
     white 10px,
     transparent 10px,
     transparent 20px
   );
-  z-index: 2;
+  width: 2px;
+  height: 100%;
 }
 
 .east-road .white-line,
 .west-road .white-line {
-  width: 100%;
-  height: 2px;
-  top: 50%;
-  transform: translateY(-50%);
   background: repeating-linear-gradient(
     to right,
-    white,
+    white 0px,
     white 10px,
     transparent 10px,
     transparent 20px
   );
-}
+  width: 100%;
+  height: 2px;
+  top: 33px;
+  left: 0px;
+} */
 
-/* Traffic Lights */
-.traffic-light {
+/* Arrows - التوزيع الذكي باستخدام Flexbox */
+.arrow-container {
   position: absolute;
-  width: var(--light-width);
-  height: var(--light-height);
-  background: var(--light-bg);
-  border-radius: 10px;
   display: flex;
-  flex-direction: column;
-  justify-content: space-around;
+  justify-content: center;
   align-items: center;
-  padding: 10px;
-  z-index: 15;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  transition: var(--transition-fast);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
-.light {
-  width: 30px;
-  height: 30px;
+.arrow-btn {
+  pointer-events: auto;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
   border-radius: 50%;
-  background: var(--light-bg);
-  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
-  transition: var(--transition-fast);
+  user-select: none;
+  color: #ddd;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  z-index: 15;
+  border: 2px solid transparent;
 }
 
-.light.red.active {
-  background: #ff0000;
-  box-shadow: 0 0 15px #ff0000;
+.arrow-btn:hover {
+  transform: scale(1.15);
+  background: rgba(255, 255, 255, 0.3);
+  border-color: #4caf50;
 }
 
-.light.yellow.active {
-  background: #ffff00;
-  box-shadow: 0 0 15px #ffff00;
+.arrow-btn.active {
+  background: #4caf50;
+  color: white;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.6);
+  transform: scale(1.25);
+  border-color: #45a049;
 }
 
-.light.green.active {
-  background: #00ff00;
-  box-shadow: 0 0 15px #00ff00;
-  animation: blink 1s infinite;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0.7;
-  }
-}
-
-/* Lights Position */
-.north-light {
-  width: 50px;
-  height: 80px;
-  top: 179px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.south-light {
-  width: 50px;
-  height: 80px;
-  bottom: 180px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.east-light {
-  width: 50px;
-  height: 80px;
-  right: 179px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.west-light {
-  width: 50px;
-  height: 80px;
-  left: 179px;
-  top: 50%;
-  transform: translateY(-50%);
+.arrow-btn i {
+  font-size: 24px;
 }
 
 /* Labels */
 .direction-label {
   position: absolute;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: bold;
   color: #000;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
   background: var(--label-bg);
-  padding: 5px 10px;
-  border-radius: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
   z-index: 20;
+  border: 2px solid #4caf50;
+  text-align: center;
 }
 
 .north-label {
@@ -344,100 +250,8 @@
   transform: translateY(-50%);
 }
 
-/* Arrows */
-.arrow-btn {
-  position: absolute;
-  width: 50px;
-  height: 50px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  border-radius: 50%;
-  user-select: none;
-  color: #ddd;
-  background: rgba(255, 255, 255, 0.2);
-  transition: var(--transition-fast);
-  z-index: 15;
-}
-
-.arrow-btn:hover {
-  transform: scale(1.2);
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.arrow-btn:active {
-  transform: scale(0.95);
-}
-
-.arrow-btn.active {
-  background: #ffcc00;
-  color: #333;
-  box-shadow: 0 0 30px #ffcc00;
-  transform: scale(1.3);
-  animation: arrowPulse 0.5s infinite alternate;
-}
-
-@keyframes arrowPulse {
-  from {
-    box-shadow: 0 0 20px #ffcc00;
-  }
-  to {
-    box-shadow: 0 0 40px #ffcc00;
-  }
-}
-
-.arrow-btn i {
-  font-size: 30px;
-}
-
-/* Arrow Placement */
-.north-road .lane-in .arrow-btn,
-.south-road .lane-in .arrow-btn {
-  left: 50%;
-  transform: translateX(-50%);
-}
-.north-road .lane-in .arrow-btn {
-  bottom: 120px;
-}
-.south-road .lane-in .arrow-btn {
-  top: 120px;
-}
-.north-road .lane-out .arrow-btn,
-.south-road .lane-out .arrow-btn {
-  left: 50%;
-  transform: translateX(-50%);
-}
-.north-road .lane-out .arrow-btn {
-  top: 90px;
-}
-.south-road .lane-out .arrow-btn {
-  bottom: 120px;
-}
-
-.east-road .lane-in .arrow-btn {
-  left: 100px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.east-road .lane-out .arrow-btn {
-  right: 120px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.west-road .lane-in .arrow-btn {
-  right: 123px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.west-road .lane-out .arrow-btn {
-  left: 112px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
 /* Notifications */
-.notification {
+.roundabout-notification {
   position: fixed;
   bottom: 20px;
   left: 50%;
@@ -446,32 +260,32 @@
   color: white;
   padding: 15px 25px;
   border-radius: 10px;
-  font-size: 18px;
+  font-size: 16px;
   text-align: center;
   max-width: 500px;
   opacity: 0;
-  transition: opacity 0.5s ease;
+  transition: opacity 0.3s ease;
   z-index: 1000;
 }
 
-.notification.show {
+.roundabout-notification.show {
   opacity: 1;
-}
-
-/* Accessibility */
-@media (prefers-reduced-motion: reduce) {
-  .light.green.active {
-    animation: none;
-  }
 }
 
 /* Responsive */
 @media (max-width: 600px) {
   :root {
-    --roundabout-size: 200px;
+    --roundabout-size: 120px;
     --road-width: 90px;
     --lane-width: 42px;
-    --light-width: 58px;
-    --light-height: 120px;
+  }
+
+  .arrow-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .arrow-btn i {
+    font-size: 20px;
   }
 }
