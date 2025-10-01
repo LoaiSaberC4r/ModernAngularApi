@@ -1,107 +1,115 @@
-<div class="container">
+<div class="container" #container>
   <!-- الدوار المركزي -->
-  <div class="roundabout">
-    <!-- <div class="monument"></div> -->
-  </div>
+  <div class="roundabout"></div>
+
   <!-- الطرق -->
+  <!-- شمال -->
   <div class="road north-road">
-    <div class="lane-in north-lane-in">
+    <div class="lane lane-in">
       <div class="white-line"></div>
-      <div class="arrow-btn north-arrow-straight" data-dir="north" data-type="straight">
-        <i class="bi bi-arrow-up"></i>
+      <div class="arrow-container">
+        <div class="arrow-btn" data-dir="north" data-type="straight">
+          <i class="bi bi-arrow-down"></i>
+        </div>
       </div>
     </div>
     <div class="median"></div>
-    <div class="lane-out north-lane-out">
+    <div class="lane lane-out">
       <div class="white-line"></div>
-      <div class="arrow-btn north-arrow-right" data-dir="north" data-type="right">
-        <i class="bi bi-arrow-down"></i>
+      <div class="arrow-container">
+        <div class="arrow-btn" data-dir="north" data-type="right">
+          <i class="bi bi-arrow-up"></i>
+        </div>
       </div>
+    </div>
+    <div class="traffic-light north-light">
+      <div class="light red" [class.active]="systemState.signals.north === 'red'"></div>
+      <div class="light yellow" [class.active]="systemState.signals.north === 'yellow'"></div>
+      <div class="light green" [class.active]="systemState.signals.north === 'green'"></div>
     </div>
   </div>
 
+  <!-- جنوب -->
   <div class="road south-road">
-    <div class="lane-in south-lane-in">
+    <div class="lane lane-in">
       <div class="white-line"></div>
-      <div class="arrow-btn south-arrow-straight" data-dir="south" data-type="straight">
-        <i class="bi bi-arrow-down"></i>
+      <div class="arrow-container">
+        <div class="arrow-btn" data-dir="south" data-type="straight">
+          <i class="bi bi-arrow-down"></i>
+        </div>
       </div>
     </div>
     <div class="median"></div>
-    <div class="lane-out south-lane-out">
+    <div class="lane lane-out">
       <div class="white-line"></div>
-      <div class="arrow-btn south-arrow-right" data-dir="south" data-type="right">
-        <i class="bi bi-arrow-up"></i>
+      <div class="arrow-container">
+        <div class="arrow-btn" data-dir="south" data-type="right">
+          <i class="bi bi-arrow-up"></i>
+        </div>
       </div>
+    </div>
+    <div class="traffic-light south-light">
+      <div class="light red" [class.active]="systemState.signals.south === 'red'"></div>
+      <div class="light yellow" [class.active]="systemState.signals.south === 'yellow'"></div>
+      <div class="light green" [class.active]="systemState.signals.south === 'green'"></div>
     </div>
   </div>
 
+  <!-- شرق -->
   <div class="road east-road">
-    <div class="lane-in east-lane-in">
+    <div class="lane lane-in">
       <div class="white-line"></div>
-      <div class="arrow-btn east-arrow-straight" data-dir="east" data-type="straight">
-        <i class="bi bi-arrow-right"></i>
+      <div class="arrow-container">
+        <div class="arrow-btn" data-dir="east" data-type="straight">
+          <i class="bi bi-arrow-left"></i>
+        </div>
       </div>
     </div>
     <div class="median"></div>
-    <div class="lane-out east-lane-out">
+    <div class="lane lane-out">
       <div class="white-line"></div>
-      <div class="arrow-btn east-arrow-right" data-dir="east" data-type="right">
-        <i class="bi bi-arrow-left"></i>
+      <div class="arrow-container">
+        <div class="arrow-btn" data-dir="east" data-type="right">
+          <i class="bi bi-arrow-right"></i>
+        </div>
       </div>
+    </div>
+    <div class="traffic-light east-light">
+      <div class="light red" [class.active]="systemState.signals.east === 'red'"></div>
+      <div class="light yellow" [class.active]="systemState.signals.east === 'yellow'"></div>
+      <div class="light green" [class.active]="systemState.signals.east === 'green'"></div>
     </div>
   </div>
 
+  <!-- غرب -->
   <div class="road west-road">
-    <div class="lane-in west-lane-in">
+    <div class="lane lane-in">
       <div class="white-line"></div>
-      <div class="arrow-btn west-arrow-straight" data-dir="west" data-type="straight">
-        <i class="bi bi-arrow-left"></i>
+      <div class="arrow-container">
+        <div class="arrow-btn" data-dir="west" data-type="straight">
+          <i class="bi bi-arrow-left"></i>
+        </div>
       </div>
     </div>
     <div class="median"></div>
-    <div class="lane-out west-lane-out">
+    <div class="lane lane-out">
       <div class="white-line"></div>
-      <div class="arrow-btn west-arrow-right" data-dir="west" data-type="right">
-        <i class="bi bi-arrow-right"></i>
+      <div class="arrow-container">
+        <div class="arrow-btn" data-dir="west" data-type="right">
+          <i class="bi bi-arrow-right"></i>
+        </div>
       </div>
+    </div>
+    <div class="traffic-light west-light">
+      <div class="light red" [class.active]="systemState.signals.west === 'red'"></div>
+      <div class="light yellow" [class.active]="systemState.signals.west === 'yellow'"></div>
+      <div class="light green" [class.active]="systemState.signals.west === 'green'"></div>
     </div>
   </div>
 
-  <!-- الإشارات -->
-  <!-- <div class="traffic-light north-light">
-    <div class="light red"></div>
-    <div class="light yellow"></div>
-    <div class="light green"></div>
-  </div>
-  <div class="traffic-light south-light">
-    <div class="light red"></div>
-    <div class="light yellow"></div>
-    <div class="light green"></div>
-  </div>
-  <div class="traffic-light east-light">
-    <div class="light red"></div>
-    <div class="light yellow"></div>
-    <div class="light green"></div>
-  </div>
-  <div class="traffic-light west-light">
-    <div class="light red"></div>
-    <div class="light yellow"></div>
-    <div class="light green"></div>
-  </div> -->
-
   <!-- الأسماء -->
-  <!-- الأسماء -->
-  <div class="direction-label north-label">
-    {{ getDirectionName(0) }}
-  </div>
-  <div class="direction-label south-label">
-    {{ getDirectionName(1) }}
-  </div>
-  <div class="direction-label east-label">
-    {{ getDirectionName(2) }}
-  </div>
-  <div class="direction-label west-label">
-    {{ getDirectionName(3) }}
-  </div>
+  <div class="direction-label north-label">{{ getDirectionName(0) }}</div>
+  <div class="direction-label south-label">{{ getDirectionName(1) }}</div>
+  <div class="direction-label east-label">{{ getDirectionName(2) }}</div>
+  <div class="direction-label west-label">{{ getDirectionName(3) }}</div>
 </div>
