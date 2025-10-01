@@ -5,6 +5,7 @@ import {
   ElementRef,
   Renderer2,
   ViewEncapsulation,
+  Input,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { CommonModule } from '@angular/common';
@@ -19,6 +20,7 @@ import { CommonModule } from '@angular/common';
 })
 export class RoundaboutComponent implements AfterViewInit {
   @ViewChild('container', { static: true }) containerRef!: ElementRef<HTMLDivElement>;
+  @Input() directions: { name: string; lightPatternId: number | null; order: number }[] = [];
 
   private systemState = {
     activeDirection: null as null | 'north' | 'south' | 'east' | 'west',
@@ -108,5 +110,8 @@ export class RoundaboutComponent implements AfterViewInit {
     this.systemState.activeType = null;
     const arrows = this.containerRef.nativeElement.querySelectorAll<HTMLElement>('.arrow-btn');
     arrows.forEach((btn) => btn.classList.remove('active'));
+  }
+  getDirectionName(index: number): string {
+    return this.directions[index]?.name || `Direction ${index + 1}`;
   }
 }

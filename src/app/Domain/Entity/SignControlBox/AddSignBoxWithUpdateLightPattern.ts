@@ -1,11 +1,22 @@
-export interface AddSignBoxWithUpdateLightPattern {
+export interface DirectionWithPatternDto {
   name: string;
-  latitude: string;
-  longitude: string;
+  order: number;
   lightPatternId: number;
-  areaId: number;
   redTime: number;
   yellowTime: number;
   greenTime: number;
+}
+
+export interface AddSignBoxWithUpdateLightPattern {
+  name: string;
+  areaId: number;
   ipAddress: string;
+  latitude: string;
+  longitude: string;
+  lightPatternId: number;
+
+  redTime: number;
+  yellowTime: number;
+  greenTime: number;
+  directions: DirectionWithPatternDto[];
 }

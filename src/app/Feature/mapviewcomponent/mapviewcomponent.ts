@@ -157,6 +157,7 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
       yellowTime: raw.amberTime,
       greenTime: raw.greenTime,
       ipAddress: raw.ipAddress,
+      directions: [],
     };
 
     console.log('Submitting:', payload);

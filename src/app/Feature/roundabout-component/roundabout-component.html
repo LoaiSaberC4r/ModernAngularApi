@@ -1,7 +1,8 @@
 <div class="container">
   <!-- الدوار المركزي -->
-  <div class="roundabout"></div>
-
+  <div class="roundabout">
+    <!-- <div class="monument"></div> -->
+  </div>
   <!-- الطرق -->
   <div class="road north-road">
     <div class="lane-in north-lane-in">
@@ -68,7 +69,7 @@
   </div>
 
   <!-- الإشارات -->
-  <div class="traffic-light north-light">
+  <!-- <div class="traffic-light north-light">
     <div class="light red"></div>
     <div class="light yellow"></div>
     <div class="light green"></div>
@@ -87,11 +88,20 @@
     <div class="light red"></div>
     <div class="light yellow"></div>
     <div class="light green"></div>
-  </div>
+  </div> -->
 
   <!-- الأسماء -->
-  <div class="direction-label north-label">NORTH</div>
-  <div class="direction-label south-label">SOUTH</div>
-  <div class="direction-label east-label">EAST</div>
-  <div class="direction-label west-label">WEST</div>
+  <!-- الأسماء -->
+  <div class="direction-label north-label">
+    {{ getDirectionName(0) }}
+  </div>
+  <div class="direction-label south-label">
+    {{ getDirectionName(1) }}
+  </div>
+  <div class="direction-label east-label">
+    {{ getDirectionName(2) }}
+  </div>
+  <div class="direction-label west-label">
+    {{ getDirectionName(3) }}
+  </div>
 </div>

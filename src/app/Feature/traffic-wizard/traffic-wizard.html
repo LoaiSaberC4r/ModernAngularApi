@@ -144,7 +144,9 @@
       <!-- Step 3: Roundabout -->
       <mat-step>
         <ng-template matStepLabel>Roundabout</ng-template>
-        <app-roundabout-component></app-roundabout-component>
+        <app-roundabout-component
+          [directions]="getDirectionsForRoundabout()"
+        ></app-roundabout-component>
 
         <div class="step-actions">
           <button mat-button matStepperPrevious>Back</button>

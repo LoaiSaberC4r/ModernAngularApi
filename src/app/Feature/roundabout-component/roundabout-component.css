@@ -42,26 +42,87 @@
   width: var(--roundabout-size);
   height: var(--roundabout-size);
   transform: translate(-50%, -50%);
-  border: 4px solid #888;
   border-radius: 50%;
-  background: var(--roundabout-color);
   z-index: 10;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 24px;
-  font-weight: bold;
-  color: #555;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: var(--transition-fast);
-}
 
-/* .roundabout:hover {
-  box-shadow: 0 0 25px rgba(0, 0, 0, 0.4), inset 0 0 12px rgba(0, 0, 0, 0.15);
-  transform: translate(-50%, -50%) scale(1.05);
-} */
+  /* خلفية الدوائر المتدرجة (طوب) */
+  background: radial-gradient(
+    circle at 50% 50%,
+    #d4a373 0%,
+    #c99875 20%,
+    #b98e6f 40%,
+    #a67c52 60%,
+    #966e4b 80%,
+    #8a6242 100%
+  );
+
+  /* حافة خضراء (عشب) */
+  box-shadow: inset 0 0 0 15px #4caf50, /* حافة خضراء داخلية */ inset 0 0 0 20px #388e3c,
+    /* حافة خضراء أعمق */ 0 0 20px rgba(0, 0, 0, 0.3); /* ظل خارجي */
+
+  /* نصب تذكاري في المنتصف */
+  &::before {
+    content: '';
+    position: absolute;
+    width: 60px;
+    height: 120px;
+    background: linear-gradient(to bottom, #d2b48c, #8b4513);
+    border-radius: 5px 5px 0 0;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    z-index: 2;
+  }
+
+  /* &::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 10px;
+    background: #ffd700;
+    top: -10px;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #ffd700;
+    z-index: 3;
+  } */
+
+  /* تفاصيل طوب على السطح */
+  &::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(0, 0, 0, 0.05) 10px,
+      rgba(0, 0, 0, 0.05) 20px
+    );
+    border-radius: 50%;
+    opacity: 0.3;
+    z-index: 1;
+  }
+
+  /* ظل تحت الدوار */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 0 0 15px #4caf50, inset 0 0 0 20px #388e3c;
+
+  /* تأثير إضاءة */
+  filter: brightness(1.05);
+}
+.monument {
+  position: absolute;
+  width: 60px;
+  height: 120px;
+  background: url('https://via.placeholder.com/60x120/8B4513/FFFFFF?text=Monument') no-repeat center;
+  background-size: contain;
+  z-index: 2;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+  border-radius: 5px 5px 0 0;
+}
 
 /* Roads */
 .road {

@@ -28,6 +28,7 @@ import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { MatDividerModule } from '@angular/material/divider';
 import { RoundaboutComponent } from '../roundabout-component/roundabout-component';
 import { GetAllSignControlBoxWithLightPattern } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
+import { AddSignBoxCommandDto } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
 
 @Component({
   selector: 'app-traffic-wizard',
@@ -78,7 +79,6 @@ export class TrafficWizard implements OnInit {
       // Step 1
       governorate: ['', Validators.required],
       area: [null, Validators.required],
-      // name: ['', Validators.required],
 
       // Step 2
       latitude: ['', Validators.required],
@@ -105,6 +105,9 @@ export class TrafficWizard implements OnInit {
           name: ['', Validators.required],
           lightPatternId: [null, Validators.required],
           order: [1, [Validators.required, Validators.min(1)]],
+          redTime: [0, Validators.required],
+          yellowTime: [0, Validators.required],
+          greenTime: [0, Validators.required],
         }),
       ]),
     });
@@ -222,36 +225,81 @@ export class TrafficWizard implements OnInit {
       return;
     }
 
-    const clampByte = (n: unknown) => Math.max(0, Math.min(255, Number(n) || 0));
+    const v = this.trafficForm.value;
 
-    const v = this.trafficForm.value as {
-      name: string;
-      latitude: number | string;
-      longitude: number | string;
-      ipAddress: string;
-      area: number | string | null;
-      pattern: GetAllLightPattern | null;
-      red: number | string;
-      yellow: number | string;
-      green: number | string;
-    };
+    // IP Address
+    const ipAddress = (v.ipAddress ?? '').trim();
+    if (!ipAddress) {
+      console.error('IP Address is required');
+      return;
+    }
+
+    // خذ أول اتجاه
+    const firstDirection = v.directions?.[0];
+    const lightPatternId = firstDirection?.lightPatternId;
+
+    if (!lightPatternId) {
+      console.error('No light pattern selected');
+      return;
+    }
+
+    // ابحث عن الـ pattern
+    const selectedPattern = this.lightPatternEntity.value.find((p) => p.id === lightPatternId);
+
+    if (!selectedPattern) {
+      console.error('Selected light pattern not found in list');
+      return;
+    }
+
+    // تحقق من قيم الـ pattern
+    if (selectedPattern.red <= 0 || selectedPattern.yellow <= 0 || selectedPattern.green <= 0) {
+      console.error('Light pattern times must be greater than 0');
+      return;
+    }
+
+    // استخدم القيم الآمنة (مع التأكد أنها > 0)
+    const redTime = Math.max(1, selectedPattern.red);
+    const yellowTime = Math.max(1, selectedPattern.yellow);
+    const greenTime = Math.max(1, selectedPattern.green);
+
+    // Area ID
+    const areaId = Number(v.area) || 0;
+    if (areaId <= 0) {
+      console.error('Area is required and must be a positive number');
+      return;
+    }
 
     const payload: AddSignBoxWithUpdateLightPattern = {
-      name: (v.name ?? '').trim(),
-      latitude: String(v.latitude ?? ''),
-      longitude: String(v.longitude ?? ''),
-      lightPatternId: v.pattern?.id ?? 0,
-      areaId: Number(v.area) || 0,
-      redTime: clampByte(v.red),
-      yellowTime: clampByte(v.yellow),
-      greenTime: clampByte(v.green),
-      ipAddress: (v.ipAddress ?? '').trim(),
+      name: v.name,
+      areaId: v.area,
+      ipAddress: v.ipAddress,
+      latitude: v.latitude,
+      longitude: v.longitude,
+      lightPatternId: this.selectedLightPatternId ?? 0,
+      redTime: v.redTime,
+      yellowTime: v.amberTime,
+      greenTime: v.greenTime,
+      directions: v.directions.map((d: any, index: number) => ({
+        name: d.name,
+        order: index + 1,
+        lightPatternId: d.lightPatternId,
+        redTime: d.redTime,
+        yellowTime: d.yellowTime,
+        greenTime: d.greenTime,
+      })),
     };
-
-    console.log('Wizard Apply payload ->', payload);
-
-    this.signBoxControlService.AddWithUpdateLightPattern(payload).subscribe(() => {});
+    
+    this.signBoxService.AddWithUpdateLightPattern(payload).subscribe({
+      next: (res) => {
+        console.log('تم إضافة SignBox بنجاح', res);
+      },
+      error: (err) => {
+        console.error('فشل الإضافة', err);
+      },
+    });
   }
+
+  // Template
   onTemplateChange(event: any) {
     const templateId = event.value;
     if (!templateId) {
@@ -314,5 +362,24 @@ export class TrafficWizard implements OnInit {
   getPatternName(id: number | null): string {
     if (!id) return '';
     return this.lightPatternEntity.value.find((p) => p.id === id)?.name ?? '';
+  }
+
+  getDirectionsForRoundabout(): { name: string; lightPatternId: number | null; order: number }[] {
+    const directions = this.directions.value || [];
+    return [...directions].sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+  onDirectionPatternChange(directionIndex: number, lightPatternId: number) {
+    this.lightPatternService.getById(lightPatternId).subscribe((result) => {
+      const lp = Array.isArray(result.value) ? result.value[0] : result.value;
+      if (!lp) return;
+
+      const directionGroup = this.directions.at(directionIndex);
+      directionGroup.patchValue({
+        lightPatternId: lp.id,
+        redTime: lp.red,
+        yellowTime: lp.yellow,
+        greenTime: lp.green,
+      });
+    });
   }
 }
