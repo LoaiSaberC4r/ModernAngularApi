@@ -67,7 +67,7 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
     this.loadAllTemplates();
   }
   private initMap(): void {
-    if (this.map) return; // prevent re-initialization
+    if (this.map) return;
     this.map = L.map(this.mapContainer.nativeElement).setView([30.0444, 31.2357], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -149,15 +149,17 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
     const raw = this.trafficForm.getRawValue();
     const payload: AddSignBoxWithUpdateLightPattern = {
       name: raw.name,
-      latitude: raw.latitude,
-      longitude: raw.longitude,
-      lightPatternId: this.selectedLightPatternId,
-      areaId: raw.area,
-      redTime: raw.redTime,
-      yellowTime: raw.amberTime,
-      greenTime: raw.greenTime,
+      latitude: String(raw.latitude),
+      longitude: String(raw.longitude),
+      areaId: Number(raw.area),
       ipAddress: raw.ipAddress,
-      directions: [],
+      directions: [
+        {
+          name: 'Direction 1',
+          order: 1,
+          lightPatternId: this.selectedLightPatternId,
+        },
+      ],
     };
 
     console.log('Submitting:', payload);

@@ -10,6 +10,7 @@ import { Result } from '../../Domain/ResultPattern/Result';
 import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern';
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { GetAllSignBoxLocation } from '../../Domain/Entity/SignControlBox/GetAllSignBoxLocation';
+import { AddSignBoxCommandDto } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
 
 @Injectable({
   providedIn: 'root',
@@ -139,6 +140,23 @@ export class ISignBoxControlService {
         }),
         shareReplay(1)
       );
+  }
+
+  AddSignBox(payload: AddSignBoxCommandDto): Observable<Result> {
+    return this.http.post<Result>(`${environment.baseUrl}/SignControlBox/Add`, payload).pipe(
+      map((resp) => {
+        if (!resp.isSuccess) {
+          throw new Error(resp.error?.description ?? 'Unknown error');
+        }
+        alert('Sign Box added successfully');
+        return resp;
+      }),
+      catchError((err) => {
+        console.error('Failed to add sign box', err);
+        return of({} as Result);
+      }),
+      shareReplay(1)
+    );
   }
 
   getAllLocatopn(): Observable<ResultV<GetAllSignBoxLocation>> {

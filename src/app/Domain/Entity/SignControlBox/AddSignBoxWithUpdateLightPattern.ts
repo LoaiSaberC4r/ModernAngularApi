@@ -1,3 +1,4 @@
+import { DirectionWithPatternDto } from './AddSignBoxCommandDto';
 
 export interface AddSignBoxWithUpdateLightPattern {
   name: string;
@@ -5,9 +6,5 @@ export interface AddSignBoxWithUpdateLightPattern {
   ipAddress: string;
   latitude: string;
   longitude: string;
-  lightPatternId: number;
-
-  redTime: number;
-  yellowTime: number;
-  greenTime: number;
+  directions: DirectionWithPatternDto[];
 }

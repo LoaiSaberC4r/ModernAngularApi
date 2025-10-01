@@ -139,13 +139,15 @@ export class TrafficPointConfigComponent implements OnInit {
       name: (v.name ?? '').trim(),
       latitude: String(v.latitude ?? ''),
       longitude: String(v.longitude ?? ''),
-      lightPatternId: v.pattern?.id ?? 0,
       areaId: Number(v.area) || 0,
-      redTime: clampByte(v.red),
-      yellowTime: clampByte(v.yellow),
-      greenTime: clampByte(v.green),
       ipAddress: (v.ipAddress ?? '').trim(),
-      directions: [],
+      directions: [
+        {
+          name: 'Direction 1',
+          order: 1,
+          lightPatternId: v.pattern?.id ?? 0,
+        },
+      ],
     };
 
     console.log('Apply payload ->', payload);
