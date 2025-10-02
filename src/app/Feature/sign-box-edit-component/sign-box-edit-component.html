@@ -8,6 +8,7 @@
   </h2>
 
   <form [formGroup]="form" (ngSubmit)="apply()">
+    <!-- Name -->
     <div class="form-group">
       <label for="name">Name</label>
       <input id="name" formControlName="name" class="form-control border" />
@@ -16,6 +17,7 @@
       </div>
     </div>
 
+    <!-- IP -->
     <div class="form-group">
       <label for="ip">IP Address</label>
       <input id="ip" formControlName="ipAddress" class="form-control border" />
@@ -27,28 +29,53 @@
       </div>
     </div>
 
+    <!-- NEW: Coordinates -->
+    <div class="row-2">
+      <div class="form-group">
+        <label for="lat">Latitude</label>
+        <input id="lat" formControlName="latitude" class="form-control border" placeholder="e.g. 30.0444" />
+      </div>
+      <div class="form-group">
+        <label for="lng">Longitude</label>
+        <input id="lng" formControlName="longitude" class="form-control border" placeholder="e.g. 31.2357" />
+      </div>
+    </div>
+
+    <!-- Directions -->
     <div class="directions">
       <label>Directions</label>
+
       <div formArrayName="directions">
-        <div
-          *ngFor="let dir of directions.controls; let i = index"
-          [formGroupName]="i"
-          class="dir-row"
-        >
-          <input formControlName="name" placeholder="Direction name" class="form-control" />
-          <button
-            type="button"
-            class="btn btn-danger text-white"
-            (click)="removeDirection(i)"
-            [disabled]="directions.length <= 1"
-          >
+        <div class="dir-row" *ngFor="let dir of directions.controls; let i = index" [formGroupName]="i">
+          <!-- Direction name -->
+          <input formControlName="name" placeholder="Direction name" class="form-control flex-1" />
+
+          <!-- Order (disabled by CSS) -->
+          <input
+            type="number"
+            formControlName="order"
+            placeholder="Order"
+            class="form-control small order-input"
+          />
+
+          <!-- DropDown -->
+          <select class="form-control small" formControlName="lightPatternId" (change)="onPatternChange(i)">
+            <option [ngValue]="null" disabled>Select light pattern</option>
+            <option *ngFor="let lp of lightPatterns" [ngValue]="lp.id">{{ lp.name }}</option>
+          </select>
+
+          <button type="button" class="btn btn-danger text-white" (click)="removeDirection(i)">
             Remove
           </button>
         </div>
       </div>
-      <button type="button" (click)="addDirection()">Add Direction</button>
+
+      <button type="button" class="btn btn-success mt-2" (click)="addDirection()">
+        Add Direction
+      </button>
     </div>
 
+    <!-- Actions -->
     <div class="actions">
       <button type="submit" class="apply-button">Apply</button>
       <button type="button" (click)="cancel()" class="cancel-button">Cancel</button>

@@ -102,7 +102,7 @@ export class Templatecomponent implements OnInit {
   }
 
   private loadLightPatterns() {
-    this.lightPatternService.getAll({}).subscribe((resp) => {
+    this.lightPatternService.getAll().subscribe((resp) => {
       this.lightPatterns = resp?.value ?? [];
     });
   }

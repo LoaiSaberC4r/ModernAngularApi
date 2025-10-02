@@ -5,7 +5,10 @@ import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllS
 import { SearchParameters } from '../../Domain/ResultPattern/SearchParameters';
 import { catchError, map, Observable, of, shareReplay } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
-import { GetAllSignControlBoxWithLightPattern } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
+import {
+  ApplySignBox,
+  GetAllSignControlBoxWithLightPattern,
+} from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
 import { Result } from '../../Domain/ResultPattern/Result';
 import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern';
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
@@ -19,7 +22,7 @@ export class ISignBoxControlService {
   private readonly http = inject(HttpClient);
   private cache = new Map<string, Pagination<GetAllSignControlBox>>();
   private cacheLocation = new Map<string, ResultV<GetAllSignBoxLocation>>();
-   private cahceWithLightPattern = new Map<
+  private cahceWithLightPattern = new Map<
     string,
     Pagination<GetAllSignControlBoxWithLightPattern>
   >();
@@ -93,7 +96,7 @@ export class ISignBoxControlService {
       );
   }
 
-  applySignBox(payload: GetAllSignControlBoxWithLightPattern): Observable<Result> {
+  applySignBox(payload: ApplySignBox): Observable<Result> {
     return this.http
       .post<Result>(
         // لو عايز تستعمل الـ baseUrl بدل الثابت: `${environment.baseUrl}/SignControlBox/ApplySignBox`

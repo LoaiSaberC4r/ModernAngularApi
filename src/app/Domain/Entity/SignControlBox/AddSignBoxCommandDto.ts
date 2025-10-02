@@ -26,6 +26,7 @@ export interface SignDirection {
   name?: string;
   order?: number;
   lightPatternId?: number;
+  lightPatternName?: string;
 }
 
 export interface GetAllSignControlBoxWithLightPattern {

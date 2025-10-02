@@ -11,3 +11,6 @@ export interface GetAllSignControlBoxWithLightPattern {
   lightPatternId: number;
   directions?: SignDirection[];
 }
+export interface ApplySignBox {
+  id: number;
+}

@@ -23,12 +23,8 @@ export class LightPatternService {
     this.cache.clear();
   }
 
-  getAll(params: SearchParameters): Observable<ResultV<GetAllLightPattern>> {
+  getAll(): Observable<ResultV<GetAllLightPattern>> {
     const query = new HttpParams()
-      .set('SearchText', params.searchText ?? '')
-      .set('SortOrder', params.sortOrder ?? 'Newest')
-      .set('Page', params.page?.toString() ?? '1')
-      .set('PageSize', params.pageSize?.toString() ?? '10');
 
     const cacheKey = query.toString();
     if (this.cache.has(cacheKey)) {

@@ -14,7 +14,6 @@
         />
       </div>
 
-      <!-- Active Filter -->
       <div class="filter-dropdown active-filter-dropdown">
         <button class="filter-button" (click)="showActiveFilter = !showActiveFilter">
           <i class="fas fa-power-off"></i>
@@ -40,86 +39,35 @@
   </div>
 
   <!-- Table -->
-  <table class="traffic-table">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>IpAddress</th>
-        <th>Name</th>
-        <th>LightPattern</th>
-        <th>Apply</th>
-        <th>Edit</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let item of filteredData">
-        <td>{{ item.id }}</td>
-        <td>{{ item.ipAddress }}</td>
-        <td>{{ item.name }}</td>
-        <td>
-          <select
-            class="form-select lp-select"
-            [(ngModel)]="item.lightPatternId"
-            (ngModelChange)="onPatternChanged(item, $event)"
-          >
-            <option *ngFor="let p of lightPatternEntity.value" [ngValue]="p.id">
-              {{ p.name }}
-            </option>
-          </select>
-        </td>
+  <div class="table-scroll">
+    <table class="traffic-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>IpAddress</th>
+          <th>Name</th>
+          <th class="actions-col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of filteredData">
+          <td>{{ item.id }}</td>
+          <td>{{ item.ipAddress }}</td>
+          <td>{{ item.name }}</td>
+          <td class="actions-cell">
+            <button class="btn btn--apply" (click)="applyPattern(item)">
+              <i class="fas fa-check"></i> Apply
+            </button>
+            <button class="btn btn--edit" (click)="onEdit(item)">
+              <i class="fas fa-edit"></i> Edit
+            </button>
+          </td>
+        </tr>
 
-        <td>
-          <button class="apply-button" (click)="applyPattern(item)">
-            <i class="fas fa-check"></i>
-            Apply
-          </button>
-        </td>
-        <td>
-          <button class="edit-button" (click)="onEdit(item)">
-            <i class="fas fa-edit"></i> Edit
-          </button>
-        </td>
-      </tr>
-
-      <tr *ngIf="filteredData.length === 0">
-        <td colspan="5" class="no-results">No traffic signals found</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <!-- Popup -->
-  <!-- <div
-    class="traffic-popup"
-    *ngIf="popupVisible"
-    [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }"
-  >
-    <div class="tp-header">
-      <div class="tp-title">
-        <span class="tp-dot connected"></span>
-        <span class="tp-name">{{ popupData?.name || '—' }}</span>
-      </div>
-      <span class="tp-chip">Live</span>
-    </div>
-
-    <div class="tp-grid">
-      <div class="tp-col">
-        <div class="tp-col__head">
-          <span class="tp-col__label">L1</span>
-          <span class="tp-timer">{{ popupLive?.T1 ?? 0 }}s</span>
-        </div>
-        <div class="tp-lamp" [ngClass]="mapCodeToClass(popupLive?.L1)">
-          {{ lightEmoji(popupLive?.L1) }}
-        </div>
-      </div>
-      <div class="tp-col">
-        <div class="tp-col__head">
-          <span class="tp-col__label">L2</span>
-          <span class="tp-timer">{{ popupLive?.T2 ?? 0 }}s</span>
-        </div>
-        <div class="tp-lamp" [ngClass]="mapCodeToClass(popupLive?.L2)">
-          {{ lightEmoji(popupLive?.L2) }}
-        </div>
-      </div>
-    </div>
-  </div> -->
+        <tr *ngIf="filteredData.length === 0">
+          <td colspan="4" class="no-results">No traffic signals found</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>

@@ -1,7 +1,8 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+
 import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-controlService';
 import { ISignalrService } from '../../Services/Signalr/isignalr-service';
 
@@ -12,13 +13,10 @@ import { ResultError } from '../../Domain/ResultPattern/Error';
 
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { PopUpSignBox, TrafficColor } from '../../Domain/PopUpSignBox/PopUpSignBox';
-import { GetAllSignControlBoxWithLightPattern } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
-import { LightPatternService } from '../../Services/LightPattern/light-pattern-service';
-import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern';
-import { Result } from '../../Domain/ResultPattern/Result';
-import { ResultV } from '../../Domain/ResultPattern/ResultV';
-
-import { catchError, map, of, shareReplay } from 'rxjs';
+import {
+  ApplySignBox,
+  GetAllSignControlBoxWithLightPattern,
+} from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
 
 export interface ReceiveMessage {
   L1: 'R' | 'Y' | 'G';
@@ -32,6 +30,7 @@ export interface ChatMessage {
   message: ReceiveMessage;
   at: Date;
 }
+
 @Component({
   selector: 'app-sign-box-controller',
   imports: [FormsModule, CommonModule, RouterModule],
@@ -40,7 +39,6 @@ export interface ChatMessage {
 })
 export class SignBoxController {
   private readonly signalr = inject(ISignalrService);
-  private readonly lightPatternService = inject(LightPatternService);
   private readonly signBoxControlService = inject(ISignBoxControlService);
   private readonly router = inject(Router);
 
@@ -52,8 +50,8 @@ export class SignBoxController {
   hasPreviousPage = false;
   hasNextPage = false;
 
-  // بيانات الجدول
-  signBoxEntity: Pagination<GetAllSignControlBoxWithLightPattern> = {
+  // Table data
+  signBoxEntity: Pagination<GetAllSignControlBox> = {
     value: {
       data: [],
       pageSize: 0,
@@ -63,12 +61,6 @@ export class SignBoxController {
       hasPreviousPage: false,
       totalItems: 0,
     },
-    isSuccess: false,
-    isFailure: false,
-    error: {} as ResultError,
-  };
-  lightPatternEntity: ResultV<GetAllLightPattern> = {
-    value: [],
     isSuccess: false,
     isFailure: false,
     error: {} as ResultError,
@@ -87,7 +79,6 @@ export class SignBoxController {
   latestById: Record<number, ReceiveMessage> = {};
 
   constructor() {
-    //  SignalR
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
@@ -108,7 +99,6 @@ export class SignBoxController {
         }
 
         const id = message.ID;
-
         this.latestById[id] = message;
 
         const cur = this.signBoxEntity;
@@ -122,27 +112,12 @@ export class SignBoxController {
             })),
           },
         };
-
-        // ===== Popup disabled =====
-        // if (this.popupData?.Id === id) {
-        //   this.popupLive = message;
-        //   const row = this.signBoxEntity.value.data.find((x) => x.id === id);
-        //   if (row) {
-        //     this.popupData = {
-        //       ...this.popupData,
-        //       name: row.name ?? this.popupData.name,
-        //       Latitude: row.latitude ?? this.popupData.Latitude,
-        //       Longitude: row.longitude ?? this.popupData.Longitude,
-        //     };
-        //   }
-        // }
       });
   }
 
   ngOnInit(): void {
     this.signalr.connect().catch(console.error);
     this.loadData();
-    this.loadLightPattern();
   }
 
   ngOnDestroy(): void {
@@ -150,15 +125,11 @@ export class SignBoxController {
   }
 
   loadData(): void {
-    this.signBoxControlService.getAllWithLightPattern(this.searchParameter).subscribe((data) => {
+    this.signBoxControlService.getAll(this.searchParameter).subscribe((data) => {
+      console.log(data);
       this.signBoxEntity = data;
       this.hasPreviousPage = data.value.hasPreviousPage;
       this.hasNextPage = data.value.hasNextPage;
-    });
-  }
-  loadLightPattern(): void {
-    this.lightPatternService.getAll({}).subscribe((data) => {
-      this.lightPatternEntity = data;
     });
   }
 
@@ -172,7 +143,7 @@ export class SignBoxController {
     this.showActiveFilter = false;
   }
 
-  get filteredData(): GetAllSignControlBoxWithLightPattern[] {
+  get filteredData(): GetAllSignControlBox[] {
     return this.signBoxEntity.value.data.filter((item) => {
       if (this.activeFilter === 'ACTIVE') return item.active;
       if (this.activeFilter === 'INACTIVE') return !item.active;
@@ -230,17 +201,20 @@ export class SignBoxController {
     return code === 'G' ? '🟢' : code === 'Y' ? '🟡' : '🔴';
   }
 
-  onPatternChanged(item: GetAllSignControlBoxWithLightPattern, lightPatternId: number) {
-    item.lightPatternId = lightPatternId;
-  }
-  applyPattern(item: GetAllSignControlBoxWithLightPattern) {
-    console.log(item);
-    this.signBoxControlService.applySignBox(item).subscribe((data) => {
-      console.log(data);
+  // ===== Apply =====
+  applyPattern(item: GetAllSignControlBox) {
+    let payload: ApplySignBox = { id: item.id };
+    this.signBoxControlService.applySignBox(payload).subscribe((data) => {
+      console.log('Applied:', data);
     });
   }
-  // ===== Edit ===== //
-  onEdit(item: GetAllSignControlBoxWithLightPattern) {
-    this.router.navigate(['/trafficController/edit-sign-box', item.id]);
+
+  // ===== Edit =====
+  onEdit(item: GetAllSignControlBox) {
+    console.log(item);
+    this.router.navigate(
+      ['/trafficController/edit-sign-box', item.id],
+      { state: { signbox: item } } // may or may not include directions
+    );
   }
 }

@@ -100,7 +100,7 @@ export class TrafficWizard implements OnInit {
 
   // Data loading
   loadLightPattern() {
-    this.lightPatternService.getAll({}).subscribe((data) => {
+    this.lightPatternService.getAll().subscribe((data) => {
       this.lightPatternEntity = data;
     });
   }

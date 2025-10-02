@@ -73,7 +73,7 @@ export class TrafficPointConfigComponent implements OnInit {
     this.loadLightPattern();
   }
   loadLightPattern() {
-    this.lightPatternService.getAll({}).subscribe((data) => {
+    this.lightPatternService.getAll().subscribe((data) => {
       console.log(data);
       this.pattern = data.value;
     });
