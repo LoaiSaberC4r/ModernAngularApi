@@ -5,7 +5,6 @@ import { environment } from '../../Shared/environment/environment';
 import { Observable } from 'rxjs';
 import { Pagination } from '../../Domain/ResultPattern/Pagination';
 import { HttpParams } from '@angular/common/http';
-import { UpdateSignControlBoxDto } from '../../Domain/Entity/Edit-Sign-Box/UpdateSignControlBoxDto';
 import { Result } from '../../Domain/ResultPattern/Result';
 
 @Injectable({
@@ -33,7 +32,5 @@ export class IeditSignBox {
     );
   }
   
-  update(dto: UpdateSignControlBoxDto): Observable<Result> {
-    return this.http.post<Result>(`${environment.baseUrl}/SignControlBox/Update`, dto);
-  }
+
 }

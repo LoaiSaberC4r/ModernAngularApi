@@ -14,6 +14,7 @@ import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignContro
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { GetAllSignBoxLocation } from '../../Domain/Entity/SignControlBox/GetAllSignBoxLocation';
 import { AddSignBoxCommandDto } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
+import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox';
 
 @Injectable({
   providedIn: 'root',
@@ -192,5 +193,35 @@ export class ISignBoxControlService {
         }),
         shareReplay(1)
       );
+  }
+
+  Update(payload: UpdateSignControlBox): Observable<Result> {
+    return this.http
+      .put<Result>(
+        // لو عايز تستعمل الـ baseUrl بدل الثابت: `${environment.baseUrl}/SignControlBox/ApplySignBox`
+        `${environment.baseUrl}/SignControlBox/Update`,
+        payload
+      )
+      .pipe(
+        map((resp) => {
+          if (!resp.isSuccess) {
+            throw new Error(resp.error?.description ?? 'Unknown error');
+          }
+          // نفس النمط: نرجّع الـ Result كما هو بعد التحقق
+          const mapped: Result = resp;
+          return mapped;
+        }),
+        catchError((err) => {
+          console.error('Failed to apply sign box', err);
+          return of({} as Result);
+        }),
+        shareReplay(1)
+      );
+  } 
+
+  getById(id: number): Observable<GetAllSignControlBoxWithLightPattern> {
+    return this.http.get<GetAllSignControlBoxWithLightPattern>(
+      `${environment.baseUrl}/SignControlBox/GetById/${id}`
+    );
   }
 }

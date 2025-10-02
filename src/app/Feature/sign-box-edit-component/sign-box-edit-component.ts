@@ -1,18 +1,29 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
+import {
+  ReactiveFormsModule,
+  FormBuilder,
+  FormGroup,
+  FormArray,
+  Validators,
+  AbstractControl,
+  ValidationErrors,
+} from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { IeditSignBox } from '../../Services/edit-sign-box/iedit-sign-box';
+import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-controlService';
 import { GetAllSignControlBoxWithLightPattern } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
 import { LightPatternService } from '../../Services/LightPattern/light-pattern-service';
-import { SearchParameters } from '../../Domain/ResultPattern/SearchParameters';
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern';
+
 import { IAreaService } from '../../Services/Area/iarea-service';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
 import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
 import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
+
+import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox';
+import { SignDirection } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
 
 type DirectionView = {
   name: string;
@@ -35,7 +46,7 @@ export class SignBoxEditComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
-  private service = inject(IeditSignBox);
+  private service = inject(ISignBoxControlService);
   private lpService = inject(LightPatternService);
   private readonly areaService = inject(IAreaService);
   private readonly governateService = inject(IGovernateService);
@@ -64,9 +75,53 @@ export class SignBoxEditComponent implements OnInit {
     return this.form.get('directions') as FormArray<FormGroup>;
   }
 
+  // ========= Duplicate order validator for directions =========
+  private uniqueOrderValidator = (ctrl: AbstractControl): ValidationErrors | null => {
+    const fa = ctrl as FormArray;
+    if (!fa?.controls?.length) return null;
+
+    // clear previous duplicate flags
+    fa.controls.forEach((g) => {
+      const c = (g as FormGroup).get('order')!;
+      if (!c) return;
+      const errs = { ...(c.errors || {}) };
+      delete (errs as any).duplicateOrder;
+      c.setErrors(Object.keys(errs).length ? errs : null);
+    });
+
+    // collect valid orders (1..4)
+    const map = new Map<number, number[]>();
+    fa.controls.forEach((g, idx) => {
+      const raw = (g as FormGroup).get('order')?.value;
+      const val = raw === '' || raw === null || raw === undefined ? null : Number(raw);
+      if (val !== null && !Number.isNaN(val) && val >= 1 && val <= 4) {
+        const arr = map.get(val) ?? [];
+        arr.push(idx);
+        map.set(val, arr);
+      }
+    });
+
+    let hasDup = false;
+    map.forEach((idxs) => {
+      if (idxs.length > 1) {
+        hasDup = true;
+        idxs.forEach((i) => {
+          const c = (fa.at(i) as FormGroup).get('order')!;
+          c.setErrors({ ...(c.errors || {}), duplicateOrder: true });
+        });
+      }
+    });
+
+    return hasDup ? { duplicateOrder: true } : null;
+  };
+
   ngOnInit(): void {
     this.loadLightPatterns();
     this.loadGovernate();
+
+    // attach validator for unique order
+    this.directions.setValidators([this.uniqueOrderValidator]);
+    this.directions.updateValueAndValidity({ onlySelf: true });
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (!idParam) {
@@ -82,7 +137,6 @@ export class SignBoxEditComponent implements OnInit {
 
   // ========== Light Patterns ==========
   private loadLightPatterns(): void {
-    const params: SearchParameters = { page: 1, pageSize: 200, sortOrder: 'Newest' };
     this.lpService.getAll().subscribe((resp: ResultV<GetAllLightPattern> | any) => {
       const arr = (resp?.value?.data ?? resp?.value ?? resp?.data ?? resp?.items ?? []) as any[];
       this.lightPatterns = (Array.isArray(arr) ? arr : []).map((x: any) => ({
@@ -107,6 +161,7 @@ export class SignBoxEditComponent implements OnInit {
   private hydrateForm(data: GetAllSignControlBoxWithLightPattern): void {
     while (this.directions.length) this.directions.removeAt(0);
 
+    // patch base fields
     this.form.patchValue({
       id: data.id,
       name: data.name ?? '',
@@ -115,6 +170,17 @@ export class SignBoxEditComponent implements OnInit {
       longitude: data.longitude ?? '',
     });
 
+    // governorate/area if returned by API
+    const anyData = data as any;
+    const govId = anyData.governateId ?? null;
+    const areaId = anyData.areaId ?? null;
+
+    if (govId) {
+      this.form.patchValue({ governateId: govId });
+      this.getAreas(govId, areaId ?? null);
+    }
+
+    // directions
     const dirs = this.normalizeDirections(data);
     if (dirs.length === 0) {
       this.addDirection();
@@ -123,13 +189,15 @@ export class SignBoxEditComponent implements OnInit {
         this.directions.push(
           this.fb.group({
             name: [d.name ?? '', Validators.required],
-            order: [d.order ?? null],
+            order: [d.order ?? null, [Validators.required, Validators.min(1), Validators.max(4)]],
             lightPatternId: [d.lightPatternId ?? null],
             lightPatternName: [d.lightPatternName ?? ''],
           })
         )
       );
     }
+
+    this.directions.updateValueAndValidity({ onlySelf: true });
   }
 
   private normalizeDirections(src: any): DirectionView[] {
@@ -151,16 +219,18 @@ export class SignBoxEditComponent implements OnInit {
     this.directions.push(
       this.fb.group({
         name: ['', Validators.required],
-        order: [null],
+        order: [null, [Validators.required, Validators.min(1), Validators.max(4)]],
         lightPatternId: [null],
         lightPatternName: [''],
       })
     );
+    this.directions.updateValueAndValidity({ onlySelf: true });
   }
 
   removeDirection(index: number): void {
     this.directions.removeAt(index);
     if (this.directions.length === 0) this.addDirection();
+    this.directions.updateValueAndValidity({ onlySelf: true });
   }
 
   onPatternChange(index: number): void {
@@ -176,20 +246,23 @@ export class SignBoxEditComponent implements OnInit {
       return;
     }
 
-    const payload = {
-      id: this.form.value.id,
-      name: this.form.value.name,
-      ipAddress: this.form.value.ipAddress,
-      latitude: this.form.value.latitude ?? null,
-      longitude: this.form.value.longitude ?? null,
-      directions: (this.form.value.directions ?? []).map((d: any) => ({
-        name: d.name,
-        order: d.order,
-        lightPatternId: d.lightPatternId,
+    const v = this.form.getRawValue();
+
+    const payload: UpdateSignControlBox = {
+      id: Number(v.id),
+      name: String(v.name ?? ''),
+      ipAddress: String(v.ipAddress ?? ''),
+      latitude: String(v.latitude ?? ''),
+      longitude: String(v.longitude ?? ''),
+      areaId: Number(v.areaId),
+      directions: (v.directions as SignDirection[]).map((d) => ({
+        name: d?.name ?? '',
+        order: d?.order,
+        lightPatternId: d?.lightPatternId,
       })),
     };
 
-    this.service.update(payload).subscribe({
+    this.service.Update(payload).subscribe({
       next: () => this.router.navigate(['/signbox']),
       error: (err) => console.error('update failed', err),
     });
@@ -198,21 +271,28 @@ export class SignBoxEditComponent implements OnInit {
   cancel(): void {
     this.router.navigate(['/signbox']);
   }
-  onGovernorateChange(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const id = Number(select.value);
-    if (id) {
+
+  onGovernorateChange(): void {
+    const id = this.form.get('governateId')?.value as number | null;
+    if (id != null) {
       this.getAreas(id);
-      this.form.get('areaId')?.setValue(null);
+      this.form.get('areaId')?.reset();
     } else {
       this.areas = [];
-      this.form.get('areaId')?.setValue(null);
+      this.form.get('areaId')?.reset();
     }
   }
-  loadGovernate() {
-    this.governateService.getAll({}).subscribe((data) => (this.governates = data.value));
+
+  loadGovernate(): void {
+    this.governateService.getAll({}).subscribe((data) => (this.governates = data.value ?? []));
   }
-  getAreas(id: number) {
-    this.areaService.getAll(id).subscribe((data) => (this.areas = data.value));
+
+  getAreas(governateId: number, selectedAreaId?: number | null): void {
+    this.areaService.getAll(governateId).subscribe((data) => {
+      this.areas = data.value ?? [];
+      if (selectedAreaId) {
+        this.form.get('areaId')?.setValue(selectedAreaId);
+      }
+    });
   }
 }

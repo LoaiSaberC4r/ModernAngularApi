@@ -11,7 +11,7 @@
     <!-- Name -->
     <div class="form-group">
       <label for="name">Name</label>
-      <input id="name" formControlName="name" class="form-control" />
+      <input id="name" formControlName="name" class="form-control border" />
       <div *ngIf="form.controls['name'].invalid && form.controls['name'].touched" class="error">
         Name is required
       </div>
@@ -20,44 +20,12 @@
     <!-- IP -->
     <div class="form-group">
       <label for="ip">IP Address</label>
-      <input id="ip" formControlName="ipAddress" class="form-control" />
+      <input id="ip" formControlName="ipAddress" class="form-control border" />
       <div
         *ngIf="form.controls['ipAddress'].invalid && form.controls['ipAddress'].touched"
         class="error"
       >
         IP Address is required
-      </div>
-    </div>
-
-    <!-- Governorate -->
-    <div class="form-group">
-      <label for="governorate">Governorate <span class="required">*</span></label>
-      <select
-        id="governorate"
-        class="form-control"
-        formControlName="governateId"
-        (change)="onGovernorateChange($event)"
-      >
-        <option value="">-- Select --</option>
-        <option *ngFor="let g of governates" [value]="g.id">{{ g.name }}</option>
-      </select>
-      <div
-        *ngIf="form.controls['governateId'].invalid && form.controls['governateId'].touched"
-        class="error"
-      >
-        Governorate is required
-      </div>
-    </div>
-
-    <!-- Area -->
-    <div class="form-group">
-      <label for="area">Area <span class="required">*</span></label>
-      <select id="area" class="form-control" formControlName="areaId">
-        <option [ngValue]="null">-- Select --</option>
-        <option *ngFor="let a of areas" [value]="a.id">{{ a.name }}</option>
-      </select>
-      <div *ngIf="form.controls['areaId'].invalid && form.controls['areaId'].touched" class="error">
-        Area is required
       </div>
     </div>
 
@@ -68,7 +36,7 @@
         <input
           id="lat"
           formControlName="latitude"
-          class="form-control"
+          class="form-control border"
           placeholder="e.g. 30.0444"
         />
       </div>
@@ -77,9 +45,45 @@
         <input
           id="lng"
           formControlName="longitude"
-          class="form-control"
+          class="form-control border"
           placeholder="e.g. 31.2357"
         />
+      </div>
+    </div>
+
+    <!-- Governorate & Area -->
+    <div class="row-2">
+      <div class="form-group">
+        <label for="gov">Governorate</label>
+        <select
+          id="gov"
+          class="form-control border"
+          formControlName="governateId"
+          (change)="onGovernorateChange()"
+        >
+          <option [ngValue]="null" disabled>Select governorate</option>
+          <option *ngFor="let g of governates" [ngValue]="g.id">{{ g.name }}</option>
+        </select>
+        <div
+          *ngIf="form.controls['governateId'].invalid && form.controls['governateId'].touched"
+          class="error"
+        >
+          Governorate is required
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="area">Area</label>
+        <select id="area" class="form-control border" formControlName="areaId">
+          <option [ngValue]="null" disabled>Select area</option>
+          <option *ngFor="let a of areas" [ngValue]="a.id">{{ a.name }}</option>
+        </select>
+        <div
+          *ngIf="form.controls['areaId'].invalid && form.controls['areaId'].touched"
+          class="error"
+        >
+          Area is required
+        </div>
       </div>
     </div>
 
@@ -93,13 +97,32 @@
           *ngFor="let dir of directions.controls; let i = index"
           [formGroupName]="i"
         >
+          <!-- Direction name -->
           <input formControlName="name" placeholder="Direction name" class="form-control flex-1" />
+
+          <!-- Order -->
           <input
             type="number"
             formControlName="order"
             placeholder="Order"
-            class="form-control small order-input"
+            min="1"
+            max="4"
+            step="1"
+            class="form-control small"
           />
+          <div
+            class="error"
+            *ngIf="
+              (directions.at(i).get('order')?.touched || directions.at(i).get('order')?.dirty) &&
+              directions.at(i).get('order')?.errors as e
+            "
+          >
+            <span *ngIf="e['required']">Order is required.</span>
+            <span *ngIf="e['min'] || e['max']">Order must be between 1 and 4.</span>
+            <span *ngIf="e['duplicateOrder']">This order number is already used.</span>
+          </div>
+
+          <!-- Light Pattern -->
           <select
             class="form-control small"
             formControlName="lightPatternId"
@@ -108,11 +131,16 @@
             <option [ngValue]="null" disabled>Select light pattern</option>
             <option *ngFor="let lp of lightPatterns" [ngValue]="lp.id">{{ lp.name }}</option>
           </select>
-          <button type="button" (click)="removeDirection(i)">Remove</button>
+
+          <button type="button" class="btn btn-danger text-white" (click)="removeDirection(i)">
+            Remove
+          </button>
         </div>
       </div>
 
-      <button type="button" (click)="addDirection()">Add Direction</button>
+      <button type="button" class="btn btn-success mt-2" (click)="addDirection()">
+        Add Direction
+      </button>
     </div>
 
     <!-- Actions -->
@@ -124,5 +152,5 @@
 </div>
 
 <ng-template #loadingTpl>
-  <div class="loading">Loading...</div>
+  <div>Loading...</div>
 </ng-template>
