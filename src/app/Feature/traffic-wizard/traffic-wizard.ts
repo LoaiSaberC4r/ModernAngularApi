@@ -16,19 +16,20 @@ import { LightPatternService } from '../../Services/LightPattern/light-pattern-s
 import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern';
 import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-controlService';
 import { MatCardModule } from '@angular/material/card';
-import { ITemplatePatternService } from '../../Services/TemplatePattern/itemplate-pattern-service';
-import { ITemplateService } from '../../Services/Template/itemplate-service';
-import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
-import { GetLightPattern } from '../../Domain/Entity/LightPattern/GetLightPattern';
-import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
 import { MatIconModule } from '@angular/material/icon';
-import { Pagination } from '../../Domain/ResultPattern/Pagination';
-import { ResultError } from '../../Domain/ResultPattern/Error';
-import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { MatDividerModule } from '@angular/material/divider';
 import { RoundaboutComponent } from '../roundabout-component/roundabout-component';
-import { GetAllSignControlBoxWithLightPattern } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
-import { AddSignBoxCommandDto } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
+import { ResultError } from '../../Domain/ResultPattern/Error';
+import { ResultV } from '../../Domain/ResultPattern/ResultV';
+
+/** نوع خاص للخريطة فقط */
+type RoundDirection = {
+  name?: string;
+  order?: number;
+  lightPatternId?: number; // الخريطة لا تحتاج null
+  left: boolean;
+  right: boolean;
+};
 
 @Component({
   selector: 'app-traffic-wizard',
@@ -36,7 +37,6 @@ import { AddSignBoxCommandDto } from '../../Domain/Entity/SignControlBox/AddSign
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    // Angular Material
     MatStepperModule,
     MatFormFieldModule,
     MatInputModule,
@@ -56,7 +56,6 @@ export class TrafficWizard implements OnInit {
   private readonly lightPatternService = inject(LightPatternService);
   private readonly signBoxService = inject(ISignBoxControlService);
   private readonly areaService = inject(IAreaService);
-
   public fb = inject(FormBuilder);
 
   governates: GetAllGovernate[] = [];
@@ -82,14 +81,19 @@ export class TrafficWizard implements OnInit {
       latitude: ['', Validators.required],
       longitude: ['', Validators.required],
 
-      // Directions
-      directions: this.fb.array([
-        this.fb.group({
-          name: ['', Validators.required],
-          lightPatternId: [null, Validators.required],
-          order: [1, [Validators.required, Validators.min(1)]],
-        }),
-      ]),
+      // Directions (ابدأ باتجاه واحد فقط)
+      directions: this.fb.array([this.buildDirectionGroup(1)]),
+    });
+  }
+
+  /** يبني فورم-جروب لاتجاه */
+  private buildDirectionGroup(order: number): FormGroup {
+    return this.fb.group({
+      name: ['', Validators.required],
+      lightPatternId: [null, Validators.required], // في الفورم نسمح بـ null
+      order: [order, [Validators.required, Validators.min(1)]],
+      left: [false],
+      right: [false],
     });
   }
 
@@ -131,27 +135,25 @@ export class TrafficWizard implements OnInit {
 
   addDirection() {
     if (this.directions.length < 4) {
-      this.directions.push(
-        this.fb.group({
-          name: ['', Validators.required],
-          lightPatternId: [null, Validators.required],
-          order: [this.directions.length + 1, Validators.required],
-        })
-      );
+      this.directions.push(this.buildDirectionGroup(this.directions.length + 1));
     }
   }
 
   removeDirection(index: number) {
     if (this.directions.length > 1) {
       this.directions.removeAt(index);
+      // إعادة ترقيم order المتبقية 1..n
+      this.directions.controls.forEach((g, i) =>
+        g.get('order')?.setValue(i + 1, { emitEvent: false })
+      );
     }
   }
 
-  onPatternChanged(item: any, lightPatternId: number) {
-    // This method can be empty or used for additional logic
+  onPatternChanged(_item: any, _lightPatternId: number) {
+    // hook اختياري
   }
 
-  // Helper methods
+  // Helpers
   getGovernorateName(id: number | null): string {
     if (!id) return '';
     return this.governates.find((g) => g.id === id)?.name ?? '';
@@ -167,9 +169,63 @@ export class TrafficWizard implements OnInit {
     return this.lightPatternEntity.value.find((p) => p.id === id)?.name ?? '';
   }
 
-  getDirectionsForRoundabout(): { name: string; lightPatternId: number | null; order: number }[] {
-    const directions = this.directions.value || [];
-    return [...directions].sort((a, b) => (a.order || 0) - (b.order || 0));
+  /**
+   * تجهيز بيانات الخريطة:
+   * - ترتيب بالـ order
+   * - بدون إكمال تلقائي لـ 4 عناصر (حسب ما المستخدم أضاف فقط)
+   * - تحويل lightPatternId = null -> undefined
+   * - ضمان left/right boolean
+   */
+  getDirectionsForRoundabout(): RoundDirection[] {
+    const raw = (this.directions.value || []) as Array<{
+      name?: string;
+      order?: number;
+      lightPatternId?: number | null;
+      left?: boolean;
+      right?: boolean;
+    }>;
+
+    const sorted = [...raw]
+      .filter((x) => !!x) // أمان
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .slice(0, 4); // أقصى 4 فقط
+
+    // لا نكمّل عناصر ناقصة — نرجع العدد الحقيقي
+    return sorted.map((d, i) => ({
+      name: d.name ?? `اتجاه ${i + 1}`,
+      order: d.order ?? i + 1,
+      lightPatternId: d.lightPatternId ?? undefined, // الخريطة لا تحتاج null
+      left: !!d.left,
+      right: !!d.right,
+    }));
+  }
+
+  /**
+   * استقبال تغييرات الخريطة وتطبيقها على الفورم.
+   * لا نضيف صفوف جديدة تلقائيًا؛ نحدّث الموجود فقط.
+   */
+  onRoundaboutChanged(updated: any[]): void {
+    const count = Math.min(this.directions.length, (updated ?? []).length);
+
+    for (let i = 0; i < count; i++) {
+      const u = updated[i] ?? {};
+      const g = this.directions.at(i) as FormGroup;
+
+      const name = (u?.name ?? `اتجاه ${i + 1}`).toString().trim();
+      const order = Number(u?.order ?? i + 1);
+
+      g.get('name')?.setValue(name);
+      g.get('order')?.setValue(order, { emitEvent: false });
+
+      // في الفورم نفضّل null عند عدم الاختيار
+      const lp: number | null = typeof u?.lightPatternId === 'number' ? u.lightPatternId : null;
+      g.get('lightPatternId')?.setValue(lp, { emitEvent: false });
+
+      g.get('left')?.setValue(!!u?.left, { emitEvent: false });
+      g.get('right')?.setValue(!!u?.right, { emitEvent: false });
+    }
+
+    // لو المستخدم حذف صف من الخريطة (مش متاح حاليًا)، نقدر ندعم ده لاحقًا
   }
 
   // Submit
@@ -181,25 +237,27 @@ export class TrafficWizard implements OnInit {
     }
 
     const v = this.trafficForm.value;
-
-    // Validate required fields
     const areaId = Number(v.area);
     if (areaId <= 0) {
       console.error('Area is required and must be a positive number');
       return;
     }
 
+    // إرسال نفس الPayload (بدون left/right حالياً)
     const payload: AddSignBoxWithUpdateLightPattern = {
       name: v.name.trim(),
       areaId: areaId,
       ipAddress: v.ipAddress.trim(),
       latitude: String(v.latitude),
       longitude: String(v.longitude),
-      directions: v.directions.map((d: any, index: number) => ({
+      directions: (v.directions as any[]).map((d) => ({
         name: d.name,
         order: d.order,
         lightPatternId: d.lightPatternId,
-      })),
+        left: d.left,
+        right: d.right,
+      })), 
+      
     };
 
     console.log('Sending payload:', payload);
@@ -210,7 +268,7 @@ export class TrafficWizard implements OnInit {
         this.loadGovernate();
         this.trafficForm.reset();
         this.directions.clear();
-        this.addDirection();
+        this.addDirection(); // ابدأ مجددًا باتجاه واحد
       },
       error: (err) => {
         console.error('فشل الإضافة', err);

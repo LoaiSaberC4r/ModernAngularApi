@@ -1,115 +1,135 @@
 <div class="container" #container>
-  <!-- الدوار المركزي -->
   <div class="roundabout"></div>
 
-  <!-- الطرق -->
   <!-- شمال -->
-  <div class="road north-road">
-    <div class="lane lane-in">
-      <div class="white-line"></div>
-      <div class="arrow-container">
-        <div class="arrow-btn" data-dir="north" data-type="straight">
-          <i class="bi bi-arrow-down"></i>
+  <ng-container *ngIf="_dto.length > 0">
+    <div class="road north-road">
+      <div class="lane lane-in">
+        <div class="white-line"></div>
+        <div class="arrow-container">
+          <button class="arrow-btn"
+                  [class.on]="_dto[0].left"
+                  (click)="toggleSide('north','left')"
+                  aria-label="Left from North">
+            <i class="bi bi-arrow-left"></i>
+          </button>
+        </div>
+      </div>
+      <div class="median"></div>
+      <div class="lane lane-out">
+        <div class="white-line"></div>
+        <div class="arrow-container">
+          <button class="arrow-btn"
+                  [class.on]="_dto[0].right"
+                  (click)="toggleSide('north','right')"
+                  aria-label="Right from North">
+            <i class="bi bi-arrow-right"></i>
+          </button>
         </div>
       </div>
     </div>
-    <div class="median"></div>
-    <div class="lane lane-out">
-      <div class="white-line"></div>
-      <div class="arrow-container">
-        <div class="arrow-btn" data-dir="north" data-type="right">
-          <i class="bi bi-arrow-up"></i>
-        </div>
-      </div>
-    </div>
-    <div class="traffic-light north-light">
-      <div class="light red" [class.active]="systemState.signals.north === 'red'"></div>
-      <div class="light yellow" [class.active]="systemState.signals.north === 'yellow'"></div>
-      <div class="light green" [class.active]="systemState.signals.north === 'green'"></div>
-    </div>
-  </div>
+
+    <div class="direction-label north-label"
+         contenteditable="true"
+         (blur)="onNameEdited('north', $event)">{{ getDirectionName(0) }}</div>
+  </ng-container>
 
   <!-- جنوب -->
-  <div class="road south-road">
-    <div class="lane lane-in">
-      <div class="white-line"></div>
-      <div class="arrow-container">
-        <div class="arrow-btn" data-dir="south" data-type="straight">
-          <i class="bi bi-arrow-down"></i>
+  <ng-container *ngIf="_dto.length > 1">
+    <div class="road south-road">
+      <div class="lane lane-in">
+        <div class="white-line"></div>
+        <div class="arrow-container">
+          <button class="arrow-btn"
+                  [class.on]="_dto[1].left"
+                  (click)="toggleSide('south','left')"
+                  aria-label="Left from South">
+            <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+      <div class="median"></div>
+      <div class="lane lane-out">
+        <div class="white-line"></div>
+        <div class="arrow-container">
+          <button class="arrow-btn"
+                  [class.on]="_dto[1].right"
+                  (click)="toggleSide('south','right')"
+                  aria-label="Right from South">
+            <i class="bi bi-arrow-left"></i>
+          </button>
         </div>
       </div>
     </div>
-    <div class="median"></div>
-    <div class="lane lane-out">
-      <div class="white-line"></div>
-      <div class="arrow-container">
-        <div class="arrow-btn" data-dir="south" data-type="right">
-          <i class="bi bi-arrow-up"></i>
-        </div>
-      </div>
-    </div>
-    <div class="traffic-light south-light">
-      <div class="light red" [class.active]="systemState.signals.south === 'red'"></div>
-      <div class="light yellow" [class.active]="systemState.signals.south === 'yellow'"></div>
-      <div class="light green" [class.active]="systemState.signals.south === 'green'"></div>
-    </div>
-  </div>
+
+    <div class="direction-label south-label"
+         contenteditable="true"
+         (blur)="onNameEdited('south', $event)">{{ getDirectionName(1) }}</div>
+  </ng-container>
 
   <!-- شرق -->
-  <div class="road east-road">
-    <div class="lane lane-in">
-      <div class="white-line"></div>
-      <div class="arrow-container">
-        <div class="arrow-btn" data-dir="east" data-type="straight">
-          <i class="bi bi-arrow-left"></i>
+  <ng-container *ngIf="_dto.length > 2">
+    <div class="road east-road">
+      <div class="lane lane-in">
+        <div class="white-line"></div>
+        <div class="arrow-container">
+          <button class="arrow-btn"
+                  [class.on]="_dto[2].left"
+                  (click)="toggleSide('east','left')"
+                  aria-label="Left from East">
+            <i class="bi bi-arrow-up"></i>
+          </button>
+        </div>
+      </div>
+      <div class="median"></div>
+      <div class="lane lane-out">
+        <div class="white-line"></div>
+        <div class="arrow-container">
+          <button class="arrow-btn"
+                  [class.on]="_dto[2].right"
+                  (click)="toggleSide('east','right')"
+                  aria-label="Right from East">
+            <i class="bi bi-arrow-down"></i>
+          </button>
         </div>
       </div>
     </div>
-    <div class="median"></div>
-    <div class="lane lane-out">
-      <div class="white-line"></div>
-      <div class="arrow-container">
-        <div class="arrow-btn" data-dir="east" data-type="right">
-          <i class="bi bi-arrow-right"></i>
-        </div>
-      </div>
-    </div>
-    <div class="traffic-light east-light">
-      <div class="light red" [class.active]="systemState.signals.east === 'red'"></div>
-      <div class="light yellow" [class.active]="systemState.signals.east === 'yellow'"></div>
-      <div class="light green" [class.active]="systemState.signals.east === 'green'"></div>
-    </div>
-  </div>
+
+    <div class="direction-label east-label"
+         contenteditable="true"
+         (blur)="onNameEdited('east', $event)">{{ getDirectionName(2) }}</div>
+  </ng-container>
 
   <!-- غرب -->
-  <div class="road west-road">
-    <div class="lane lane-in">
-      <div class="white-line"></div>
-      <div class="arrow-container">
-        <div class="arrow-btn" data-dir="west" data-type="straight">
-          <i class="bi bi-arrow-left"></i>
+  <ng-container *ngIf="_dto.length > 3">
+    <div class="road west-road">
+      <div class="lane lane-in">
+        <div class="white-line"></div>
+        <div class="arrow-container">
+          <button class="arrow-btn"
+                  [class.on]="_dto[3].left"
+                  (click)="toggleSide('west','left')"
+                  aria-label="Left from West">
+            <i class="bi bi-arrow-down"></i>
+          </button>
+        </div>
+      </div>
+      <div class="median"></div>
+      <div class="lane lane-out">
+        <div class="white-line"></div>
+        <div class="arrow-container">
+          <button class="arrow-btn"
+                  [class.on]="_dto[3].right"
+                  (click)="toggleSide('west','right')"
+                  aria-label="Right from West">
+            <i class="bi bi-arrow-up"></i>
+          </button>
         </div>
       </div>
     </div>
-    <div class="median"></div>
-    <div class="lane lane-out">
-      <div class="white-line"></div>
-      <div class="arrow-container">
-        <div class="arrow-btn" data-dir="west" data-type="right">
-          <i class="bi bi-arrow-right"></i>
-        </div>
-      </div>
-    </div>
-    <div class="traffic-light west-light">
-      <div class="light red" [class.active]="systemState.signals.west === 'red'"></div>
-      <div class="light yellow" [class.active]="systemState.signals.west === 'yellow'"></div>
-      <div class="light green" [class.active]="systemState.signals.west === 'green'"></div>
-    </div>
-  </div>
 
-  <!-- الأسماء -->
-  <div class="direction-label north-label">{{ getDirectionName(0) }}</div>
-  <div class="direction-label south-label">{{ getDirectionName(1) }}</div>
-  <div class="direction-label east-label">{{ getDirectionName(2) }}</div>
-  <div class="direction-label west-label">{{ getDirectionName(3) }}</div>
+    <div class="direction-label west-label"
+         contenteditable="true"
+         (blur)="onNameEdited('west', $event)">{{ getDirectionName(3) }}</div>
+  </ng-container>
 </div>
