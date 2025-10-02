@@ -88,7 +88,7 @@
 
     <div class="tp-grid">
       <div class="tp-col" *ngFor="let dir of popupData?.directions; let i = index">
-        <div class="tp-col__head">
+        <div class="tp-col__head w-50">
           <span class="tp-col__label">اتجاه: {{ dir.name }}</span>
           <span class="tp-timer">
             {{ !isDisconnected ? dir.timer + 's' : '--' }}

@@ -198,48 +198,70 @@
       <mat-step [stepControl]="trafficForm">
         <ng-template matStepLabel>Review & Apply</ng-template>
 
-        <mat-card class="p-3 mb-3">
+        <mat-card class="summary-card">
           <mat-card-header>
             <mat-card-title>Summary</mat-card-title>
           </mat-card-header>
           <mat-card-content>
-            <h4>Basic Info</h4>
-            <p><strong>Name:</strong> {{ trafficForm.value.name }}</p>
-            <p>
-              <strong>Governorate:</strong> {{ getGovernorateName(trafficForm.value.governorate) }}
-            </p>
-            <p><strong>Area:</strong> {{ getAreaName(trafficForm.value.area) }}</p>
+            <!-- Basic Info -->
+            <section class="summary-section">
+              <h4>Basic Info</h4>
+              <div class="summary-grid">
+                <p><strong>Name:</strong> {{ trafficForm.value.name }}</p>
+                <p>
+                  <strong>Governorate:</strong>
+                  {{ getGovernorateName(trafficForm.value.governorate) }}
+                </p>
+                <p><strong>Area:</strong> {{ getAreaName(trafficForm.value.area) }}</p>
+              </div>
+            </section>
 
             <mat-divider class="my-2"></mat-divider>
 
-            <h4>Location & Network</h4>
-            <p><strong>Latitude:</strong> {{ trafficForm.value.latitude | number : '1.4-4' }}</p>
-            <p><strong>Longitude:</strong> {{ trafficForm.value.longitude | number : '1.4-4' }}</p>
-            <p><strong>IP Address:</strong> {{ trafficForm.value.ipAddress }}</p>
+            <!-- Location & Network -->
+            <section class="summary-section">
+              <h4>Location & Network</h4>
+              <div class="summary-grid">
+                <p>
+                  <strong>Latitude:</strong> {{ trafficForm.value.latitude | number : '1.4-4' }}
+                </p>
+                <p>
+                  <strong>Longitude:</strong> {{ trafficForm.value.longitude | number : '1.4-4' }}
+                </p>
+                <p><strong>IP Address:</strong> {{ trafficForm.value.ipAddress }}</p>
+              </div>
+            </section>
 
             <mat-divider class="my-2"></mat-divider>
 
-            <h4>Directions</h4>
-            <div *ngIf="directions.controls.length; else noDir">
-              <ul>
-                <li *ngFor="let d of directions.controls; let i = index">
-                  <strong>{{ d.value.name }}</strong>
-                  (Order: {{ d.value.order }}) → Pattern:
-                  {{ getPatternName(d.value.lightPatternId) }}
-
-                  <!-- حالة الحركة -->
-                  <span class="dir-pill" [class.on]="d.value.left"
-                    >Left: {{ d.value.left ? 'true' : 'false' }}</span
-                  >
-                  <span class="dir-pill" [class.on]="d.value.right"
-                    >Right: {{ d.value.right ? 'true' : 'false' }}</span
-                  >
-                </li>
-              </ul>
-            </div>
-            <ng-template #noDir>
-              <p class="text-muted">No directions added</p>
-            </ng-template>
+            <!-- Directions -->
+            <section class="summary-section">
+              <h4>Directions</h4>
+              <div *ngIf="directions.controls.length; else noDir">
+                <div class="dir-card" *ngFor="let d of directions.controls; let i = index">
+                  <div class="dir-header">
+                    <span class="dir-order">Lane: {{ d.value.order }}</span>
+                    <span class="dir-name">{{ d.value.name }}</span>
+                  </div>
+                  <div class="dir-details">
+                    <span class="dir-pattern">
+                      <strong>Pattern:</strong>
+                      {{ getPatternName(d.value.lightPatternId) }}</span
+                    >
+                    <strong>Flow: </strong>
+                    <span class="dir-pill" [class.on]="d.value.left"
+                      >Left: {{ d.value.left ? 'Yes' : 'No' }}</span
+                    >
+                    <span class="dir-pill" [class.on]="d.value.right"
+                      >Right: {{ d.value.right ? 'Yes' : 'No' }}</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <ng-template #noDir>
+                <p class="text-muted">No directions added</p>
+              </ng-template>
+            </section>
           </mat-card-content>
         </mat-card>
 
