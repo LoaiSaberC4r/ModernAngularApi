@@ -32,7 +32,7 @@ export class IeditSignBox {
       `${environment.baseUrl}/SignControlBox/GetById/${id}`
     );
   }
-
+  
   update(dto: UpdateSignControlBoxDto): Observable<Result> {
     return this.http.post<Result>(`${environment.baseUrl}/SignControlBox/Update`, dto);
   }

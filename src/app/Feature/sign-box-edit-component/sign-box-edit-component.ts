@@ -1,12 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  ReactiveFormsModule,
-  FormBuilder,
-  FormGroup,
-  FormArray,
-  Validators,
-} from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { IeditSignBox } from '../../Services/edit-sign-box/iedit-sign-box';
@@ -15,6 +9,10 @@ import { LightPatternService } from '../../Services/LightPattern/light-pattern-s
 import { SearchParameters } from '../../Domain/ResultPattern/SearchParameters';
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern';
+import { IAreaService } from '../../Services/Area/iarea-service';
+import { IGovernateService } from '../../Services/Governate/igovernate-service';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
+import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
 
 type DirectionView = {
   name: string;
@@ -39,6 +37,11 @@ export class SignBoxEditComponent implements OnInit {
   private fb = inject(FormBuilder);
   private service = inject(IeditSignBox);
   private lpService = inject(LightPatternService);
+  private readonly areaService = inject(IAreaService);
+  private readonly governateService = inject(IGovernateService);
+
+  governates: GetAllGovernate[] = [];
+  areas: GetAllArea[] = [];
 
   loading = false;
   id!: number;
@@ -50,8 +53,10 @@ export class SignBoxEditComponent implements OnInit {
     id: [0],
     name: ['', Validators.required],
     ipAddress: ['', Validators.required],
-    latitude: [''],   // جديد
-    longitude: [''],  // جديد
+    governateId: [null, Validators.required],
+    areaId: [null, Validators.required],
+    latitude: [''],
+    longitude: [''],
     directions: this.fb.array<FormGroup>([]),
   });
 
@@ -61,6 +66,7 @@ export class SignBoxEditComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadLightPatterns();
+    this.loadGovernate();
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (!idParam) {
@@ -105,8 +111,8 @@ export class SignBoxEditComponent implements OnInit {
       id: data.id,
       name: data.name ?? '',
       ipAddress: data.ipAddress ?? '',
-      latitude: data.latitude ?? '',     // يملأ القيم الجاية
-      longitude: data.longitude ?? '',   // يملأ القيم الجاية
+      latitude: data.latitude ?? '',
+      longitude: data.longitude ?? '',
     });
 
     const dirs = this.normalizeDirections(data);
@@ -174,8 +180,8 @@ export class SignBoxEditComponent implements OnInit {
       id: this.form.value.id,
       name: this.form.value.name,
       ipAddress: this.form.value.ipAddress,
-      latitude: this.form.value.latitude ?? null,   // يترسل مع الطلب
-      longitude: this.form.value.longitude ?? null, // يترسل مع الطلب
+      latitude: this.form.value.latitude ?? null,
+      longitude: this.form.value.longitude ?? null,
       directions: (this.form.value.directions ?? []).map((d: any) => ({
         name: d.name,
         order: d.order,
@@ -191,5 +197,22 @@ export class SignBoxEditComponent implements OnInit {
 
   cancel(): void {
     this.router.navigate(['/signbox']);
+  }
+  onGovernorateChange(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const id = Number(select.value);
+    if (id) {
+      this.getAreas(id);
+      this.form.get('areaId')?.setValue(null);
+    } else {
+      this.areas = [];
+      this.form.get('areaId')?.setValue(null);
+    }
+  }
+  loadGovernate() {
+    this.governateService.getAll({}).subscribe((data) => (this.governates = data.value));
+  }
+  getAreas(id: number) {
+    this.areaService.getAll(id).subscribe((data) => (this.areas = data.value));
   }
 }
