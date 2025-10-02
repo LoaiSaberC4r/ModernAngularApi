@@ -1,135 +1,127 @@
 <div class="container" #container>
   <div class="roundabout"></div>
 
-  <!-- شمال -->
-  <ng-container *ngIf="_dto.length > 0">
-    <div class="road north-road">
-      <div class="lane lane-in">
-        <div class="white-line"></div>
-        <div class="arrow-container">
-          <button class="arrow-btn"
-                  [class.on]="_dto[0].left"
-                  (click)="toggleSide('north','left')"
-                  aria-label="Left from North">
-            <i class="bi bi-arrow-left"></i>
-          </button>
-        </div>
-      </div>
-      <div class="median"></div>
-      <div class="lane lane-out">
-        <div class="white-line"></div>
-        <div class="arrow-container">
-          <button class="arrow-btn"
-                  [class.on]="_dto[0].right"
-                  (click)="toggleSide('north','right')"
-                  aria-label="Right from North">
-            <i class="bi bi-arrow-right"></i>
-          </button>
-        </div>
+  <!-- شمال (index 0) -->
+  <div class="road north-road" [class.inactive]="!isActive(0)">
+    <div class="lane lane-in">
+      <div class="white-line"></div>
+      <div class="arrow-container">
+        <button class="arrow-btn"
+                [class.on]="_dtoFull[0].left"
+                (click)="toggleSide('north','left')"
+                aria-label="Left from North">
+          <i class="bi bi-arrow-left"></i>
+        </button>
       </div>
     </div>
-
-    <div class="direction-label north-label"
-         contenteditable="true"
-         (blur)="onNameEdited('north', $event)">{{ getDirectionName(0) }}</div>
-  </ng-container>
-
-  <!-- جنوب -->
-  <ng-container *ngIf="_dto.length > 1">
-    <div class="road south-road">
-      <div class="lane lane-in">
-        <div class="white-line"></div>
-        <div class="arrow-container">
-          <button class="arrow-btn"
-                  [class.on]="_dto[1].left"
-                  (click)="toggleSide('south','left')"
-                  aria-label="Left from South">
-            <i class="bi bi-arrow-right"></i>
-          </button>
-        </div>
-      </div>
-      <div class="median"></div>
-      <div class="lane lane-out">
-        <div class="white-line"></div>
-        <div class="arrow-container">
-          <button class="arrow-btn"
-                  [class.on]="_dto[1].right"
-                  (click)="toggleSide('south','right')"
-                  aria-label="Right from South">
-            <i class="bi bi-arrow-left"></i>
-          </button>
-        </div>
+    <div class="median"></div>
+    <div class="lane lane-out">
+      <div class="white-line"></div>
+      <div class="arrow-container">
+        <button class="arrow-btn"
+                [class.on]="_dtoFull[0].right"
+                (click)="toggleSide('north','right')"
+                aria-label="Right from North">
+          <i class="bi bi-arrow-right"></i>
+        </button>
       </div>
     </div>
+  </div>
+  <div class="direction-label north-label"
+       [class.inactive]="!isActive(0)"
+       [attr.contenteditable]="isActive(0) ? 'true' : 'false'"
+       (blur)="onNameEdited('north', $event)">{{ getDirectionName(0) }}</div>
 
-    <div class="direction-label south-label"
-         contenteditable="true"
-         (blur)="onNameEdited('south', $event)">{{ getDirectionName(1) }}</div>
-  </ng-container>
-
-  <!-- شرق -->
-  <ng-container *ngIf="_dto.length > 2">
-    <div class="road east-road">
-      <div class="lane lane-in">
-        <div class="white-line"></div>
-        <div class="arrow-container">
-          <button class="arrow-btn"
-                  [class.on]="_dto[2].left"
-                  (click)="toggleSide('east','left')"
-                  aria-label="Left from East">
-            <i class="bi bi-arrow-up"></i>
-          </button>
-        </div>
-      </div>
-      <div class="median"></div>
-      <div class="lane lane-out">
-        <div class="white-line"></div>
-        <div class="arrow-container">
-          <button class="arrow-btn"
-                  [class.on]="_dto[2].right"
-                  (click)="toggleSide('east','right')"
-                  aria-label="Right from East">
-            <i class="bi bi-arrow-down"></i>
-          </button>
-        </div>
+  <!-- جنوب (index 1) -->
+  <div class="road south-road" [class.inactive]="!isActive(1)">
+    <div class="lane lane-in">
+      <div class="white-line"></div>
+      <div class="arrow-container">
+        <button class="arrow-btn"
+                [class.on]="_dtoFull[1].left"
+                (click)="toggleSide('south','left')"
+                aria-label="Left from South">
+          <i class="bi bi-arrow-right"></i>
+        </button>
       </div>
     </div>
-
-    <div class="direction-label east-label"
-         contenteditable="true"
-         (blur)="onNameEdited('east', $event)">{{ getDirectionName(2) }}</div>
-  </ng-container>
-
-  <!-- غرب -->
-  <ng-container *ngIf="_dto.length > 3">
-    <div class="road west-road">
-      <div class="lane lane-in">
-        <div class="white-line"></div>
-        <div class="arrow-container">
-          <button class="arrow-btn"
-                  [class.on]="_dto[3].left"
-                  (click)="toggleSide('west','left')"
-                  aria-label="Left from West">
-            <i class="bi bi-arrow-down"></i>
-          </button>
-        </div>
-      </div>
-      <div class="median"></div>
-      <div class="lane lane-out">
-        <div class="white-line"></div>
-        <div class="arrow-container">
-          <button class="arrow-btn"
-                  [class.on]="_dto[3].right"
-                  (click)="toggleSide('west','right')"
-                  aria-label="Right from West">
-            <i class="bi bi-arrow-up"></i>
-          </button>
-        </div>
+    <div class="median"></div>
+    <div class="lane lane-out">
+      <div class="white-line"></div>
+      <div class="arrow-container">
+        <button class="arrow-btn"
+                [class.on]="_dtoFull[1].right"
+                (click)="toggleSide('south','right')"
+                aria-label="Right from South">
+          <i class="bi bi-arrow-left"></i>
+        </button>
       </div>
     </div>
+  </div>
+  <div class="direction-label south-label"
+       [class.inactive]="!isActive(1)"
+       [attr.contenteditable]="isActive(1) ? 'true' : 'false'"
+       (blur)="onNameEdited('south', $event)">{{ getDirectionName(1) }}</div>
 
-    <div class="direction-label west-label"
-         contenteditable="true"
-         (blur)="onNameEdited('west', $event)">{{ getDirectionName(3) }}</div>
-  </ng-container>
+  <!-- شرق (index 2) -->
+  <div class="road east-road" [class.inactive]="!isActive(2)">
+    <div class="lane lane-in">
+      <div class="white-line"></div>
+      <div class="arrow-container">
+        <button class="arrow-btn"
+                [class.on]="_dtoFull[2].left"
+                (click)="toggleSide('east','left')"
+                aria-label="Left from East">
+          <i class="bi bi-arrow-up"></i>
+        </button>
+      </div>
+    </div>
+    <div class="median"></div>
+    <div class="lane lane-out">
+      <div class="white-line"></div>
+      <div class="arrow-container">
+        <button class="arrow-btn"
+                [class.on]="_dtoFull[2].right"
+                (click)="toggleSide('east','right')"
+                aria-label="Right from East">
+          <i class="bi bi-arrow-down"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="direction-label east-label"
+       [class.inactive]="!isActive(2)"
+       [attr.contenteditable]="isActive(2) ? 'true' : 'false'"
+       (blur)="onNameEdited('east', $event)">{{ getDirectionName(2) }}</div>
+
+  <!-- غرب (index 3) -->
+  <div class="road west-road" [class.inactive]="!isActive(3)">
+    <div class="lane lane-in">
+      <div class="white-line"></div>
+      <div class="arrow-container">
+        <button class="arrow-btn"
+                [class.on]="_dtoFull[3].left"
+                (click)="toggleSide('west','left')"
+                aria-label="Left from West">
+          <i class="bi bi-arrow-down"></i>
+        </button>
+      </div>
+    </div>
+    <div class="median"></div>
+    <div class="lane lane-out">
+      <div class="white-line"></div>
+      <div class="arrow-container">
+        <button class="arrow-btn"
+                [class.on]="_dtoFull[3].right"
+                (click)="toggleSide('west','right')"
+                aria-label="Right from West">
+          <i class="bi bi-arrow-up"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="direction-label west-label"
+       [class.inactive]="!isActive(3)"
+       [attr.contenteditable]="isActive(3) ? 'true' : 'false'"
+       (blur)="onNameEdited('west', $event)">{{ getDirectionName(3) }}</div>
 </div>

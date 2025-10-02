@@ -1,4 +1,4 @@
 export class environment {
-  public static baseUrl = 'https://localhost:7175/api/v1';
-  public static signalrUrl = 'https://localhost:7175/signalr';
+  public static baseUrl = 'http://localhost:80/api/v1';
+  public static signalrUrl = 'http://localhost:80/signalr';
 }

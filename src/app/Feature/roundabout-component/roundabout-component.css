@@ -43,5 +43,17 @@
 .south-label{bottom:20px;left:50%;transform:translateX(-50%);}
 .east-label{right:20px;top:50%;transform:translateY(-50%);}
 .west-label{left:20px;top:50%;transform:translateY(-50%);}
-
+.road.inactive { 
+  opacity: 0.35;
+  filter: grayscale(0.4);
+}
+.road.inactive .arrow-btn {
+  pointer-events: none;   /* تعطيل النقر */
+  cursor: not-allowed;
+}
+.direction-label.inactive {
+  opacity: 0.6;
+  filter: grayscale(0.2);
+  border-style: dashed;
+}
 @media (max-width:600px){ .arrow-btn{width:42px;height:42px;} }
