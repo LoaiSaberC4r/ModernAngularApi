@@ -6,11 +6,13 @@
     <div class="lane lane-in">
       <div class="white-line"></div>
       <div class="arrow-container">
-        <button class="arrow-btn"
-                [class.on]="_dtoFull[0].left"
-                (click)="toggleSide('north','left')"
-                aria-label="Left from North">
-          <i class="bi bi-arrow-left"></i>
+        <button
+          class="arrow-btn north-arrow-left"
+          [class.on]="_dtoFull[0].left"
+          (click)="toggleSide('north', 'left')"
+          aria-label="Left from North"
+        >
+          <i class="bi bi-arrow-return-left"></i>
         </button>
       </div>
     </div>
@@ -18,30 +20,38 @@
     <div class="lane lane-out">
       <div class="white-line"></div>
       <div class="arrow-container">
-        <button class="arrow-btn"
-                [class.on]="_dtoFull[0].right"
-                (click)="toggleSide('north','right')"
-                aria-label="Right from North">
-          <i class="bi bi-arrow-right"></i>
+        <button
+          class="arrow-btn north-arrow-return"
+          [class.on]="_dtoFull[0].right"
+          (click)="toggleSide('north', 'right')"
+          aria-label="Right from North"
+        >
+          <i class="bi bi-arrow-return-right"></i>
         </button>
       </div>
     </div>
   </div>
-  <div class="direction-label north-label"
-       [class.inactive]="!isActive(0)"
-       [attr.contenteditable]="isActive(0) ? 'true' : 'false'"
-       (blur)="onNameEdited('north', $event)">{{ getDirectionName(0) }}</div>
+  <div
+    class="direction-label north-label"
+    [class.inactive]="!isActive(0)"
+    [attr.contenteditable]="isActive(0) ? 'true' : 'false'"
+    (blur)="onNameEdited('north', $event)"
+  >
+    {{ getDirectionName(0) }}
+  </div>
 
   <!-- جنوب (index 1) -->
   <div class="road south-road" [class.inactive]="!isActive(1)">
     <div class="lane lane-in">
       <div class="white-line"></div>
       <div class="arrow-container">
-        <button class="arrow-btn"
-                [class.on]="_dtoFull[1].left"
-                (click)="toggleSide('south','left')"
-                aria-label="Left from South">
-          <i class="bi bi-arrow-right"></i>
+        <button
+          class="arrow-btn south-arrow-left"
+          [class.on]="_dtoFull[1].left"
+          (click)="toggleSide('south', 'left')"
+          aria-label="Left from South"
+        >
+          <i class="bi bi-arrow-90deg-left"></i>
         </button>
       </div>
     </div>
@@ -49,30 +59,38 @@
     <div class="lane lane-out">
       <div class="white-line"></div>
       <div class="arrow-container">
-        <button class="arrow-btn"
-                [class.on]="_dtoFull[1].right"
-                (click)="toggleSide('south','right')"
-                aria-label="Right from South">
-          <i class="bi bi-arrow-left"></i>
+        <button
+          class="arrow-btn south-arrow-right"
+          [class.on]="_dtoFull[1].right"
+          (click)="toggleSide('south', 'right')"
+          aria-label="Right from South"
+        >
+          <i class="bi bi-arrow-90deg-right"></i>
         </button>
       </div>
     </div>
   </div>
-  <div class="direction-label south-label"
-       [class.inactive]="!isActive(1)"
-       [attr.contenteditable]="isActive(1) ? 'true' : 'false'"
-       (blur)="onNameEdited('south', $event)">{{ getDirectionName(1) }}</div>
+  <div
+    class="direction-label south-label"
+    [class.inactive]="!isActive(1)"
+    [attr.contenteditable]="isActive(1) ? 'true' : 'false'"
+    (blur)="onNameEdited('south', $event)"
+  >
+    {{ getDirectionName(1) }}
+  </div>
 
   <!-- شرق (index 2) -->
   <div class="road east-road" [class.inactive]="!isActive(2)">
     <div class="lane lane-in">
       <div class="white-line"></div>
       <div class="arrow-container">
-        <button class="arrow-btn"
-                [class.on]="_dtoFull[2].left"
-                (click)="toggleSide('east','left')"
-                aria-label="Left from East">
-          <i class="bi bi-arrow-up"></i>
+        <button
+          class="arrow-btn east-arrow-left"
+          [class.on]="_dtoFull[2].left"
+          (click)="toggleSide('east', 'left')"
+          aria-label="Left from East"
+        >
+          <i class="bi bi-arrow-90deg-up"></i>
         </button>
       </div>
     </div>
@@ -80,30 +98,38 @@
     <div class="lane lane-out">
       <div class="white-line"></div>
       <div class="arrow-container">
-        <button class="arrow-btn"
-                [class.on]="_dtoFull[2].right"
-                (click)="toggleSide('east','right')"
-                aria-label="Right from East">
-          <i class="bi bi-arrow-down"></i>
+        <button
+          class="arrow-btn east-arrow-right"
+          [class.on]="_dtoFull[2].right"
+          (click)="toggleSide('east', 'right')"
+          aria-label="Right from East"
+        >
+          <i class="bi bi-arrow-90deg-down"></i>
         </button>
       </div>
     </div>
   </div>
-  <div class="direction-label east-label"
-       [class.inactive]="!isActive(2)"
-       [attr.contenteditable]="isActive(2) ? 'true' : 'false'"
-       (blur)="onNameEdited('east', $event)">{{ getDirectionName(2) }}</div>
+  <div
+    class="direction-label east-label"
+    [class.inactive]="!isActive(2)"
+    [attr.contenteditable]="isActive(2) ? 'true' : 'false'"
+    (blur)="onNameEdited('east', $event)"
+  >
+    {{ getDirectionName(2) }}
+  </div>
 
   <!-- غرب (index 3) -->
   <div class="road west-road" [class.inactive]="!isActive(3)">
     <div class="lane lane-in">
       <div class="white-line"></div>
       <div class="arrow-container">
-        <button class="arrow-btn"
-                [class.on]="_dtoFull[3].left"
-                (click)="toggleSide('west','left')"
-                aria-label="Left from West">
-          <i class="bi bi-arrow-down"></i>
+        <button
+          class="arrow-btn west-arrow-left"
+          [class.on]="_dtoFull[3].left"
+          (click)="toggleSide('west', 'left')"
+          aria-label="Left from West"
+        >
+          <i class="bi bi-arrow-90deg-down"></i>
         </button>
       </div>
     </div>
@@ -111,17 +137,23 @@
     <div class="lane lane-out">
       <div class="white-line"></div>
       <div class="arrow-container">
-        <button class="arrow-btn"
-                [class.on]="_dtoFull[3].right"
-                (click)="toggleSide('west','right')"
-                aria-label="Right from West">
-          <i class="bi bi-arrow-up"></i>
+        <button
+          class="arrow-btn west-arrow-up"
+          [class.on]="_dtoFull[3].right"
+          (click)="toggleSide('west', 'right')"
+          aria-label="Right from West"
+        >
+          <i class="bi bi-arrow-90deg-up"></i>
         </button>
       </div>
     </div>
   </div>
-  <div class="direction-label west-label"
-       [class.inactive]="!isActive(3)"
-       [attr.contenteditable]="isActive(3) ? 'true' : 'false'"
-       (blur)="onNameEdited('west', $event)">{{ getDirectionName(3) }}</div>
+  <div
+    class="direction-label west-label"
+    [class.inactive]="!isActive(3)"
+    [attr.contenteditable]="isActive(3) ? 'true' : 'false'"
+    (blur)="onNameEdited('west', $event)"
+  >
+    {{ getDirectionName(3) }}
+  </div>
 </div>
