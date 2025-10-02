@@ -19,7 +19,7 @@ export class ISignBoxControlService {
   private readonly http = inject(HttpClient);
   private cache = new Map<string, Pagination<GetAllSignControlBox>>();
   private cacheLocation = new Map<string, ResultV<GetAllSignBoxLocation>>();
-  private cahceWithLightPattern = new Map<
+   private cahceWithLightPattern = new Map<
     string,
     Pagination<GetAllSignControlBoxWithLightPattern>
   >();

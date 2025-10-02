@@ -49,7 +49,7 @@
                   "maximumError": "10MB"
                 },
                 {
-                  "type": "anyComponentStyle",
+                  "type": "anyCompone ntStyle",
                   "maximumWarning": "40kB",
                   "maximumError": "80kB"
                 }

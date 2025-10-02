@@ -105,13 +105,16 @@ export class RoundaboutComponent implements AfterViewInit {
     type: MovementType
   ): { allowed: boolean; message: string } {
     const conflictingDirections = this.systemState.conflicts[direction];
+
+    // تحقق من التعارض مع اتجاه نشط
     if (
       this.systemState.activeDirection &&
       conflictingDirections.includes(this.systemState.activeDirection)
     ) {
+      const activeDirName = this.getDirectionArabic(this.systemState.activeDirection);
       return {
         allowed: false,
-        message: `الحركة غير مسموحة بسبب تعارض مع اتجاه نشط`,
+        message: `الحركة غير مسموحة بسبب تعارض مع اتجاه "${activeDirName}" النشط`,
       };
     }
 
@@ -132,9 +135,11 @@ export class RoundaboutComponent implements AfterViewInit {
             message: `الإشارة حمراء لكن الالتفاف يمينًا مسموح لأنه لا يوجد تعارض`,
           };
         } else {
+          // هنا نعرض اسم الاتجاه النشط الذي يمنع الالتفاف
+          const activeDirName = this.getDirectionArabic(this.systemState.activeDirection!);
           return {
             allowed: false,
-            message: `الإشارة حمراء — لا يمكن الالتفاف يمينًا بسبب وجود حركة من الاتجاه المتعارض`,
+            message: `الإشارة حمراء — لا يمكن الالتفاف يمينًا لأن الاتجاه "${activeDirName}" مفتوح حاليًا`,
           };
         }
       }

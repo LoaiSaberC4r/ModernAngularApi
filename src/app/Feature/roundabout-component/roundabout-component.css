@@ -99,14 +99,11 @@
 
 .east-road {
   right: 0;
-  border-radius: 0 50px 50px 0;
 }
 .west-road {
   left: 0;
-  border-radius: 50px 0 0 50px;
 }
 
-/* Lanes - استخدام Flexbox لمحاذاة الأسهم */
 .lane {
   position: relative;
   display: flex;
@@ -322,13 +319,28 @@
 }
 
 .east-light {
-  left: 20px;
+  left: 85px;
   top: 50%;
   transform: translateY(-50%);
 }
 
 .west-light {
-  right: 20px;
+  right: 85px;
   top: 50%;
   transform: translateY(-50%);
+}
+.active-movement-display {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  z-index: 10;
+  text-align: center;
+  pointer-events: none;
 }

@@ -1,7 +1,7 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
+import { Router, RouterModule } from '@angular/router';
 import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-controlService';
 import { ISignalrService } from '../../Services/Signalr/isignalr-service';
 
@@ -20,7 +20,6 @@ import { ResultV } from '../../Domain/ResultPattern/ResultV';
 
 import { catchError, map, of, shareReplay } from 'rxjs';
 
-// --- أنواع رسائل الهَب (لو عندكها جاهزة في دومينك، استوردها بدل التعريف ده)
 export interface ReceiveMessage {
   L1: 'R' | 'Y' | 'G';
   L2: 'R' | 'Y' | 'G';
@@ -35,7 +34,7 @@ export interface ChatMessage {
 }
 @Component({
   selector: 'app-sign-box-controller',
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, RouterModule],
   templateUrl: './sign-box-controller.html',
   styleUrl: './sign-box-controller.css',
 })
@@ -43,6 +42,7 @@ export class SignBoxController {
   private readonly signalr = inject(ISignalrService);
   private readonly lightPatternService = inject(LightPatternService);
   private readonly signBoxControlService = inject(ISignBoxControlService);
+  private readonly router = inject(Router);
 
   readonly status = this.signalr.status;
   readonly lastError = this.signalr.lastError;
@@ -238,5 +238,9 @@ export class SignBoxController {
     this.signBoxControlService.applySignBox(item).subscribe((data) => {
       console.log(data);
     });
+  }
+  // ===== Edit ===== //
+  onEdit(item: GetAllSignControlBoxWithLightPattern) {
+    this.router.navigate(['/trafficController/edit-sign-box', item.id]);
   }
 }

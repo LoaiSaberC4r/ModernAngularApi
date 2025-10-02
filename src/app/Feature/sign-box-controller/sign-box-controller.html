@@ -48,6 +48,7 @@
         <th>Name</th>
         <th>LightPattern</th>
         <th>Apply</th>
+        <th>Edit</th>
       </tr>
     </thead>
     <tbody>
@@ -71,6 +72,11 @@
           <button class="apply-button" (click)="applyPattern(item)">
             <i class="fas fa-check"></i>
             Apply
+          </button>
+        </td>
+        <td>
+          <button class="edit-button" (click)="onEdit(item)">
+            <i class="fas fa-edit"></i> Edit
           </button>
         </td>
       </tr>

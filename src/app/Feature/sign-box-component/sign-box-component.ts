@@ -81,6 +81,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
+        console.log(message);
         if (!message) return;
         const id = message.ID;
 

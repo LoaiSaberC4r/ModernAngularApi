@@ -1,3 +1,5 @@
+import { SignDirection } from './AddSignBoxCommandDto';
+
 export interface GetAllSignControlBoxWithLightPattern {
   id: number;
   name: string;
@@ -7,4 +9,5 @@ export interface GetAllSignControlBoxWithLightPattern {
   active?: boolean;
   lightPatterName: string;
   lightPatternId: number;
+  directions?: SignDirection[];
 }

@@ -21,3 +21,20 @@ export interface AddSignBoxWithUpdateLightPattern {
   longitude: string;
   directions: DirectionWithPatternDto[];
 }
+
+export interface SignDirection {
+  name?: string;
+  order?: number;
+  lightPatternId?: number;
+}
+
+export interface GetAllSignControlBoxWithLightPattern {
+  id: number;
+  name?: string;
+  ipAddress?: string;
+  latitude?: string;
+  longitude?: string;
+  active?: boolean;
+  lightPatternId?: number;
+  directions?: SignDirection[];
+}
