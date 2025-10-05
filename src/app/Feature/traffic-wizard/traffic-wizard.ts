@@ -278,9 +278,9 @@ export class TrafficWizard implements OnInit {
   private showPopup(message: string, action: string, type: 'success' | 'error' | 'warn') {
     this.snackBar.open(message, action, {
       duration: 4000,
-      horizontalPosition: 'center',
-      verticalPosition: 'top',
-      panelClass: [`popup-${type}`],
+      horizontalPosition: 'start',
+      verticalPosition: 'bottom',
+      panelClass: [`snack-${type}`, 'snack-animate'],
     });
   }
 }
