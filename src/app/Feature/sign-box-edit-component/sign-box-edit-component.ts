@@ -263,13 +263,13 @@ export class SignBoxEditComponent implements OnInit {
     };
 
     this.service.Update(payload).subscribe({
-      next: () => this.router.navigate(['/signbox']),
+      next: () => this.router.navigate(['/trafficController']),
       error: (err) => console.error('update failed', err),
     });
   }
 
   cancel(): void {
-    this.router.navigate(['/signbox']);
+    this.router.navigate(['/trafficController']);
   }
 
   onGovernorateChange(): void {

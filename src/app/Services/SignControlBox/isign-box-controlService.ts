@@ -15,6 +15,7 @@ import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { GetAllSignBoxLocation } from '../../Domain/Entity/SignControlBox/GetAllSignBoxLocation';
 import { AddSignBoxCommandDto } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
 import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox';
+import { ErrorType, ValidationError } from '../../Domain/ResultPattern/ValidationError';
 
 @Injectable({
   providedIn: 'root',
@@ -146,7 +147,7 @@ export class ISignBoxControlService {
       );
   }
 
-  AddSignBox(payload: AddSignBoxCommandDto): Observable<Result> {
+  AddSignBox(payload: AddSignBoxCommandDto): Observable<Result | ErrorType> {
     return this.http.post<Result>(`${environment.baseUrl}/SignControlBox/Add`, payload).pipe(
       map((resp) => {
         if (!resp.isSuccess) {
@@ -157,6 +158,10 @@ export class ISignBoxControlService {
       }),
       catchError((err) => {
         console.error('Failed to add sign box', err);
+        let error = err as ErrorType;
+        for (let i = 0; i < error.error.errorMessages.length; i++) {
+          console.log(error.error.errorMessages[i] + ":"+ error.error.propertyNames[i]);
+        }
         return of({} as Result);
       }),
       shareReplay(1)
@@ -217,7 +222,7 @@ export class ISignBoxControlService {
         }),
         shareReplay(1)
       );
-  } 
+  }
 
   getById(id: number): Observable<GetAllSignControlBoxWithLightPattern> {
     return this.http.get<GetAllSignControlBoxWithLightPattern>(
