@@ -1,54 +1,61 @@
-.card {
-  border: none;
+/* ========== General Card Layout ========== */
+.modern-card {
+  background: #fff;
   border-radius: 10px;
-  overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  font-size: 0.8rem; /* smaller base font */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease-in-out;
 }
 
-.card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08) !important;
+.modern-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
-/* Card header */
-.card-header {
-  background: linear-gradient(135deg, #9ed0a6 0%, #9ed0a6 100%) !important;
-  color: #fff !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  padding: 10px 12px;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.bg-brand {
+.modern-header {
   background: linear-gradient(135deg, #9ed0a6 0%, #9ed0a6 100%);
-  color: #fff !important;
+  color: #fff;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* Form elements smaller */
+.modern-body {
+  padding: 14px;
+  font-size: 0.85rem;
+}
+
+.modern-footer {
+  border-top: 1px solid #eee;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: #fafafa;
+}
+
+/* ========== Form Elements ========== */
 .form-control,
 .form-select {
   border-radius: 6px;
   border: 1px solid #ddd;
-  padding: 0px 8px;
+  padding: 4px 8px;
   font-size: 0.8rem;
-  transition: all 0.2s ease;
   height: 28px;
 }
 
 .form-control:focus,
 .form-select:focus {
-  border-color: #64b5f6;
-  box-shadow: 0 0 0 2px rgba(100, 181, 246, 0.2);
+  border-color: #9ed0a6;
+  box-shadow: 0 0 0 2px rgba(158, 208, 166, 0.25);
   outline: none;
 }
 
-/* Buttons smaller */
+/* ========== Buttons ========== */
 .btn {
   border-radius: 6px;
   padding: 4px 10px;
-  font-weight: 500;
   font-size: 0.8rem;
   transition: all 0.2s ease;
   height: 28px;
@@ -58,6 +65,7 @@
 .btn-success {
   background: linear-gradient(to right, #4caf50, #66bb6a);
   border: none;
+  color: #fff;
 }
 
 .btn-success:hover {
@@ -71,7 +79,7 @@
 
 .btn-outline-success:hover {
   background: linear-gradient(to right, #4caf50, #66bb6a);
-  color: white;
+  color: #fff;
 }
 
 .btn-outline-danger {
@@ -81,74 +89,58 @@
 
 .btn-outline-danger:hover {
   background: linear-gradient(to right, #f44336, #ef5350);
-  color: white;
+  color: #fff;
 }
 
-/* Light pattern inputs smaller */
-.col-12.d-flex.align-items-center.gap-2 {
-  background: #f9f9f9;
-  padding: 8px 10px;
-  border-radius: 6px;
-  margin-bottom: 6px;
-  font-size: 0.8rem;
-}
-
-/* Schedule list */
+/* ========== Schedule Section ========== */
 .schedule-list {
-  max-height: 460px;
+  max-height: 420px;
   overflow-y: auto;
-  padding-right: 4px;
   font-size: 0.8rem;
-}
-
-.schedule-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.schedule-list::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
 }
 
 .schedule-item {
-  background: #f8f9fa;
+  background: #f9f9f9;
   border-radius: 8px;
   padding: 10px;
-  margin-bottom: 10px;
-  border-left: 3px solid #64b5f6;
+  margin-bottom: 8px;
+  border-left: 3px solid #9ed0a6;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  animation: fadeIn 0.3s ease-in;
+  animation: fadeIn 0.3s ease;
 }
 
 .item-head {
-  padding-bottom: 6px;
   border-bottom: 1px dashed #ddd;
+  padding-bottom: 4px;
   margin-bottom: 6px;
-  font-size: 0.8rem;
 }
 
-/* Alerts smaller */
-.alert-info {
-  background: linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%);
-  border: 1px solid #bbdefb;
-  color: #1565c0;
+/* ========== Timing Section ========== */
+.timing-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f9f9f9;
+  padding: 8px 10px;
   border-radius: 6px;
-  padding: 6px 10px;
+}
+
+/* ========== Alerts ========== */
+.alert-info {
+  background: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  color: #388e3c;
+  border-radius: 6px;
   font-size: 0.8rem;
 }
 
-/* Responsive */
-@media (max-width: 992px) {
-  .card-body {
-    padding: 10px;
-  }
-
-  .card-header {
-    padding: 8px 10px;
-  }
-}
-
-/* Animation */
+/* ========== Animation ========== */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -157,5 +149,15 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 992px) {
+  .modern-body {
+    padding: 10px;
+  }
+  .modern-header {
+    padding: 8px 10px;
   }
 }
