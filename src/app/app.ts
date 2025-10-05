@@ -1,5 +1,4 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component } from '@angular/core';
 import { Header } from './Feature/header/header';
 
 @Component({
@@ -9,5 +8,5 @@ import { Header } from './Feature/header/header';
   styleUrl: './app.css',
 })
 export class App {
-  protected readonly title = signal('modernTrafficLight');
+  title = 'modernTrafficLight';
 }

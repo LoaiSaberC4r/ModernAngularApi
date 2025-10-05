@@ -14,7 +14,6 @@
   position: relative;
   width: min(100%, 800px);
   height: clamp(480px, 62vw, 665px);
-  background: #fff;
   box-shadow: var(--shadow-strong);
   border-radius: 15px;
   padding: 20px;
@@ -35,7 +34,7 @@
   border-radius: 50%;
   background: radial-gradient(circle, #8bc34a 0%, #4caf50 70%, #388e3c 100%);
   box-shadow: 0 0 30px rgba(76, 175, 80, 0.4);
-  z-index: 10; /* 👈 كفاية — لأن الأزرار 999 */
+  z-index: 10;
 }
 
 .road {

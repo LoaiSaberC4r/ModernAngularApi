@@ -1,9 +1,4 @@
-/* ========================
-    Container & Layout
-   ======================== */
-
 .bg-signin {
-  background: #f5f7fa;
   min-height: 100vh;
   padding: 1rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -20,7 +15,6 @@
 .point-select {
   /* width: 22vw; */
   padding: 1rem;
-  background: white;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   overflow-y: auto;

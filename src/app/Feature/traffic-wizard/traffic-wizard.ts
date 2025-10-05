@@ -21,12 +21,12 @@ import { MatDividerModule } from '@angular/material/divider';
 import { RoundaboutComponent } from '../roundabout-component/roundabout-component';
 import { ResultError } from '../../Domain/ResultPattern/Error';
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 
-/** نوع خاص للخريطة فقط */
 type RoundDirection = {
   name?: string;
   order?: number;
-  lightPatternId?: number; // الخريطة لا تحتاج null
+  lightPatternId?: number;
   left: boolean;
   right: boolean;
 };
@@ -47,6 +47,7 @@ type RoundDirection = {
     MatIconModule,
     MatDividerModule,
     RoundaboutComponent,
+    MatSnackBarModule,
   ],
   templateUrl: './traffic-wizard.html',
   styleUrl: './traffic-wizard.css',
@@ -57,6 +58,7 @@ export class TrafficWizard implements OnInit {
   private readonly signBoxService = inject(ISignBoxControlService);
   private readonly areaService = inject(IAreaService);
   public fb = inject(FormBuilder);
+  private readonly snackBar = inject(MatSnackBar);
 
   governates: GetAllGovernate[] = [];
   areas: GetAllArea[] = [];
@@ -200,10 +202,6 @@ export class TrafficWizard implements OnInit {
     }));
   }
 
-  /**
-   * استقبال تغييرات الخريطة وتطبيقها على الفورم.
-   * لا نضيف صفوف جديدة تلقائيًا؛ نحدّث الموجود فقط.
-   */
   onRoundaboutChanged(updated: any[]): void {
     const count = Math.min(this.directions.length, (updated ?? []).length);
 
@@ -224,26 +222,23 @@ export class TrafficWizard implements OnInit {
       g.get('left')?.setValue(!!u?.left, { emitEvent: false });
       g.get('right')?.setValue(!!u?.right, { emitEvent: false });
     }
-
-    // لو المستخدم حذف صف من الخريطة (مش متاح حاليًا)، نقدر ندعم ده لاحقًا
   }
 
   // Submit
   onApply(): void {
     if (this.trafficForm.invalid) {
       this.trafficForm.markAllAsTouched();
-      console.log('Form is invalid:', this.trafficForm.errors);
+      this.showPopup('⚠️ من فضلك أكمل جميع الحقول المطلوبة', 'إغلاق', 'warn');
       return;
     }
 
     const v = this.trafficForm.value;
     const areaId = Number(v.area);
     if (areaId <= 0) {
-      console.error('Area is required and must be a positive number');
+      this.showPopup('⚠️ يجب اختيار المنطقة قبل الحفظ', 'حسنًا', 'warn');
       return;
     }
 
-    // إرسال نفس الPayload (بدون left/right حالياً)
     const payload: AddSignBoxWithUpdateLightPattern = {
       name: v.name.trim(),
       areaId: areaId,
@@ -256,23 +251,36 @@ export class TrafficWizard implements OnInit {
         lightPatternId: d.lightPatternId,
         left: d.left,
         right: d.right,
-      })), 
-      
+      })),
     };
-
-    console.log('Sending payload:', payload);
 
     this.signBoxService.AddSignBox(payload).subscribe({
       next: (res) => {
-        console.log('تم إضافة SignBox بنجاح', res);
-        this.loadGovernate();
+        this.showPopup('✅ تم حفظ البيانات بنجاح', 'إغلاق', 'success');
         this.trafficForm.reset();
         this.directions.clear();
-        this.addDirection(); // ابدأ مجددًا باتجاه واحد
+        this.addDirection();
       },
       error: (err) => {
-        console.error('فشل الإضافة', err);
+        console.error('❌ فشل الحفظ', err);
+
+        if (err.error?.errorMessages?.length) {
+          const messages = err.error.errorMessages
+            .map((m: string, i: number) => `${m}: ${err.error.propertyNames?.[i] || ''}`)
+            .join('\n');
+          this.showPopup(`⚠️ ${messages}`, 'إغلاق', 'error');
+        } else {
+          this.showPopup('❌ حدث خطأ أثناء الحفظ. تحقق من البيانات.', 'إغلاق', 'error');
+        }
       },
+    });
+  }
+  private showPopup(message: string, action: string, type: 'success' | 'error' | 'warn') {
+    this.snackBar.open(message, action, {
+      duration: 4000,
+      horizontalPosition: 'center',
+      verticalPosition: 'top',
+      panelClass: [`popup-${type}`],
     });
   }
 }

@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Pagination } from '../../Domain/ResultPattern/Pagination';
 import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBox';
 import { SearchParameters } from '../../Domain/ResultPattern/SearchParameters';
-import { catchError, map, Observable, of, shareReplay } from 'rxjs';
+import { catchError, map, Observable, of, shareReplay, throwError } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
 import {
   ApplySignBox,
@@ -100,11 +100,7 @@ export class ISignBoxControlService {
 
   applySignBox(payload: ApplySignBox): Observable<Result> {
     return this.http
-      .post<Result>(
-        // لو عايز تستعمل الـ baseUrl بدل الثابت: `${environment.baseUrl}/SignControlBox/ApplySignBox`
-        `${environment.baseUrl}/SignControlBox/ApplySignBox`,
-        payload
-      )
+      .post<Result>(`${environment.baseUrl}/SignControlBox/ApplySignBox`, payload)
       .pipe(
         map((resp) => {
           if (!resp.isSuccess) {
@@ -146,23 +142,17 @@ export class ISignBoxControlService {
         shareReplay(1)
       );
   }
-
-  AddSignBox(payload: AddSignBoxCommandDto): Observable<Result | ErrorType> {
+  AddSignBox(payload: AddSignBoxCommandDto): Observable<Result> {
     return this.http.post<Result>(`${environment.baseUrl}/SignControlBox/Add`, payload).pipe(
       map((resp) => {
         if (!resp.isSuccess) {
           throw new Error(resp.error?.description ?? 'Unknown error');
         }
-        alert('Sign Box added successfully');
         return resp;
       }),
       catchError((err) => {
-        console.error('Failed to add sign box', err);
-        let error = err as ErrorType;
-        for (let i = 0; i < error.error.errorMessages.length; i++) {
-          console.log(error.error.errorMessages[i] + ":"+ error.error.propertyNames[i]);
-        }
-        return of({} as Result);
+        console.error('❌ Failed to add sign box', err);
+        return throwError(() => err);
       }),
       shareReplay(1)
     );

@@ -9,7 +9,7 @@ import { TrafficWizard } from './Feature/traffic-wizard/traffic-wizard';
 import { SignBoxEditComponent } from './Feature/sign-box-edit-component/sign-box-edit-component';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'map', pathMatch: 'full' },
+  { path: '', redirectTo: 'trafficSignal', pathMatch: 'full' },
   { path: 'map', component: Greenwaycomponent },
   { path: 'trafficSignal', component: SignBoxComponent },
   { path: 'trafficController', component: SignBoxController },

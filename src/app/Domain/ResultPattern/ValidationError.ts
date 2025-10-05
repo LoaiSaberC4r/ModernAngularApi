@@ -1,4 +1,4 @@
-import { ResultError } from "./Error";
+import { ResultError } from './Error';
 
 export interface ValidationError {
   errorMessages: string[];
