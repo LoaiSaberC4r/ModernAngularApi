@@ -7,7 +7,7 @@ import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { LanguageInterceptor } from './interceptors/language.interceptor';
+import { languageInterceptorFn } from './interceptors/LanguageInterceptorFn';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -15,6 +15,6 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideHttpClient(),
-    provideHttpClient(withInterceptors([LanguageInterceptor])),
+    provideHttpClient(withInterceptors([languageInterceptorFn])),
   ],
 };

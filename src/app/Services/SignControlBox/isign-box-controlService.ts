@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Pagination } from '../../Domain/ResultPattern/Pagination';
 import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBox';
@@ -143,21 +143,26 @@ export class ISignBoxControlService {
       );
   }
   AddSignBox(payload: AddSignBoxCommandDto): Observable<Result> {
-    return this.http.post<Result>(`${environment.baseUrl}/SignControlBox/Add`, payload).pipe(
-      map((resp) => {
-        if (!resp.isSuccess) {
-          throw new Error(resp.error?.description ?? 'Unknown error');
-        }
-        return resp;
-      }),
-      catchError((err) => {
-        console.error('❌ Failed to add sign box', err);
-        return throwError(() => err);
-      }),
-      shareReplay(1)
-    );
-  }
+    const headers = new HttpHeaders({
+      'Accept-Language': 'ar',
+    });
 
+    return this.http
+      .post<Result>(`${environment.baseUrl}/SignControlBox/Add`, payload, { headers })
+      .pipe(
+        map((resp) => {
+          if (!resp.isSuccess) {
+            throw new Error(resp.error?.description ?? 'Unknown error');
+          }
+          return resp;
+        }),
+        catchError((err) => {
+          console.error('❌ Failed to add sign box', err);
+          return throwError(() => err);
+        }),
+        shareReplay(1)
+      );
+  }
   getAllLocatopn(): Observable<ResultV<GetAllSignBoxLocation>> {
     const query = new HttpParams();
 
