@@ -1,28 +1,75 @@
-<div class="container-fluid my-4" [formGroup]="templateForm">
+<div class="template-container" [formGroup]="templateForm">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-icon">
+        <svg
+          width="32"
+          height="32"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+      </div>
+      <div>
+        <h2 class="page-title">Template Manager</h2>
+        <p class="page-subtitle">Configure traffic light patterns and schedules</p>
+      </div>
+    </div>
+  </div>
+
   <div class="row g-4">
-    <!-- =========================
-      Left: Template Manager
-    ========================= -->
+    <!-- Left: Template Manager -->
     <div class="col-12 col-lg-7">
-      <section class="modern-card h-100">
-        <!-- Header -->
-        <div class="modern-header">
-          <h6 class="m-0 fw-semibold">Template Manager</h6>
+      <section class="modern-card template-manager">
+        <div class="card-header">
+          <div class="header-title">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              />
+            </svg>
+            <span>Template Configuration</span>
+          </div>
         </div>
 
-        <!-- Body -->
-        <div class="modern-body">
+        <div class="card-body">
           <!-- Template Selection -->
-          <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-            <label for="templateSelect" class="fw-semibold small text-muted mb-0"
-              >Select Template</label
-            >
+          <div class="form-section">
+            <label for="templateSelect" class="section-label">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                />
+              </svg>
+              Select Template
+            </label>
             <select
               id="templateSelect"
-              class="form-select flex-fill"
+              class="form-control-modern"
               (change)="onTemplateChange($event)"
             >
-              <option value="">-- Select --</option>
+              <option value="">Choose a template...</option>
               <option *ngFor="let t of templates" [value]="t.id">
                 {{ t.name }}
               </option>
@@ -30,15 +77,26 @@
           </div>
 
           <!-- Template Name -->
-          <div class="mb-3">
-            <label for="templateName" class="form-label fw-semibold small text-muted">
-              Template Name <span class="text-danger">*</span>
+          <div class="form-section">
+            <label for="templateName" class="section-label">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              Template Name <span class="required-mark">*</span>
             </label>
             <input
               id="templateName"
               type="text"
-              class="form-control"
-              placeholder="Descriptive name"
+              class="form-control-modern"
+              placeholder="Enter a descriptive name"
               formControlName="templateName"
               [class.is-invalid]="
                 templateForm.get('templateName')?.invalid &&
@@ -46,89 +104,142 @@
               "
             />
             <div
-              class="invalid-feedback"
+              class="error-message"
               *ngIf="
                 templateForm.get('templateName')?.invalid &&
                 templateForm.get('templateName')?.touched
               "
             >
-              Template name is required.
+              Template name is required
             </div>
           </div>
 
           <!-- Schedule Rows -->
-          <div class="schedule-list mb-3" formArrayName="rows">
-            <div
-              class="schedule-item"
-              *ngFor="let row of rows.controls; let i = index"
-              [formGroupName]="i"
-            >
-              <div class="d-flex align-items-center justify-content-between item-head">
-                <div class="d-flex align-items-center gap-2">
-                  <img src="assets/img/traffic-light-30625.png" height="20" alt="light" />
-                  <strong>{{
-                    rows.at(i).get('lightPatternName')?.value ||
-                      'LightPattern #' + rows.at(i).get('lightPatternId')?.value
-                  }}</strong>
+          <div class="form-section">
+            <label class="section-label">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              Schedule Timeline
+              <span class="badge-count">{{ rows.length }}</span>
+            </label>
+            <div class="schedule-list" formArrayName="rows">
+              <div
+                class="schedule-card"
+                *ngFor="let row of rows.controls; let i = index"
+                [formGroupName]="i"
+              >
+                <div class="schedule-header">
+                  <div class="pattern-info">
+                    <div class="pattern-icon">
+                      <img src="assets/img/traffic-light-30625.png" height="24" alt="light" />
+                    </div>
+                    <div class="pattern-name">
+                      {{
+                        rows.at(i).get('lightPatternName')?.value ||
+                          'LightPattern #' + rows.at(i).get('lightPatternId')?.value
+                      }}
+                    </div>
+                  </div>
+                  <button
+                    class="btn-icon-danger"
+                    type="button"
+                    (click)="removeRow(i)"
+                    aria-label="Remove row"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
+                      />
+                    </svg>
+                  </button>
                 </div>
-                <button
-                  class="btn btn-outline-danger btn-sm"
-                  type="button"
-                  (click)="removeRow(i)"
-                  aria-label="Remove row"
+
+                <div class="time-range">
+                  <div class="time-input-group">
+                    <label for="startFrom{{ i }}" class="time-label">Start</label>
+                    <input
+                      id="startFrom{{ i }}"
+                      type="time"
+                      class="time-input"
+                      formControlName="startFrom"
+                    />
+                  </div>
+                  <div class="time-divider">→</div>
+                  <div class="time-input-group">
+                    <label for="finishBy{{ i }}" class="time-label">End</label>
+                    <input
+                      id="finishBy{{ i }}"
+                      type="time"
+                      class="time-input"
+                      formControlName="finishBy"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Empty State -->
+              <div class="empty-state" *ngIf="rows.length === 0">
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
                 >
-                  ✖
-                </button>
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 8v4m0 4h.01" />
+                </svg>
+                <p class="empty-text">No schedule entries yet</p>
+                <p class="empty-hint">Select a pattern below and click "Add to Schedule"</p>
               </div>
-
-              <div class="row g-2 mt-2">
-                <div class="col-6">
-                  <label for="startFrom{{ i }}" class="form-label small text-muted">From</label>
-                  <input
-                    id="startFrom{{ i }}"
-                    type="time"
-                    class="form-control"
-                    formControlName="startFrom"
-                  />
-                </div>
-                <div class="col-6">
-                  <label for="finishBy{{ i }}" class="form-label small text-muted">To</label>
-                  <input
-                    id="finishBy{{ i }}"
-                    type="time"
-                    class="form-control"
-                    formControlName="finishBy"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Empty State -->
-            <div class="alert alert-info text-center py-2" *ngIf="rows.length === 0">
-              No rows yet. Choose a pattern and click “Add To Template”.
             </div>
           </div>
 
           <!-- Add Pattern -->
-          <div class="row g-2 align-items-center mb-3">
-            <div class="col-auto">
-              <label for="lpSel" class="col-form-label small text-muted">Select</label>
-            </div>
-            <div class="col">
-              <select id="lpSel" class="form-select" #lpSel>
-                <option value="">-- choose --</option>
+          <div class="add-pattern-section">
+            <div class="add-pattern-controls">
+              <select id="lpSel" class="form-control-modern flex-grow-1" #lpSel>
+                <option value="">Choose a light pattern...</option>
                 <option *ngFor="let lp of lightPatterns" [value]="lp.id">
-                  {{ lp.name || 'ID ' + lp.id }}
+                  {{ lp.name || 'Pattern #' + lp.id }}
                 </option>
               </select>
-            </div>
-            <div class="col-auto">
               <button
-                class="btn btn-outline-success"
+                class="btn-add"
                 type="button"
                 (click)="lpSel.value && addRowFromSelect(+lpSel.value)"
               >
-                Add To Template
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add to Schedule
               </button>
             </div>
           </div>
@@ -156,114 +267,212 @@
       </section>
     </div>
 
-    <!-- =========================
-      Right: Light Pattern Editor
-    ========================= -->
+    <!-- Right: Light Pattern Editor -->
     <div class="col-12 col-lg-5">
-      <section class="modern-card h-100" [formGroup]="patternForm">
-        <div class="modern-header">
-          <h6 class="m-0 fw-semibold">Light Pattern Editor</h6>
+      <section class="modern-card pattern-editor" [formGroup]="patternForm">
+        <div class="card-header">
+          <div class="header-title">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="3" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            </svg>
+            <span>Light Pattern Editor</span>
+          </div>
         </div>
 
-        <div class="modern-body">
+        <div class="card-body">
           <!-- Pattern Name -->
-          <label for="lpName" class="form-label fw-semibold small text-muted">
-            Name <span class="text-danger">*</span>
-          </label>
-          <input
-            id="lpName"
-            type="text"
-            class="form-control"
-            placeholder="Pattern name"
-            formControlName="name"
-            [class.is-invalid]="
-              patternForm.get('name')?.invalid && patternForm.get('name')?.touched
-            "
-          />
-          <div
-            class="invalid-feedback"
-            *ngIf="patternForm.get('name')?.invalid && patternForm.get('name')?.touched"
-          >
-            Name is required.
+          <div class="form-section">
+            <label for="lpName" class="section-label">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              Pattern Name <span class="required-mark">*</span>
+            </label>
+            <input
+              id="lpName"
+              type="text"
+              class="form-control-modern"
+              placeholder="Enter pattern name"
+              formControlName="name"
+              [class.is-invalid]="
+                patternForm.get('name')?.invalid && patternForm.get('name')?.touched
+              "
+            />
+            <div
+              class="error-message"
+              *ngIf="patternForm.get('name')?.invalid && patternForm.get('name')?.touched"
+            >
+              Pattern name is required
+            </div>
           </div>
 
-          <!-- Select Pattern -->
-          <label for="patternSelect" class="form-label small text-muted mt-3"
-            >Select Existing Pattern</label
-          >
-          <select
-            id="patternSelect"
-            class="form-select"
-            formControlName="selectedPattern"
-            (change)="onPatternChange()"
-          >
-            <option [ngValue]="null">-- None --</option>
-            <option *ngFor="let p of lightPatterns" [ngValue]="p">{{ p.name }}</option>
-          </select>
+          <!-- Select Existing Pattern -->
+          <div class="form-section">
+            <label for="patternSelect" class="section-label">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="9 11 12 14 22 4" />
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+              </svg>
+              Load Existing Pattern
+            </label>
+            <select
+              id="patternSelect"
+              class="form-control-modern"
+              formControlName="selectedPattern"
+              (change)="onPatternChange()"
+            >
+              <option [ngValue]="null">Create new pattern...</option>
+              <option *ngFor="let p of lightPatterns" [ngValue]="p">{{ p.name }}</option>
+            </select>
+          </div>
 
-          <!-- Timing Inputs -->
-          <div class="timing-section mt-3">
-            <div class="time-row">
-              <img src="assets/img/g.png" alt="green" height="32" />
-              <input
-                type="number"
-                class="form-control w-auto"
-                formControlName="green"
-                min="0"
-                max="1000"
-                step="1"
-                aria-label="Green seconds"
-              />
-              <span class="fw-semibold small">sec</span>
-            </div>
+          <!-- Timing Configuration -->
+          <div class="form-section">
+            <label class="section-label">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              Light Durations
+            </label>
+            <div class="lights-config">
+              <!-- Green Light -->
+              <div class="light-row green-light">
+                <div class="light-visual">
+                  <img src="assets/img/g.png" alt="green" height="40" />
+                  <span class="light-label">Green</span>
+                </div>
+                <div class="light-input-wrapper">
+                  <input
+                    type="number"
+                    class="light-input"
+                    formControlName="green"
+                    min="0"
+                    max="1000"
+                    step="1"
+                    aria-label="Green seconds"
+                  />
+                  <span class="light-unit">sec</span>
+                </div>
+              </div>
 
-            <div class="time-row">
-              <img src="assets/img/a.png" alt="yellow" height="32" />
-              <input
-                type="number"
-                class="form-control w-auto"
-                formControlName="yellow"
-                min="0"
-                max="1000"
-                step="1"
-                aria-label="Yellow seconds"
-              />
-              <span class="fw-semibold small">sec</span>
-            </div>
+              <!-- Yellow Light -->
+              <div class="light-row yellow-light">
+                <div class="light-visual">
+                  <img src="assets/img/a.png" alt="yellow" height="40" />
+                  <span class="light-label">Yellow</span>
+                </div>
+                <div class="light-input-wrapper">
+                  <input
+                    type="number"
+                    class="light-input"
+                    formControlName="yellow"
+                    min="0"
+                    max="1000"
+                    step="1"
+                    aria-label="Yellow seconds"
+                  />
+                  <span class="light-unit">sec</span>
+                </div>
+              </div>
 
-            <div class="time-row">
-              <img src="assets/img/r.png" alt="red" height="32" />
-              <input
-                type="number"
-                class="form-control w-auto"
-                formControlName="red"
-                min="0"
-                max="1000"
-                step="1"
-                aria-label="Red seconds"
-              />
-              <span class="fw-semibold small">sec</span>
+              <!-- Red Light -->
+              <div class="light-row red-light">
+                <div class="light-visual">
+                  <img src="assets/img/r.png" alt="red" height="40" />
+                  <span class="light-label">Red</span>
+                </div>
+                <div class="light-input-wrapper">
+                  <input
+                    type="number"
+                    class="light-input"
+                    formControlName="red"
+                    min="0"
+                    max="1000"
+                    step="1"
+                    aria-label="Red seconds"
+                  />
+                  <span class="light-unit">sec</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Footer -->
-        <div class="modern-footer justify-content-center">
+        <div class="card-footer">
           <button
-            class="btn btn-outline-danger"
+            class="btn-delete"
             type="button"
             (click)="deletePattern()"
             [disabled]="!patternForm.value.selectedPattern"
           >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
+              />
+            </svg>
             Delete
           </button>
           <button
-            class="btn btn-success"
+            class="btn-save"
             type="button"
             (click)="createPattern()"
             [disabled]="patternForm.invalid || submitting"
           >
-            {{ submitting ? 'Saving…' : 'Create Pattern ›' }}
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            {{ submitting ? 'Saving...' : 'Create Pattern' }}
           </button>
         </div>
       </section>

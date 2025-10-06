@@ -5,6 +5,26 @@
       — {{ form.get('name')?.value }}
     </span>
     <ng-template #noName>— (unnamed)</ng-template>
+
+<!-- Template-driven toast stack -->
+<div class="popup-stack" aria-live="polite" aria-atomic="true">
+  <div
+    *ngFor="let t of toasts"
+    class="custom-popup"
+    [ngClass]="[t.active ? 'show' : '', 'popup-' + t.type]"
+    role="status"
+  >
+    <span class="popup-msg">{{ t.message }}</span>
+    <button
+      type="button"
+      class="popup-close"
+      (click)="dismissToast(t.id)"
+      aria-label="Close notification"
+    >
+      ×
+    </button>
+  </div>
+</div>
   </h2>
 
   <form [formGroup]="form" (ngSubmit)="apply()">

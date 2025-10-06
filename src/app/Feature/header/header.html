@@ -4,45 +4,51 @@
       <img src="../../../assets/img/traffic-light-30625.png" alt="logo" height="40" />
     </a>
 
-    <button class="hamburger" (click)="toggleMenu()" aria-label="Toggle navigation">
-      <span></span>
-      <span></span>
-      <span></span>
+    <button
+      class="hamburger"
+      (click)="toggleMenu()"
+      aria-label="Toggle navigation"
+      [attr.aria-expanded]="isMenuOpen"
+      aria-controls="primary-nav"
+    >
+      <span></span><span></span><span></span>
     </button>
 
-    <ul class="navbar-nav" [class.show]="isMenuOpen">
+    <ul id="primary-nav" class="navbar-nav" [class.show]="isMenuOpen">
       <li class="nav-item">
-        <a class="nav-link" [routerLink]="['/trafficSignal']" routerLinkActive="active"
-          >Signals Status</a
-        >
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" [routerLink]="['/trafficController']" routerLinkActive="active"
-          >Traffic cabinets</a
-        >
+        <a class="nav-link" [routerLink]="['/trafficSignal']" routerLinkActive="active">
+          Signals Status
+        </a>
       </li>
 
       <li class="nav-item">
-        <a class="nav-link" [routerLink]="['/trafficWizard']" routerLinkActive="active"
-          >Add cabinet</a
-        >
+        <a class="nav-link" [routerLink]="['/trafficController']" routerLinkActive="active">
+          Traffic cabinets
+        </a>
       </li>
 
-      <!-- <li class="nav-item">
-        <a class="nav-link" [routerLink]="['/trafficPointConfig']" routerLinkActive="active"
-          >Traffic Config</a
-        >
-      </li> -->
       <li class="nav-item">
-        <a class="nav-link" [routerLink]="['/template']" routerLinkActive="active"
-          >Light Schedule</a
-        >
+        <a class="nav-link" [routerLink]="['/trafficWizard']" routerLinkActive="active">
+          Add cabinet
+        </a>
       </li>
+
       <li class="nav-item">
-        <a class="nav-link" [routerLink]="['/mapview']" routerLinkActive="active">Map View</a>
+        <a class="nav-link" [routerLink]="['/template']" routerLinkActive="active">
+          TrafficLight Schedule
+        </a>
       </li>
+
       <li class="nav-item">
-        <a class="nav-link" [routerLink]="['/map']" routerLinkActive="active">Green Way</a>
+        <a class="nav-link" [routerLink]="['/mapview']" routerLinkActive="active"> Map View </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link" [routerLink]="['/map']" routerLinkActive="active"> Green Way </a>
+      </li>
+
+      <li class="nav-item lang-switch">
+        <app-switcher-lang-component></app-switcher-lang-component>
       </li>
     </ul>
   </div>

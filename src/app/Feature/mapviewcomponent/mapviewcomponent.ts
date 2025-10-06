@@ -67,7 +67,14 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
     this.loadAllTemplates();
   }
   private initMap(): void {
-    if (this.map) return;
+    if (this.map) {
+      try {
+        this.map.off();
+        this.map.remove();
+      } catch {}
+      this.map = null as any;
+    }
+
     this.map = L.map(this.mapContainer.nativeElement).setView([30.0444, 31.2357], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -93,6 +100,11 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.initMap();
+    setTimeout(() => {
+      if (this.map) {
+        this.map.invalidateSize();
+      }
+    }, 100);
   }
   get f() {
     return this.trafficForm.controls;

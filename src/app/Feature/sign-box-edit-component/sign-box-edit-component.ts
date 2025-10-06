@@ -71,6 +71,18 @@ export class SignBoxEditComponent implements OnInit {
     directions: this.fb.array<FormGroup>([]),
   });
 
+  // Toast state (template-driven popup)
+  toasts: Array<{
+    id: number;
+    message: string;
+    type: 'success' | 'error' | 'warn';
+    active: boolean;
+    duration?: number;
+    onClose?: () => void;
+  }> = [];
+  private toastSeq = 0;
+  private toastTimers = new Map<number, any>();
+
   get directions(): FormArray<FormGroup> {
     return this.form.get('directions') as FormArray<FormGroup>;
   }
@@ -243,6 +255,7 @@ export class SignBoxEditComponent implements OnInit {
   apply(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.showPopup('⚠️ Please fill all required fields', 'warn');
       return;
     }
 
@@ -263,8 +276,29 @@ export class SignBoxEditComponent implements OnInit {
     };
 
     this.service.Update(payload).subscribe({
-      next: () => this.router.navigate(['/trafficController']),
-      error: (err) => console.error('update failed', err),
+      next: () => {
+        // Show success toast and navigate after it closes
+        this.showPopup('  Updated successfully!', 'success', {
+          duration: 2000,
+          onClose: () => this.router.navigate(['/trafficController']),
+        });
+      },
+      error: (err) => {
+        console.error('update failed', err);
+        const ipTyped = this.form?.value?.ipAddress ?? '';
+        const msgs: string[] = Array.isArray(err?.error?.errorMessages)
+          ? (err.error.errorMessages as string[]).map((m: string, i: number) => {
+              const rawProp: string = err.error.propertyNames?.[i] || '';
+              const prop = this.prettifyField(rawProp);
+              let text = String(m || '').replace(/ip\s*address|ipaddress/gi, 'IP Address');
+              if (prop) text += `: ${prop}`;
+              const isIpError = rawProp.toLowerCase() === 'ipaddress' || /ip\s*address/i.test(text);
+              if (isIpError && ipTyped) text += `: ${ipTyped}`;
+              return text;
+            })
+          : ['  Update failed'];
+        this.showPopup(msgs.join('\n'), 'error');
+      },
     });
   }
 
@@ -294,5 +328,58 @@ export class SignBoxEditComponent implements OnInit {
         this.form.get('areaId')?.setValue(selectedAreaId);
       }
     });
+  }
+
+  // ===== Helpers for user-friendly messages & toasts =====
+  private prettifyField(name: string): string {
+    if (!name) return '';
+    const lower = name.toLowerCase();
+    if (lower === 'ipaddress' || lower === 'ip_address' || lower === 'ip') return 'IP Address';
+    return name
+      .replace(/_/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^(\w)/, (c) => c.toUpperCase());
+  }
+
+  private showPopup(
+    message: string,
+    type: 'success' | 'error' | 'warn',
+    opts?: { duration?: number; onClose?: () => void }
+  ) {
+    const id = ++this.toastSeq;
+    const duration = Math.max(0, opts?.duration ?? 4000);
+    this.toasts = [
+      ...this.toasts,
+      { id, message, type, active: false, duration, onClose: opts?.onClose },
+    ];
+    setTimeout(() => {
+      this.toasts = this.toasts.map((t) => (t.id === id ? { ...t, active: true } : t));
+    }, 0);
+
+    const timer = setTimeout(() => this.dismissToast(id), duration);
+    this.toastTimers.set(id, timer);
+  }
+
+  dismissToast(id: number) {
+    const timer = this.toastTimers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      this.toastTimers.delete(id);
+    }
+    let onClose: (() => void) | undefined;
+    this.toasts = this.toasts.map((t) => {
+      if (t.id === id) onClose = t.onClose;
+      return t.id === id ? { ...t, active: false } : t;
+    });
+    setTimeout(() => {
+      this.toasts = this.toasts.filter((t) => t.id !== id);
+      if (onClose) {
+        try {
+          onClose();
+        } catch {}
+      }
+    }, 500);
   }
 }

@@ -182,3 +182,86 @@ button[type='button']:not(.btn-danger):hover {
     transform: rotate(360deg);
   }
 }
+
+/* ===========================
+   Template-driven Toasts
+   =========================== */
+.popup-stack {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.custom-popup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  opacity: 0;
+  transform: translateX(-30px);
+  padding: 14px 24px;
+  min-width: 280px;
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  transition: all 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.custom-popup.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.popup-success {
+  background: linear-gradient(135deg, #4caf50, #2e7d32);
+  border-left: 6px solid #1b5e20;
+}
+
+.popup-error {
+  background: linear-gradient(135deg, #f44336, #b71c1c);
+  border-left: 6px solid #7f0000;
+}
+
+.popup-warn {
+  background: linear-gradient(135deg, #d3b161, #836352);
+  border-left: 6px solid #bf360c;
+  color: #fff;
+}
+
+.popup-msg {
+  flex: 1 1 auto;
+  white-space: pre-line;
+}
+
+.popup-close {
+  appearance: none;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.popup-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.popup-close:active {
+  transform: scale(0.95);
+}

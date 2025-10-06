@@ -1,179 +1,234 @@
-<div class="traffic-control-container mt-5">
-  <h2 class="main-header">Traffic Wizard</h2>
+<div class="wizard-wrapper">
+  <div class="wizard-header">
+    <div class="header-icon">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="40"
+        height="40"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="12" cy="6" r="2" />
+        <circle cx="12" cy="12" r="2" />
+        <circle cx="12" cy="18" r="2" />
+      </svg>
+    </div>
+    <h1 class="wizard-title">Traffic Signal Wizard</h1>
+    <p class="wizard-subtitle">Configure your traffic control system step by step</p>
+  </div>
 
-  <form [formGroup]="trafficForm" class="traffic-form">
-    <mat-horizontal-stepper labelPosition="bottom">
+  <form [formGroup]="trafficForm" class="wizard-form">
+    <mat-horizontal-stepper labelPosition="bottom" class="modern-stepper">
       <!-- Step 1: Location -->
       <mat-step [stepControl]="trafficForm">
         <ng-template matStepLabel>Location</ng-template>
 
-        <div class="form-row py-3">
-          <div class="form-group">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Governorate</mat-label>
-              <mat-select
-                formControlName="governorate"
-                (selectionChange)="onGovernorateChangeValue($event.value)"
-              >
-                <mat-option [value]="null">-- Select --</mat-option>
-                <mat-option *ngFor="let g of governates" [value]="g.id">{{ g.name }}</mat-option>
-              </mat-select>
-            </mat-form-field>
+        <div class="step-content">
+          <div class="step-header">
+            <h3>Select Location</h3>
+            <p>Choose the governorate and area for this traffic signal</p>
           </div>
 
-          <div class="form-group">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Area</mat-label>
-              <mat-select formControlName="area">
-                <mat-option [value]="null">-- Select --</mat-option>
-                <mat-option *ngFor="let a of areas" [value]="a.id">{{ a.name }}</mat-option>
-              </mat-select>
-            </mat-form-field>
+          <div class="form-row">
+            <div class="form-group">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Governorate</mat-label>
+                <mat-select
+                  formControlName="governorate"
+                  (selectionChange)="onGovernorateChangeValue($event.value)"
+                >
+                  <mat-option [value]="null">-- Select --</mat-option>
+                  <mat-option *ngFor="let g of governates" [value]="g.id">{{ g.name }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="form-group">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Area</mat-label>
+                <mat-select formControlName="area">
+                  <mat-option [value]="null">-- Select --</mat-option>
+                  <mat-option *ngFor="let a of areas" [value]="a.id">{{ a.name }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
           </div>
         </div>
 
-        <div class="step-actions">
+        <div class="step-footer">
           <button
-            mat-raised-button
+            mat-flat-button
             color="primary"
             matStepperNext
+            class="btn-next"
             [disabled]="!trafficForm.get('governorate')?.valid || !trafficForm.get('area')?.valid"
           >
-            Next
+            Continue
+            <mat-icon>arrow_forward</mat-icon>
           </button>
         </div>
       </mat-step>
 
       <!-- Step 2: Basic Information -->
       <mat-step [stepControl]="trafficForm">
-        <ng-template matStepLabel>Basic Information</ng-template>
+        <ng-template matStepLabel>Basic Info</ng-template>
 
-        <div class="form-row py-3">
-          <div class="form-group">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Name</mat-label>
-              <input matInput formControlName="name" placeholder="e.g. Sign Box Name" />
-              <mat-error *ngIf="trafficForm.get('name')?.hasError('required')">
-                Name is required.
-              </mat-error>
-            </mat-form-field>
+        <div class="step-content">
+          <div class="step-header">
+            <h3>Basic Information</h3>
+            <p>Enter signal box details and coordinates</p>
           </div>
-        </div>
 
-        <div class="form-row py-3">
-          <div class="form-group">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>IP Address</mat-label>
-              <input matInput formControlName="ipAddress" placeholder="e.g. 192.168.1.50" />
-              <mat-error *ngIf="trafficForm.get('ipAddress')?.hasError('required')">
-                IP Address is required.
-              </mat-error>
-            </mat-form-field>
+          <div class="form-row">
+            <div class="form-group">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Name</mat-label>
+                <input matInput formControlName="name" placeholder="e.g. Sign Box Name" />
+                <mat-error *ngIf="trafficForm.get('name')?.hasError('required')">
+                  Name is required.
+                </mat-error>
+              </mat-form-field>
+            </div>
           </div>
-          <div class="form-group">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Latitude</mat-label>
-              <input
-                matInput
-                type="number"
-                formControlName="latitude"
-                step="0.0001"
-                min="-90"
-                max="90"
-              />
-              <mat-error *ngIf="trafficForm.get('latitude')?.hasError('required')">
-                Latitude is required.
-              </mat-error>
-            </mat-form-field>
-          </div>
-          <div class="form-group">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Longitude</mat-label>
-              <input
-                matInput
-                type="number"
-                formControlName="longitude"
-                step="0.0001"
-                min="-180"
-                max="180"
-              />
-              <mat-error *ngIf="trafficForm.get('longitude')?.hasError('required')">
-                Longitude is required.
-              </mat-error>
-            </mat-form-field>
-          </div>
-        </div>
 
-        <!-- Directions -->
-        <div class="form-row py-3" formArrayName="directions">
-          <div
-            class="form-group direction-row"
-            *ngFor="let dir of directions.controls; let i = index"
-            [formGroupName]="i"
-          >
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Direction {{ i + 1 }} Name</mat-label>
-              <input matInput formControlName="name" placeholder="e.g. Direction: Suez" />
-              <mat-error *ngIf="dir.get('name')?.hasError('required')">
-                Direction name is required.
-              </mat-error>
-            </mat-form-field>
+          <div class="form-row py-3">
+            <div class="form-group">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>IP Address</mat-label>
+                <input matInput formControlName="ipAddress" placeholder="e.g. 192.168.1.50" />
+                <mat-error *ngIf="trafficForm.get('ipAddress')?.hasError('required')">
+                  IP Address is required.
+                </mat-error>
+              </mat-form-field>
+            </div>
+            <div class="form-group">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Latitude</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="latitude"
+                  step="0.0001"
+                  min="-90"
+                  max="90"
+                />
+                <mat-error *ngIf="trafficForm.get('latitude')?.hasError('required')">
+                  Latitude is required.
+                </mat-error>
+              </mat-form-field>
+            </div>
+            <div class="form-group">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Longitude</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="longitude"
+                  step="0.0001"
+                  min="-180"
+                  max="180"
+                />
+                <mat-error *ngIf="trafficForm.get('longitude')?.hasError('required')">
+                  Longitude is required.
+                </mat-error>
+              </mat-form-field>
+            </div>
+          </div>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Light Pattern</mat-label>
-              <mat-select
-                formControlName="lightPatternId"
-                (selectionChange)="onPatternChanged(dir.value, $event.value)"
+          <!-- Directions -->
+          <div class="directions-section" formArrayName="directions">
+            <div class="section-title">
+              <h4>Traffic Directions</h4>
+              <span class="direction-count">{{ directions.length }}/4</span>
+            </div>
+            <div
+              class="direction-card"
+              *ngFor="let dir of directions.controls; let i = index"
+              [formGroupName]="i"
+            >
+              <div class="direction-number">{{ i + 1 }}</div>
+              <div class="direction-fields">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Direction {{ i + 1 }} Name</mat-label>
+                  <input matInput formControlName="name" placeholder="e.g. Direction: Suez" />
+                  <mat-error *ngIf="dir.get('name')?.hasError('required')">
+                    Direction name is required.
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Light Pattern</mat-label>
+                  <mat-select
+                    formControlName="lightPatternId"
+                    (selectionChange)="onPatternChanged(dir.value, $event.value)"
+                  >
+                    <mat-option [value]="null">-- Select --</mat-option>
+                    <mat-option *ngFor="let p of lightPatternEntity.value" [value]="p.id">
+                      {{ p.name }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-error *ngIf="dir.get('lightPatternId')?.hasError('required')">
+                    Light pattern is required.
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Order</mat-label>
+                  <input matInput type="number" formControlName="order" min="1" />
+                  <mat-error
+                    *ngIf="
+                      dir.get('order')?.hasError('required') || dir.get('order')?.hasError('min')
+                    "
+                  >
+                    Order must be a positive number.
+                  </mat-error>
+                </mat-form-field>
+
+                <input type="hidden" formControlName="left" />
+                <input type="hidden" formControlName="right" />
+              </div>
+
+              <button
+                mat-icon-button
+                color="warn"
+                class="btn-remove"
+                (click)="removeDirection(i)"
+                [disabled]="directions.length === 1"
+                aria-label="Remove direction"
               >
-                <mat-option [value]="null">-- Select --</mat-option>
-                <mat-option *ngFor="let p of lightPatternEntity.value" [value]="p.id">
-                  {{ p.name }}
-                </mat-option>
-              </mat-select>
-              <mat-error *ngIf="dir.get('lightPatternId')?.hasError('required')">
-                Light pattern is required.
-              </mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Order</mat-label>
-              <input matInput type="number" formControlName="order" min="1" />
-              <mat-error
-                *ngIf="dir.get('order')?.hasError('required') || dir.get('order')?.hasError('min')"
-              >
-                Order must be a positive number.
-              </mat-error>
-            </mat-form-field>
-
-            <!-- حقول منطق الحركة (غير ظاهرة للمستخدم حالياً) -->
-            <input type="hidden" formControlName="left" />
-            <input type="hidden" formControlName="right" />
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
 
             <button
-              mat-icon-button
-              color="warn"
-              (click)="removeDirection(i)"
-              [disabled]="directions.length === 1"
-              aria-label="Remove direction"
+              mat-stroked-button
+              color="primary"
+              class="btn-add-direction"
+              (click)="addDirection()"
+              [disabled]="directions.length >= 4"
             >
-              <mat-icon>remove_circle</mat-icon>
+              <mat-icon>add_circle_outline</mat-icon>
+              Add Direction
             </button>
           </div>
-
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="addDirection()"
-            [disabled]="directions.length >= 4"
-          >
-            Add Direction
-          </button>
         </div>
 
-        <div class="step-actions">
-          <button mat-button matStepperPrevious>Back</button>
-          <button mat-raised-button color="primary" matStepperNext [disabled]="trafficForm.invalid">
-            Next
+        <div class="step-footer">
+          <button mat-button matStepperPrevious class="btn-back">
+            <mat-icon>arrow_back</mat-icon>
+            Back
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            matStepperNext
+            class="btn-next"
+            [disabled]="trafficForm.invalid"
+          >
+            Continue
+            <mat-icon>arrow_forward</mat-icon>
           </button>
         </div>
       </mat-step>
@@ -182,101 +237,147 @@
       <mat-step>
         <ng-template matStepLabel>Roundabout</ng-template>
 
-        <app-roundabout-component
-          [directions]="getDirectionsForRoundabout()"
-          (directionsChange)="onRoundaboutChanged($event)"
-        >
-        </app-roundabout-component>
+        <div class="step-content">
+          <div class="step-header">
+            <h3>Configure Roundabout</h3>
+            <p>Set traffic flow directions</p>
+          </div>
 
-        <div class="step-actions">
-          <button mat-button matStepperPrevious>Back</button>
-          <button mat-raised-button color="primary" matStepperNext>Next</button>
+          <app-roundabout-component
+            [directions]="getDirectionsForRoundabout()"
+            (directionsChange)="onRoundaboutChanged($event)"
+          >
+          </app-roundabout-component>
+        </div>
+
+        <div class="step-footer">
+          <button mat-button matStepperPrevious class="btn-back">
+            <mat-icon>arrow_back</mat-icon>
+            Back
+          </button>
+          <button mat-flat-button color="primary" matStepperNext class="btn-next">
+            Continue
+            <mat-icon>arrow_forward</mat-icon>
+          </button>
         </div>
       </mat-step>
 
       <!-- Step 4: Review & Apply -->
       <mat-step [stepControl]="trafficForm">
-        <ng-template matStepLabel>Review & Apply</ng-template>
+        <ng-template matStepLabel>Review</ng-template>
 
-        <mat-card class="summary-card">
-          <mat-card-header>
-            <mat-card-title></mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <!-- Basic Info -->
-            <section class="summary-section">
-              <h4>Basic Info</h4>
-              <div class="summary-grid">
-                <p><strong>Name:</strong> {{ trafficForm.value.name }}</p>
-                <p>
-                  <strong>Governorate:</strong>
-                  {{ getGovernorateName(trafficForm.value.governorate) }}
-                </p>
-                <p><strong>Area:</strong> {{ getAreaName(trafficForm.value.area) }}</p>
-              </div>
-            </section>
+        <div class="step-content">
+          <div class="step-header">
+            <h3>Review & Confirm</h3>
+            <p>Verify all details before applying</p>
+          </div>
 
-            <mat-divider class="my-2"></mat-divider>
+          <div class="summary-card">
+            <mat-card-header>
+              <mat-card-title></mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <section class="summary-section">
+                <h4>Basic Info</h4>
+                <div class="summary-grid">
+                  <p><strong>Name:</strong> {{ trafficForm.value.name }}</p>
+                  <p>
+                    <strong>Governorate:</strong>
+                    {{ getGovernorateName(trafficForm.value.governorate) }}
+                  </p>
+                  <p><strong>Area:</strong> {{ getAreaName(trafficForm.value.area) }}</p>
+                </div>
+              </section>
 
-            <!-- Location & Network -->
-            <section class="summary-section">
-              <h4>Location & Network</h4>
-              <div class="summary-grid">
-                <p>
-                  <strong>Latitude:</strong> {{ trafficForm.value.latitude | number : '1.4-4' }}
-                </p>
-                <p>
-                  <strong>Longitude:</strong> {{ trafficForm.value.longitude | number : '1.4-4' }}
-                </p>
-                <p><strong>IP Address:</strong> {{ trafficForm.value.ipAddress }}</p>
-              </div>
-            </section>
+              <mat-divider class="my-2"></mat-divider>
 
-            <mat-divider class="my-2"></mat-divider>
+              <section class="summary-section">
+                <h4>Location & Network</h4>
+                <div class="summary-grid">
+                  <p>
+                    <strong>Latitude:</strong> {{ trafficForm.value.latitude | number : '1.4-4' }}
+                  </p>
+                  <p>
+                    <strong>Longitude:</strong> {{ trafficForm.value.longitude | number : '1.4-4' }}
+                  </p>
+                  <p><strong>IP Address:</strong> {{ trafficForm.value.ipAddress }}</p>
+                </div>
+              </section>
 
-            <!-- Directions -->
-            <section class="summary-section">
-              <h4>Directions</h4>
-              <div *ngIf="directions.controls.length; else noDir">
-                <div class="dir-card" *ngFor="let d of directions.controls; let i = index">
-                  <div class="dir-header">
-                    <span class="dir-order">Lane: {{ d.value.order }}</span>
-                    <span class="dir-name">{{ d.value.name }}</span>
-                  </div>
-                  <div class="dir-details">
-                    <span class="dir-pattern">
-                      <strong>Pattern:</strong>
-                      {{ getPatternName(d.value.lightPatternId) }}</span
-                    >
-                    <strong>Flow: </strong>
-                    <span class="dir-pill" [class.on]="d.value.left"
-                      >Left: {{ d.value.left ? 'Yes' : 'No' }}</span
-                    >
-                    <span class="dir-pill" [class.on]="d.value.right"
-                      >Right: {{ d.value.right ? 'Yes' : 'No' }}</span
-                    >
+              <mat-divider class="my-2"></mat-divider>
+
+              <section class="summary-section">
+                <h4>Directions</h4>
+                <div *ngIf="directions.controls.length; else noDir">
+                  <div class="dir-card" *ngFor="let d of directions.controls; let i = index">
+                    <div class="dir-header">
+                      <span class="dir-order">Lane: {{ d.value.order }}</span>
+                      <span class="dir-name">{{ d.value.name }}</span>
+                    </div>
+                    <div class="dir-details">
+                      <span class="dir-pattern">
+                        <strong>Pattern:</strong>
+                        {{ getPatternName(d.value.lightPatternId) }}</span
+                      >
+                      <strong>Flow: </strong>
+                      <span class="dir-pill" [class.on]="d.value.left"
+                        >Left: {{ d.value.left ? 'Yes' : 'No' }}</span
+                      >
+                      <span class="dir-pill" [class.on]="d.value.right"
+                        >Right: {{ d.value.right ? 'Yes' : 'No' }}</span
+                      >
+                    </div>
                   </div>
                 </div>
-              </div>
-              <ng-template #noDir>
-                <p class="text-muted">No directions added</p>
-              </ng-template>
-            </section>
-          </mat-card-content>
-        </mat-card>
+                <ng-template #noDir>
+                  <p class="text-muted">No directions added</p>
+                </ng-template>
+              </section>
+            </mat-card-content>
+          </div>
+        </div>
 
-        <div class="action-buttons">
-          <button mat-button matStepperPrevious>Back</button>
+        <div class="step-footer">
+          <button mat-button matStepperPrevious class="btn-back">
+            <mat-icon>arrow_back</mat-icon>
+            Back
+          </button>
           <button
-            mat-raised-button
+            mat-flat-button
             color="primary"
+            class="btn-apply"
             (click)="onApply()"
             [disabled]="trafficForm.invalid"
           >
-            Apply
+            <mat-icon>check_circle</mat-icon>
+            Apply Configuration
           </button>
         </div>
       </mat-step>
     </mat-horizontal-stepper>
   </form>
+</div>
+
+<ng-template #loadingTpl>
+  <div>Loading...</div>
+</ng-template>
+
+<!-- Template-driven toast stack -->
+<div class="popup-stack" aria-live="polite" aria-atomic="true">
+  <div
+    *ngFor="let t of toasts"
+    class="custom-popup"
+    [ngClass]="[t.active ? 'show' : '', 'popup-' + t.type]"
+    role="status"
+  >
+    <span class="popup-msg">{{ t.message }}</span>
+    <button
+      type="button"
+      class="popup-close"
+      (click)="dismissToast(t.id)"
+      aria-label="Close notification"
+    >
+      ×
+    </button>
+  </div>
 </div>
