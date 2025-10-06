@@ -1,6 +1,8 @@
-<div class="container-fluid">
+<div class="container-fluid" [class.rtl]="isAr">
   <div class="header">
-    <h1 class="title">Traffic Signal Management</h1>
+    <h1 class="title">
+      {{ isAr ? 'إدارة إشارات المرور' : 'Traffic Signal Management' }}
+    </h1>
 
     <div class="search-container">
       <div class="search-box">
@@ -8,9 +10,10 @@
         <input
           type="text"
           class="search-input"
-          placeholder="Search by name or ID..."
+          [placeholder]="isAr ? 'ابحث بالاسم أو المعرّف...' : 'Search by name or ID...'"
           [(ngModel)]="searchParameter.searchText"
           (ngModelChange)="onSearchEnter()"
+          [attr.dir]="isAr ? 'rtl' : 'ltr'"
         />
       </div>
 
@@ -18,20 +21,20 @@
       <div class="filter-dropdown active-filter-dropdown">
         <button class="filter-button" (click)="showActiveFilter = !showActiveFilter">
           <i class="fas fa-power-off"></i>
-          {{ activeFilter }}
+          {{ activeFilterLabel }}
           <i class="fas fa-chevron-down"></i>
         </button>
         <div class="filter-menu" [class.show]="showActiveFilter">
           <div class="filter-option" (click)="setActiveFilter('ALL')">
-            <span>Filter All</span>
+            <span>{{ isAr ? 'تصفية الكل' : 'Filter All' }}</span>
             <span class="checkmark">{{ activeFilter === 'ALL' ? '✓' : '' }}</span>
           </div>
           <div class="filter-option" (click)="setActiveFilter('ACTIVE')">
-            <span>Active Only</span>
+            <span>{{ isAr ? 'نشِط فقط' : 'Active Only' }}</span>
             <span class="checkmark">{{ activeFilter === 'ACTIVE' ? '✓' : '' }}</span>
           </div>
           <div class="filter-option" (click)="setActiveFilter('INACTIVE')">
-            <span>Inactive Only</span>
+            <span>{{ isAr ? 'غير نشِط فقط' : 'Inactive Only' }}</span>
             <span class="checkmark">{{ activeFilter === 'INACTIVE' ? '✓' : '' }}</span>
           </div>
         </div>
@@ -43,10 +46,10 @@
   <table class="traffic-table">
     <thead>
       <tr>
-        <th>ID</th>
-        <th>IP Address</th>
-        <th>Name</th>
-        <th>Active</th>
+        <th>{{ isAr ? 'المعرّف' : 'ID' }}</th>
+        <th>{{ isAr ? 'عنوان IP' : 'IP Address' }}</th>
+        <th>{{ isAr ? 'الاسم' : 'Name' }}</th>
+        <th>{{ isAr ? 'الحالة' : 'Active' }}</th>
       </tr>
     </thead>
     <tbody>
@@ -57,17 +60,19 @@
         (mouseleave)="hidePopup()"
       >
         <td>{{ item.id }}</td>
-        <td>{{ item.ipAddress }}</td>
+        <td dir="ltr">{{ item.ipAddress }}</td>
         <td>{{ item.name }}</td>
         <td>
           <span [ngClass]="item.active ? 'active' : 'inactive'">
-            {{ item.active ? 'active' : 'inactive' }}
+            {{ item.active ? (isAr ? 'نشِط' : 'active') : isAr ? 'غير نشِط' : 'inactive' }}
           </span>
         </td>
       </tr>
 
       <tr *ngIf="filteredData.length === 0">
-        <td colspan="4" class="no-results">No traffic signals found</td>
+        <td colspan="4" class="no-results">
+          {{ isAr ? 'لا توجد إشارات مطابقة' : 'No traffic signals found' }}
+        </td>
       </tr>
     </tbody>
   </table>
@@ -83,15 +88,17 @@
         <span class="tp-dot connected"></span>
         <span class="tp-name">{{ popupData?.name || '—' }}</span>
       </div>
-      <span class="tp-chip">Live</span>
+      <span class="tp-chip">{{ isAr ? 'مباشر' : 'Live' }}</span>
     </div>
 
     <div class="tp-grid">
       <div class="tp-col" *ngFor="let dir of popupData?.directions; let i = index">
         <div class="tp-col__head w-50">
-          <span class="tp-col__label me-2">اتجاه: {{ dir.name }}</span>
+          <span class="tp-col__label me-2">
+            {{ isAr ? 'اتجاه' : 'Direction' }}: {{ dir.name }}
+          </span>
           <span class="tp-timer">
-            {{ !isDisconnected ? dir.timer + 's' : '--' }}
+            {{ !isDisconnected ? dir.timer + (isAr ? ' ث' : 's') : '--' }}
           </span>
         </div>
         <div class="traffic-light">
@@ -122,3 +129,4 @@
     </div>
   </div>
 </div>
+  

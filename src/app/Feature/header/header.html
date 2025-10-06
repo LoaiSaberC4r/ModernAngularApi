@@ -1,7 +1,11 @@
-<nav class="modern-navbar">
+<nav class="modern-navbar" [class.rtl]="isAr">
   <div class="navbar-container">
     <a class="navbar-brand" routerLink="/">
       <img src="../../../assets/img/traffic-light-30625.png" alt="logo" height="40" />
+      <span class="logo">
+        <span class="i-letter">i<span class="dot">.</span></span>
+        <span class="tc">TC</span>
+      </span>
     </a>
 
     <button
@@ -17,34 +21,38 @@
     <ul id="primary-nav" class="navbar-nav" [class.show]="isMenuOpen">
       <li class="nav-item">
         <a class="nav-link" [routerLink]="['/trafficSignal']" routerLinkActive="active">
-          Signals Status
+          {{ isAr ? 'حالة الإشارات' : 'Signals Status' }}
         </a>
       </li>
 
       <li class="nav-item">
         <a class="nav-link" [routerLink]="['/trafficController']" routerLinkActive="active">
-          Traffic cabinets
+          {{ isAr ? 'كبينة التحكم المروري' : 'Traffic cabinets' }}
         </a>
       </li>
 
       <li class="nav-item">
         <a class="nav-link" [routerLink]="['/trafficWizard']" routerLinkActive="active">
-          Add cabinet
+          {{ isAr ? 'إضافة كبينة' : 'Add cabinet' }}
         </a>
       </li>
 
       <li class="nav-item">
         <a class="nav-link" [routerLink]="['/template']" routerLinkActive="active">
-          TrafficLight Schedule
+          {{ isAr ? 'جدولة الإشارات' : 'TrafficLight Schedule' }}
         </a>
       </li>
 
       <li class="nav-item">
-        <a class="nav-link" [routerLink]="['/mapview']" routerLinkActive="active"> Map View </a>
+        <a class="nav-link" [routerLink]="['/mapview']" routerLinkActive="active">
+          {{ isAr ? 'عرض الخريطة' : 'Map View' }}
+        </a>
       </li>
 
       <li class="nav-item">
-        <a class="nav-link" [routerLink]="['/map']" routerLinkActive="active"> Green Way </a>
+        <a class="nav-link" [routerLink]="['/map']" routerLinkActive="active">
+          {{ isAr ? 'المسار الأخضر' : 'Green Way' }}
+        </a>
       </li>
 
       <li class="nav-item lang-switch">

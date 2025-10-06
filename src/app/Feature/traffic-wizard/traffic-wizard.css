@@ -3,7 +3,7 @@
   max-width: 1000px;
   margin: 2rem auto;
   padding: 0 1.5rem;
-  min-height: calc(100vh - 4rem);
+  /* min-height: calc(100vh - 4rem); */
 }
 
 /* Wizard Header */
@@ -22,7 +22,7 @@
   justify-content: center;
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, #4caf50, #2e7d32);
+  background: linear-gradient(135deg, #4d99b3, #ccdce4);
   border-radius: 50%;
   margin-bottom: 1.5rem;
   color: white;
@@ -90,9 +90,9 @@
 
 .wizard-wrapper ::ng-deep .mat-step-icon-selected,
 .wizard-wrapper ::ng-deep .mat-step-icon-state-done {
-  background: linear-gradient(135deg, #4caf50, #2e7d32) !important;
+  background: linear-gradient(135deg, #4d99b3, #ccdce4) !important;
   color: white !important;
-  border-color: #4caf50 !important;
+  border-color: #4d99b3 !important;
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
@@ -103,12 +103,12 @@
 }
 
 .wizard-wrapper ::ng-deep .mat-step-label-active {
-  color: #4caf50;
+  color: #4d99b3;
   font-weight: 600;
 }
 
 .wizard-wrapper ::ng-deep .mat-step-label-selected {
-  color: #4caf50;
+  color: #4d99b3;
   font-weight: 600;
 }
 
@@ -176,7 +176,7 @@
 }
 
 .direction-count {
-  background: #4caf50;
+  background: #4d99b3;
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
@@ -208,7 +208,7 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #4caf50, #2e7d32);
+  background: linear-gradient(135deg, #4d99b3, #ccdce4);
   color: white;
   border-radius: 50%;
   font-weight: 700;
@@ -231,8 +231,8 @@
   padding: 0.75rem;
   font-weight: 600;
   border-radius: 12px;
-  border: 2px dashed #4caf50 !important;
-  color: #4caf50 !important;
+  border: 2px dashed #4d99b3 !important;
+  color: #4d99b3 !important;
   transition: all 0.2s ease;
 }
 
@@ -322,10 +322,10 @@
 .summary-section h4 {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #4caf50;
+  color: #4d99b3;
   margin: 0 0 1rem 0;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #4caf50;
+  border-bottom: 2px solid #4d99b3;
 }
 
 .summary-grid {
@@ -369,11 +369,11 @@
   gap: 0.75rem;
   margin-bottom: 0.75rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: #4d99b3;
 }
 
 .dir-order {
-  background: linear-gradient(135deg, #4caf50, #2e7d32);
+  background: linear-gradient(135deg, #4d99b3, #ccdce4);
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
@@ -410,8 +410,8 @@
 }
 
 .dir-pill.on {
-  background: #c8e6c9;
-  color: #2e7d32;
+  background: #aec9d1;
+  color: #4d99b3;
   font-weight: 600;
 }
 
@@ -421,11 +421,11 @@
 }
 
 .wizard-wrapper ::ng-deep .mat-form-field-appearance-outline .mat-form-field-outline-thick {
-  color: #4caf50 !important;
+  color: #4d99b3 !important;
 }
 
 .wizard-wrapper ::ng-deep .mat-form-field.mat-focused .mat-form-field-label {
-  color: #4caf50 !important;
+  color: #4d99b3 !important;
 }
 
 .wizard-wrapper ::ng-deep .mat-form-field-label {
@@ -433,7 +433,7 @@
 }
 
 .wizard-wrapper ::ng-deep .mat-input-element {
-  color: #2c3e50;
+  color: #4d99b3;
 }
 
 /* Responsive Design */

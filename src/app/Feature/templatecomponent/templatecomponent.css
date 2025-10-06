@@ -6,7 +6,7 @@
 .template-container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  /* padding: 2rem 1.5rem; */
 }
 
 /* Page Header */
@@ -27,7 +27,7 @@
 .header-icon {
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, #9ed0a6 0%, #7fb88e 100%);
+  background: linear-gradient(135deg, #4d99b3 0%, #7fb88e 100%);
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -70,7 +70,7 @@
 
 /* Card Header */
 .card-header {
-  background: linear-gradient(135deg, #9ed0a6 0%, #8bc99a 100%);
+  background: linear-gradient(135deg, #4d99b3 0%, #8bc5c9 100%);
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -115,7 +115,7 @@
 }
 
 .section-label svg {
-  color: #9ed0a6;
+  color: #4d99b3;
   flex-shrink: 0;
 }
 
@@ -125,7 +125,7 @@
 }
 
 .badge-count {
-  background: #9ed0a6;
+  background: #4d99b3;
   color: white;
   padding: 0.15rem 0.5rem;
   border-radius: 12px;
@@ -153,7 +153,7 @@
 
 .form-control-modern:focus {
   outline: none;
-  border-color: #9ed0a6;
+  border-color: #4d99b3;
   box-shadow: 0 0 0 4px rgba(158, 208, 166, 0.15);
 }
 
@@ -190,7 +190,7 @@
 }
 
 .schedule-list::-webkit-scrollbar-thumb {
-  background: #9ed0a6;
+  background: #4d99b3;
   border-radius: 10px;
 }
 
@@ -210,7 +210,7 @@
 }
 
 .schedule-card:hover {
-  border-color: #9ed0a6;
+  border-color: #4d99b3;
   box-shadow: 0 2px 8px rgba(158, 208, 166, 0.2);
   transform: translateX(4px);
 }
@@ -309,7 +309,7 @@
 
 .time-input:focus {
   outline: none;
-  border-color: #9ed0a6;
+  border-color: #4d99b3;
   box-shadow: 0 0 0 3px rgba(158, 208, 166, 0.15);
 }
 
@@ -367,7 +367,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
+  background: linear-gradient(135deg, #4d99b3, #66aabb);
   color: white;
   border: none;
   border-radius: 10px;
@@ -380,7 +380,7 @@
 }
 
 .btn-add:hover:not(:disabled) {
-  background: linear-gradient(135deg, #43a047, #57a65a);
+  background: linear-gradient(135deg, #4d99b3, #66aabb);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.35);
 }
@@ -411,7 +411,7 @@
 }
 
 .light-row:hover {
-  border-color: #9ed0a6;
+  border-color: #4d99b3;
   box-shadow: 0 2px 8px rgba(158, 208, 166, 0.15);
 }
 
@@ -468,7 +468,7 @@
 
 .light-input:focus {
   outline: none;
-  border-color: #9ed0a6;
+  border-color: #4d99b3;
   box-shadow: 0 0 0 3px rgba(158, 208, 166, 0.15);
 }
 
@@ -501,6 +501,7 @@
   padding: 0.75rem 1.5rem;
   font-size: 0.95rem;
   font-weight: 600;
+  border: 2px solid #dee2e6;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -525,7 +526,7 @@
 
 .btn-success,
 .btn-save {
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
+  background: linear-gradient(135deg, #4d99b3, #66b1bb);
   color: white;
   border: none;
   box-shadow: 0 2px 8px rgba(76, 175, 80, 0.25);
@@ -533,7 +534,7 @@
 
 .btn-success:hover:not(:disabled),
 .btn-save:hover:not(:disabled) {
-  background: linear-gradient(135deg, #43a047, #57a65a);
+  background: linear-gradient(135deg, #4d99b3, #66bbbb);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.35);
 }

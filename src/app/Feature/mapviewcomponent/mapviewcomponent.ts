@@ -14,6 +14,7 @@ import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
 import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
 import { GetLightPattern } from '../../Domain/Entity/LightPattern/GetLightPattern';
 import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern';
+import { LanguageService } from '../../Services/Language/language-service';
 
 @Component({
   selector: 'app-mapviewcomponent',
@@ -23,12 +24,6 @@ import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignContro
   styleUrl: './mapviewcomponent.css',
 })
 export class Mapviewcomponent implements OnInit, OnDestroy {
-  ngOnDestroy(): void {
-    if (this.map) {
-      this.map.off();
-      this.map.remove();
-    }
-  }
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef<HTMLDivElement>;
   private map!: L.Map;
   private marker!: L.Marker;
@@ -40,6 +35,11 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
   private readonly templatePatternService = inject(ITemplatePatternService);
   private readonly templateService = inject(ITemplateService);
   private readonly lightPatternService = inject(LightPatternService);
+
+  public langService = inject(LanguageService);
+  get isAr() {
+    return this.langService.current === 'ar';
+  }
 
   trafficForm!: FormGroup;
   governates: GetAllGovernate[] = [];
@@ -60,12 +60,20 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
       template: ['0'],
       greenTime: [0],
       amberTime: [0],
-      redTime: [{ value: 0, disabled: true }],
+      redTime: [0],
     });
 
     this.loadGovernate();
     this.loadAllTemplates();
   }
+
+  ngOnDestroy(): void {
+    if (this.map) {
+      this.map.off();
+      this.map.remove();
+    }
+  }
+
   private initMap(): void {
     if (this.map) {
       try {
@@ -74,7 +82,6 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
       } catch {}
       this.map = null as any;
     }
-
     this.map = L.map(this.mapContainer.nativeElement).setView([30.0444, 31.2357], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -84,28 +91,19 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
     this.map.on('click', (e: L.LeafletMouseEvent) => {
       const lat = e.latlng.lat;
       const lng = e.latlng.lng;
-
-      if (this.marker) {
-        this.map.removeLayer(this.marker);
-      }
-
+      if (this.marker) this.map.removeLayer(this.marker);
       this.marker = L.marker([lat, lng]).addTo(this.map);
-
-      this.trafficForm.patchValue({
-        latitude: lat,
-        longitude: lng,
-      });
+      this.trafficForm.patchValue({ latitude: lat, longitude: lng });
     });
   }
 
   ngAfterViewInit(): void {
     this.initMap();
     setTimeout(() => {
-      if (this.map) {
-        this.map.invalidateSize();
-      }
+      if (this.map) this.map.invalidateSize();
     }, 100);
   }
+
   get f() {
     return this.trafficForm.controls;
   }
@@ -154,7 +152,7 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
   onApply() {
     if (this.trafficForm.invalid || !this.selectedLightPatternId) {
       this.trafficForm.markAllAsTouched();
-      alert('Fill form and select Pattern');
+      alert(this.isAr ? 'املأ النموذج واختر نمط الإشارة' : 'Fill the form and select a pattern');
       return;
     }
 
@@ -167,7 +165,7 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
       ipAddress: raw.ipAddress,
       directions: [
         {
-          name: 'Direction 1',
+          name: this.isAr ? 'اتجاه 1' : 'Direction 1',
           order: 1,
           lightPatternId: this.selectedLightPatternId,
         },

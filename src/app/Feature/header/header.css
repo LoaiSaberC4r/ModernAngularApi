@@ -10,7 +10,8 @@
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   border-bottom: 1px solid #eaeaea;
   padding: 0.75rem 1.5rem;
@@ -33,8 +34,35 @@
 }
 
 .navbar-brand img {
-  margin-inline-end: 0.75rem; /* RTL-aware */
-  filter: invert(100%) sepia(100%) saturate(100%) hue-rotate(180deg) brightness(100%);
+  margin-inline-end: 0.75rem;
+  filter: grayscale(60%) brightness(1.1);
+}
+
+/* ===== Logo Text ===== */
+.logo {
+  font-size: 32px;
+  font-weight: bold;
+  font-family: sans-serif;
+  line-height: 1;
+  position: relative;
+}
+
+.i-letter {
+  color: #1280a6;
+  position: relative;
+  display: inline-block;
+}
+
+.i-letter .dot {
+  color: #eb1b29;
+  position: absolute;
+  left: 0px;
+  top: -20px;
+  font-size: 33px;
+}
+
+.tc {
+  color: #1280a6;
 }
 
 /* ===== Nav Links ===== */
@@ -53,7 +81,7 @@
   display: block;
   font-size: 0.95rem;
   font-weight: 500;
-  color: #333;
+  color: #000 !important;
   text-decoration: none;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
@@ -62,16 +90,16 @@
 
 /* Hover / Active */
 .nav-link:hover {
-  color: #10b981;
+  color: #4d99b3;
   background: #f8f9fa;
-  box-shadow: inset 0 -2px 0 #10b981;
+  box-shadow: inset 0 -2px 0 #4d99b3;
 }
 
 .nav-link.active {
-  color: #10b981;
+  color: #4d99b3;
   font-weight: 600;
   background: #eef6ff;
-  box-shadow: inset 0 -2px 0 #10b981;
+  box-shadow: inset 0 -2px 0 #4d99b3;
 }
 
 /* ===== Hamburger ===== */
@@ -152,7 +180,7 @@
 /* ===== Dark Mode ===== */
 @media (prefers-color-scheme: dark) {
   .modern-navbar {
-    background: rgba(30, 41, 59, 0.8);
+    /* background: rgba(30, 41, 59, 0.8); */
     border-bottom-color: rgba(255, 255, 255, 0.1);
   }
 

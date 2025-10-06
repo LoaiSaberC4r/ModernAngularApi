@@ -11,6 +11,9 @@ export interface DirectionWithPatternDto {
   name: string;
   order: number;
   lightPatternId: number;
+  left?: boolean;
+  right?: boolean;
+  isConflict?: boolean;
 }
 
 export interface AddSignBoxWithUpdateLightPattern {
@@ -29,6 +32,7 @@ export interface SignDirection {
   lightPatternName?: string;
   left?: boolean;
   right?: boolean;
+  isConflict?: boolean;
 }
 
 export interface GetAllSignControlBoxWithLightPattern {

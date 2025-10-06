@@ -2,20 +2,11 @@
   <button
     class="lang-btn"
     type="button"
-    (click)="toggle()"
-    aria-haspopup="listbox"
-    [attr.aria-expanded]="open()"
+    (click)="toggleNow($event)"
+    [attr.aria-label]="langService.current === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'"
+    [title]="langService.current === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'"
   >
     <i class="bi bi-translate"></i>
-    <span class="lang-code">{{ current() === 'ar' ? 'AR' : 'EN' }}</span>
+    <span class="lang-code">{{ langService.current === 'ar' ? 'AR' : 'EN' }}</span>
   </button>
-
-  <ul class="lang-menu" *ngIf="open()" role="listbox" (mouseleave)="open.set(false)">
-    <li role="option" (click)="pick('ar')" [class.active]="current() === 'ar'">
-      🇸🇦 العربية
-    </li>
-    <li role="option" (click)="pick('en')" [class.active]="current() === 'en'">
-      🇺🇸 English
-    </li>
-  </ul>
 </div>

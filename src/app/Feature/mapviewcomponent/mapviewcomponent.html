@@ -1,4 +1,4 @@
-<div class="bg-signin">
+<div class="bg-signin" [class.rtl]="isAr">
   <div class="container-fluid p-0">
     <div class="row g-0 map-container">
       <!-- Form Section -->
@@ -6,52 +6,61 @@
         <form class="traffic-form p-3" [formGroup]="trafficForm" (ngSubmit)="onApply()">
           <!-- Governorate -->
           <div class="form-group mb-3">
-            <label class="form-label d-block">Governorate <span class="required">*</span></label>
+            <label class="form-label d-block">
+              {{ isAr ? 'المحافظة' : 'Governorate' }} <span class="required">*</span>
+            </label>
             <select
               class="form-control"
               formControlName="governorate"
               (change)="onGovernorateChange($event)"
               [class.is-invalid]="f['governorate'].touched && f['governorate'].invalid"
+              [attr.dir]="isAr ? 'rtl' : 'ltr'"
             >
-              <option value="">-- Select --</option>
+              <option value="">{{ isAr ? '-- اختر --' : '-- Select --' }}</option>
               <option *ngFor="let g of governates" [value]="g.id">{{ g.name }}</option>
             </select>
             <div
               class="invalid-feedback"
               *ngIf="f['governorate'].touched && f['governorate'].invalid"
             >
-              Governorate is required
+              {{ isAr ? 'المحافظة مطلوبة' : 'Governorate is required' }}
             </div>
           </div>
 
           <!-- Area -->
           <div class="form-group mb-3">
-            <label class="form-label d-block">Area <span class="required">*</span></label>
+            <label class="form-label d-block">
+              {{ isAr ? 'الحي' : 'Area' }} <span class="required">*</span>
+            </label>
             <select
               class="form-control"
               formControlName="area"
               [class.is-invalid]="f['area'].touched && f['area'].invalid"
+              [attr.dir]="isAr ? 'rtl' : 'ltr'"
             >
-              <option [ngValue]="null">-- Select --</option>
+              <option [ngValue]="null">{{ isAr ? '-- اختر --' : '-- Select --' }}</option>
               <option *ngFor="let a of areas" [value]="a.id">{{ a.name }}</option>
             </select>
             <div class="invalid-feedback" *ngIf="f['area'].touched && f['area'].invalid">
-              Area is required
+              {{ isAr ? 'الحي مطلوب' : 'Area is required' }}
             </div>
           </div>
 
           <!-- Name -->
           <div class="form-group mb-3">
-            <label class="form-label d-block">Name <span class="required">*</span></label>
+            <label class="form-label d-block">
+              {{ isAr ? 'الاسم' : 'Name' }} <span class="required">*</span>
+            </label>
             <input
               class="form-control"
               type="text"
               formControlName="name"
-              placeholder="Descriptive name"
+              [placeholder]="isAr ? 'اسم وصفي' : 'Descriptive name'"
               [class.is-invalid]="f['name'].touched && f['name'].invalid"
+              [attr.dir]="isAr ? 'rtl' : 'ltr'"
             />
             <div class="invalid-feedback" *ngIf="f['name'].touched && f['name'].invalid">
-              Name is required
+              {{ isAr ? 'الاسم مطلوب' : 'Name is required' }}
             </div>
           </div>
 
@@ -59,23 +68,29 @@
           <div class="form-group mb-3">
             <div class="row g-2">
               <div class="col-6">
-                <label class="form-label d-block">Latitude <span class="required">*</span></label>
+                <label class="form-label d-block">
+                  {{ isAr ? 'خط العرض' : 'Latitude' }} <span class="required">*</span>
+                </label>
                 <input
                   class="form-control"
                   type="text"
                   formControlName="latitude"
-                  placeholder="Latitude"
+                  [placeholder]="isAr ? 'خط العرض' : 'Latitude'"
                   [class.is-invalid]="f['latitude'].touched && f['latitude'].invalid"
+                  dir="ltr"
                 />
               </div>
               <div class="col-6">
-                <label class="form-label d-block">Longitude <span class="required">*</span></label>
+                <label class="form-label d-block">
+                  {{ isAr ? 'خط الطول' : 'Longitude' }} <span class="required">*</span>
+                </label>
                 <input
                   class="form-control"
                   type="text"
                   formControlName="longitude"
-                  placeholder="Longitude"
+                  [placeholder]="isAr ? 'خط الطول' : 'Longitude'"
                   [class.is-invalid]="f['longitude'].touched && f['longitude'].invalid"
+                  dir="ltr"
                 />
               </div>
             </div>
@@ -83,38 +98,52 @@
 
           <!-- IP -->
           <div class="form-group mb-3">
-            <label class="form-label d-block">IP Address <span class="required">*</span></label>
+            <label class="form-label d-block">
+              {{ isAr ? 'عنوان IP' : 'IP Address' }} <span class="required">*</span>
+            </label>
             <input
               class="form-control"
               type="text"
               formControlName="ipAddress"
-              placeholder="IP Address"
+              [placeholder]="isAr ? 'عنوان IP' : 'IP Address'"
               [class.is-invalid]="f['ipAddress'].touched && f['ipAddress'].invalid"
+              dir="ltr"
             />
           </div>
 
           <!-- Light Pattern -->
           <div class="light-pattern-section p-3 mb-3">
-            <h5 class="section-header text-center mb-3">LIGHT PATTERN</h5>
+            <h5 class="section-header text-center mb-3">
+              {{ isAr ? 'نمط الإشارة' : 'LIGHT PATTERN' }}
+            </h5>
 
             <!-- Template Selector -->
             <div class="form-group mb-3">
-              <label class="form-label d-block">Select Template</label>
+              <label class="form-label d-block">
+                {{ isAr ? 'اختر القالب' : 'Select Template' }}
+              </label>
               <select
                 class="form-control"
                 formControlName="template"
                 (change)="onTemplateChange($event)"
+                [attr.dir]="isAr ? 'rtl' : 'ltr'"
               >
-                <option value="">-- Select --</option>
+                <option value="">{{ isAr ? '-- اختر --' : '-- Select --' }}</option>
                 <option *ngFor="let g of templates" [value]="g.id">{{ g.name }}</option>
               </select>
             </div>
 
             <!-- Template Patterns -->
             <div class="template-patterns-section mb-3">
-              <h6 class="template-patterns-header">Template Patterns</h6>
+              <h6 class="template-patterns-header">
+                {{ isAr ? 'أنماط القالب' : 'Template Patterns' }}
+              </h6>
               <div *ngIf="!templatePatterns?.length" class="text-muted small mb-3">
-                No patterns to show. Select a template.
+                {{
+                  isAr
+                    ? 'لا توجد أنماط للعرض. اختر قالبًا.'
+                    : 'No patterns to show. Select a template.'
+                }}
               </div>
 
               <div
@@ -133,13 +162,13 @@
 
                 <!-- From -->
                 <div class="col text-center">
-                  <small class="text-muted d-block">From:</small>
+                  <small class="text-muted d-block">{{ isAr ? 'من:' : 'From:' }}</small>
                   <span class="time-text">{{ p.startFrom }}</span>
                 </div>
 
                 <!-- To -->
                 <div class="col text-center">
-                  <small class="text-muted d-block">To:</small>
+                  <small class="text-muted d-block">{{ isAr ? 'إلى:' : 'To:' }}</small>
                   <span class="time-text">{{ p.finishBy }}</span>
                 </div>
 
@@ -154,7 +183,15 @@
                       'btn-outline-primary': p.lightPatternId !== selectedLightPatternId
                     }"
                   >
-                    {{ p.lightPatternId === selectedLightPatternId ? 'Selected' : 'Select' }}
+                    {{
+                      p.lightPatternId === selectedLightPatternId
+                        ? isAr
+                          ? 'تم الاختيار'
+                          : 'Selected'
+                        : isAr
+                        ? 'اختر'
+                        : 'Select'
+                    }}
                   </button>
                 </div>
               </div>
@@ -171,7 +208,8 @@
                   min="0"
                   max="1000"
                   step="1"
-                  placeholder="0"
+                  [placeholder]="isAr ? 'أخضر (ثانية)' : 'Green (sec)'"
+                  dir="ltr"
                 />
               </div>
 
@@ -184,7 +222,8 @@
                   min="0"
                   max="1000"
                   step="1"
-                  placeholder="0"
+                  [placeholder]="isAr ? 'أصفر (ثانية)' : 'Amber (sec)'"
+                  dir="ltr"
                 />
               </div>
 
@@ -197,7 +236,8 @@
                   min="0"
                   max="1000"
                   step="1"
-                  placeholder="0"
+                  [placeholder]="isAr ? 'أحمر (ثانية)' : 'Red (sec)'"
+                  dir="ltr"
                 />
               </div>
             </div>
@@ -206,7 +246,7 @@
           <!-- Actions -->
           <div class="point-settings mt-3">
             <button class="btn btn-outline-success w-100" type="submit">
-              <strong>Apply</strong>
+              <strong>{{ isAr ? 'تطبيق' : 'Apply' }}</strong>
             </button>
           </div>
         </form>

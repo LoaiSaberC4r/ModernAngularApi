@@ -13,6 +13,7 @@ import { ResultError } from '../../Domain/ResultPattern/Error';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { PopUpDirection, PopUpSignBox, TrafficColor } from '../../Domain/PopUpSignBox/PopUpSignBox';
 import { Subscription, timer } from 'rxjs';
+import { LanguageService } from '../../Services/Language/language-service';
 
 export interface ReceiveMessage {
   L1: 'R' | 'Y' | 'G';
@@ -37,6 +38,11 @@ export interface ChatMessage {
 export class SignBoxComponent implements OnInit, OnDestroy {
   private readonly signalr = inject(ISignalrService);
   private readonly signBoxControlService = inject(ISignBoxControlService);
+  public langService = inject(LanguageService);
+
+  get isAr() {
+    return this.langService.current === 'ar';
+  }
 
   readonly status = this.signalr.status;
   readonly lastError = this.signalr.lastError;
@@ -49,7 +55,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   hasPreviousPage = false;
   hasNextPage = false;
 
-  // بيانات الجدول
   signBoxEntity: Pagination<GetAllSignControlBox> = {
     value: {
       data: [],
@@ -68,6 +73,11 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   // ===== Active Filter =====
   activeFilter: 'ALL' | 'ACTIVE' | 'INACTIVE' = 'ALL';
   showActiveFilter = false;
+  get activeFilterLabel(): string {
+    if (this.activeFilter === 'ALL') return this.isAr ? 'الكل' : 'All';
+    if (this.activeFilter === 'ACTIVE') return this.isAr ? 'نشِط فقط' : 'Active Only';
+    return this.isAr ? 'غير نشِط فقط' : 'Inactive Only';
+  }
 
   // ===== Popup state =====
   popupVisible = false;
@@ -81,7 +91,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
-        console.log(message);
         if (!message) return;
         const id = message.ID;
 
@@ -95,10 +104,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
           ...cur,
           value: {
             ...cur.value,
-            data: cur.value.data.map((x) => ({
-              ...x,
-              active: x.id === id,
-            })),
+            data: cur.value.data.map((x) => ({ ...x, active: x.id === id })),
           },
         };
 
@@ -127,9 +133,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
                 typeof this.signalr.status === 'function'
                   ? (this.signalr.status() as any)
                   : (this.signalr.status as any);
-              if (current === 'disconnected') {
-                this.isDisconnected = true;
-              }
+              if (current === 'disconnected') this.isDisconnected = true;
             } catch {
               this.isDisconnected = true;
             }
@@ -163,7 +167,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     this.loadData();
   }
 
-  // ===== Active Filter logic =====
   setActiveFilter(filter: 'ALL' | 'ACTIVE' | 'INACTIVE') {
     this.activeFilter = filter;
     this.showActiveFilter = false;
