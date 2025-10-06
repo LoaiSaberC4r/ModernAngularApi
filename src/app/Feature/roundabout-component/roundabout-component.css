@@ -224,3 +224,13 @@
   position: absolute;
   right: 270px;
 }
+.rtl {
+  direction: rtl;
+  text-align: right;
+}
+.rtl .mat-stepper-horizontal .mat-horizontal-stepper-header-container {
+  direction: rtl;
+}
+.rtl .mat-form-field-infix input[dir='ltr'] {
+  text-align: left;
+}

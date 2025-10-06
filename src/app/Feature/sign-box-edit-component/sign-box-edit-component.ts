@@ -24,6 +24,7 @@ import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
 
 import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox';
 import { SignDirection } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
+import { LanguageService } from '../../Services/Language/language-service';
 
 type DirectionView = {
   name: string;
@@ -50,7 +51,10 @@ export class SignBoxEditComponent implements OnInit {
   private lpService = inject(LightPatternService);
   private readonly areaService = inject(IAreaService);
   private readonly governateService = inject(IGovernateService);
-
+  public langService = inject(LanguageService);
+  get isAr() {
+    return this.langService.current === 'ar';
+  }
   governates: GetAllGovernate[] = [];
   areas: GetAllArea[] = [];
 

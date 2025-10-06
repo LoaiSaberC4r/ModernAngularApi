@@ -1,6 +1,8 @@
-<div class="container-fluid">
+<div class="container-fluid" [class.rtl]="isAr">
   <div class="header">
-    <h1 class="title">Traffic Signal Management</h1>
+    <h1 class="title">
+      {{ isAr ? 'إدارة إشارات المرور' : 'Traffic Signal Management' }}
+    </h1>
 
     <div class="search-container">
       <div class="search-box">
@@ -8,29 +10,30 @@
         <input
           type="text"
           class="search-input"
-          placeholder="Search by name or ID..."
+          [placeholder]="isAr ? 'ابحث بالاسم أو المعرّف...' : 'Search by name or ID...'"
           [(ngModel)]="searchParameter.searchText"
           (ngModelChange)="onSearchEnter()"
+          [attr.dir]="isAr ? 'rtl' : 'ltr'"
         />
       </div>
 
       <div class="filter-dropdown active-filter-dropdown">
         <button class="filter-button" (click)="showActiveFilter = !showActiveFilter">
           <i class="fas fa-power-off"></i>
-          {{ activeFilter }}
+          {{ activeFilterLabel }}
           <i class="fas fa-chevron-down"></i>
         </button>
         <div class="filter-menu" [class.show]="showActiveFilter">
           <div class="filter-option" (click)="setActiveFilter('ALL')">
-            <span>All</span>
+            <span>{{ isAr ? 'الكل' : 'All' }}</span>
             <span class="checkmark">{{ activeFilter === 'ALL' ? '✓' : '' }}</span>
           </div>
           <div class="filter-option" (click)="setActiveFilter('ACTIVE')">
-            <span>Active Only</span>
+            <span>{{ isAr ? 'نشِط فقط' : 'Active Only' }}</span>
             <span class="checkmark">{{ activeFilter === 'ACTIVE' ? '✓' : '' }}</span>
           </div>
           <div class="filter-option" (click)="setActiveFilter('INACTIVE')">
-            <span>Inactive Only</span>
+            <span>{{ isAr ? 'غير نشِط فقط' : 'Inactive Only' }}</span>
             <span class="checkmark">{{ activeFilter === 'INACTIVE' ? '✓' : '' }}</span>
           </div>
         </div>
@@ -43,29 +46,31 @@
     <table class="traffic-table">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>IP Address</th>
-          <th>Name</th>
-          <th class="actions-col">Actions</th>
+          <th>{{ isAr ? 'المعرّف' : 'ID' }}</th>
+          <th>{{ isAr ? 'عنوان IP' : 'IP Address' }}</th>
+          <th>{{ isAr ? 'الاسم' : 'Name' }}</th>
+          <th class="actions-col">{{ isAr ? 'إجراءات' : 'Actions' }}</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let item of filteredData">
           <td>{{ item.id }}</td>
-          <td>{{ item.ipAddress }}</td>
+          <td dir="ltr">{{ item.ipAddress }}</td>
           <td>{{ item.name }}</td>
           <td class="actions-cell">
             <!-- <button class="btn btn--apply" (click)="applyPattern(item)">
-              <i class="fas fa-check"></i> Apply
+              <i class="fas fa-check"></i> {{ isAr ? 'تطبيق' : 'Apply' }}
             </button> -->
             <button class="btn btn--edit" (click)="onEdit(item)">
-              <i class="fas fa-edit"></i>Edit & Apply
+              <i class="fas fa-edit"></i>{{ isAr ? 'تعديل و تطبيق' : 'Edit & Apply' }}
             </button>
           </td>
         </tr>
 
         <tr *ngIf="filteredData.length === 0">
-          <td colspan="4" class="no-results">No traffic signals found</td>
+          <td colspan="4" class="no-results">
+            {{ isAr ? 'لا توجد إشارات مطابقة' : 'No traffic signals found' }}
+          </td>
         </tr>
       </tbody>
     </table>
