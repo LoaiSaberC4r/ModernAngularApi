@@ -57,6 +57,19 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
       latitude: ['', Validators.required],
       longitude: ['', Validators.required],
       ipAddress: ['', Validators.required],
+
+      // NEW: fields required by the DTO
+      id: [
+        null,
+        [
+          Validators.required,
+          Validators.min(1),
+          Validators.max(40_000_000),
+          Validators.pattern(/^[1-9]\d*$/),
+        ],
+      ],
+      ipCabinet: [null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+$/)]],
+
       template: ['0'],
       greenTime: [0],
       amberTime: [0],
@@ -156,18 +169,29 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
       return;
     }
 
-    const raw = this.trafficForm.getRawValue();
+    const raw = this.trafficForm.getRawValue() as {
+      id: number | string | null;
+      ipCabinet: number | string | null;
+      name: string;
+      latitude: string | number;
+      longitude: string | number;
+      area: string | number | null;
+      ipAddress: string;
+    };
+
     const payload: AddSignBoxWithUpdateLightPattern = {
-      name: raw.name,
-      latitude: String(raw.latitude),
-      longitude: String(raw.longitude),
+      id: Number(raw.id),
+      name: (raw.name ?? '').trim(),
+      latitude: String(raw.latitude ?? ''),
+      longitude: String(raw.longitude ?? ''),
       areaId: Number(raw.area),
-      ipAddress: raw.ipAddress,
+      ipAddress: (raw.ipAddress ?? '').trim(),
+      ipCabinet: Number(raw.ipCabinet),
       directions: [
         {
           name: this.isAr ? 'اتجاه 1' : 'Direction 1',
           order: 1,
-          lightPatternId: this.selectedLightPatternId,
+          lightPatternId: this.selectedLightPatternId!,
         },
       ],
     };

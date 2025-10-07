@@ -359,7 +359,7 @@
             </select>
           </div>
 
-          <!-- Timing Configuration -->
+          <!-- Timing Configuration + Blink -->
           <div class="form-section">
             <label class="section-label">
               <svg
@@ -376,68 +376,131 @@
               {{ tr('lightDurations') }}
             </label>
 
-            <div class="lights-config">
-              <!-- Green Light -->
-              <div class="light-row green-light">
-                <div class="light-visual">
-                  <img src="assets/img/g.png" alt="green" height="40" />
-                  <span class="light-label">{{ tr('green') }}</span>
-                </div>
-                <div class="light-input-wrapper">
-                  <input
-                    type="number"
-                    class="light-input"
-                    formControlName="green"
-                    min="0"
-                    max="1000"
-                    step="1"
-                    dir="ltr"
-                    [attr.aria-label]="tr('greenSec')"
-                  />
-                  <span class="light-unit">{{ tr('sec') }}</span>
-                </div>
+            <!-- Green Light -->
+            <div class="light-row green-light">
+              <div
+                class="light-visual"
+                [class.blink]="patternForm.value.blinkGreen"
+                [style.--blinkMs.ms]="patternForm.value.blinkMs || 500"
+              >
+                <img src="assets/img/g.png" alt="green" height="40" />
+                <span class="light-label">{{ tr('green') }}</span>
               </div>
-
-              <!-- Yellow Light -->
-              <div class="light-row yellow-light">
-                <div class="light-visual">
-                  <img src="assets/img/a.png" alt="yellow" height="40" />
-                  <span class="light-label">{{ tr('yellow') }}</span>
-                </div>
-                <div class="light-input-wrapper">
-                  <input
-                    type="number"
-                    class="light-input"
-                    formControlName="yellow"
-                    min="0"
-                    max="1000"
-                    step="1"
-                    dir="ltr"
-                    [attr.aria-label]="tr('yellowSec')"
-                  />
-                  <span class="light-unit">{{ tr('sec') }}</span>
-                </div>
+              <div class="light-input-wrapper">
+                <input
+                  type="number"
+                  class="light-input"
+                  formControlName="green"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  dir="ltr"
+                  [attr.aria-label]="tr('greenSec')"
+                />
+                <span class="light-unit">{{ tr('sec') }}</span>
               </div>
+              <label class="blink-toggle">
+                <input type="checkbox" formControlName="blinkGreen" />
+                <span>{{ isAr ? 'وميض' : 'Blink' }}</span>
+              </label>
+            </div>
 
-              <!-- Red Light -->
-              <div class="light-row red-light">
-                <div class="light-visual">
-                  <img src="assets/img/r.png" alt="red" height="40" />
-                  <span class="light-label">{{ tr('red') }}</span>
-                </div>
-                <div class="light-input-wrapper">
-                  <input
-                    type="number"
-                    class="light-input"
-                    formControlName="red"
-                    min="0"
-                    max="1000"
-                    step="1"
-                    dir="ltr"
-                    [attr.aria-label]="tr('redSec')"
-                  />
-                  <span class="light-unit">{{ tr('sec') }}</span>
-                </div>
+            <!-- Yellow Light -->
+            <div class="light-row yellow-light">
+              <div
+                class="light-visual"
+                [class.blink]="patternForm.value.blinkYellow"
+                [style.--blinkMs.ms]="patternForm.value.blinkMs || 500"
+              >
+                <img src="assets/img/a.png" alt="yellow" height="40" />
+                <span class="light-label">{{ tr('yellow') }}</span>
+              </div>
+              <div class="light-input-wrapper">
+                <input
+                  type="number"
+                  class="light-input"
+                  formControlName="yellow"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  dir="ltr"
+                  [attr.aria-label]="tr('yellowSec')"
+                />
+                <span class="light-unit">{{ tr('sec') }}</span>
+              </div>
+              <label class="blink-toggle">
+                <input type="checkbox" formControlName="blinkYellow" />
+                <span>{{ isAr ? 'وميض' : 'Blink' }}</span>
+              </label>
+            </div>
+
+            <!-- Red Light -->
+            <div class="light-row red-light">
+              <div
+                class="light-visual"
+                [class.blink]="patternForm.value.blinkRed"
+                [style.--blinkMs.ms]="patternForm.value.blinkMs || 500"
+              >
+                <img src="assets/img/r.png" alt="red" height="40" />
+                <span class="light-label">{{ tr('red') }}</span>
+              </div>
+              <div class="light-input-wrapper">
+                <input
+                  type="number"
+                  class="light-input"
+                  formControlName="red"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  dir="ltr"
+                  [attr.aria-label]="tr('redSec')"
+                />
+                <span class="light-unit">{{ tr('sec') }}</span>
+              </div>
+              <label class="blink-toggle">
+                <input type="checkbox" formControlName="blinkRed" />
+                <span>{{ isAr ? 'وميض' : 'Blink' }}</span>
+              </label>
+            </div>
+
+            <!-- Blink interval (ms) -->
+            <div class="form-section" style="margin-top: 0.5rem">
+              <label for="blinkMs" class="section-label">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M12 6v6l4 2" />
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+                {{ isAr ? 'زمن الوميض (مللي ثانية)' : 'Blink interval (ms)' }}
+              </label>
+              <div style="display: flex; align-items: center; gap: 0.75rem">
+                <input
+                  id="blinkMs"
+                  type="number"
+                  class="form-control-modern"
+                  formControlName="blinkMs"
+                  min="50"
+                  max="10000"
+                  step="10"
+                  dir="ltr"
+                  style="max-width: 180px"
+                  [placeholder]="isAr ? 'مثال: 500' : 'e.g. 500'"
+                />
+                <small class="text-muted">
+                  {{ isAr ? 'المدى المقترح 50–10000 مللي ثانية' : 'Suggested range 50–10000 ms' }}
+                </small>
+              </div>
+              <div
+                class="error-message"
+                *ngIf="patternForm.get('blinkMs')?.invalid && patternForm.get('blinkMs')?.touched"
+              >
+                {{ isAr ? 'قيمة غير صالحة.' : 'Invalid value.' }}
               </div>
             </div>
           </div>

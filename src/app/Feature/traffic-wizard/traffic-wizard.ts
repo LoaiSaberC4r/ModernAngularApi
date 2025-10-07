@@ -43,6 +43,9 @@ type RoundDirection = {
   right: boolean;
 };
 
+// Simple IPv4 regex
+const IPV4_REGEX = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
+
 @Component({
   selector: 'app-traffic-wizard',
   standalone: true,
@@ -96,7 +99,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
   private toastSeq = 0;
   private toastTimers = new Map<number, any>();
 
-  // === مزامنة أنماط الإشارة بين الأزواج (i -> j) ===
+  // sync light patterns across conflicts
   private patternSyncSubs = new Map<string, Subscription>();
 
   constructor() {
@@ -107,11 +110,33 @@ export class TrafficWizard implements OnInit, OnDestroy {
 
       // Step 2
       name: ['', Validators.required],
-      ipAddress: ['', Validators.required],
+
+      id: [
+        null,
+        [
+          Validators.required,
+          Validators.min(1),
+          Validators.max(40_000_000),
+          Validators.pattern(/^[1-9]\d*$/),
+        ],
+      ],
+
+      ipAddress: ['', [Validators.required, Validators.pattern(IPV4_REGEX)]],
+
+      ipCabinet: [
+        null,
+        [
+          Validators.required,
+          Validators.min(0),
+          Validators.pattern(
+            /^(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}$/
+          ),
+        ],
+      ],
+
       latitude: ['', Validators.required],
       longitude: ['', Validators.required],
 
-      // Directions
       directions: this.fb.array([this.buildDirectionGroup(1)]),
     });
   }
@@ -119,11 +144,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadGovernate();
     this.loadLightPattern();
-    // أي تغيير بنيوي: راجع التقاطعات
-    this.directions.valueChanges.subscribe(() => {
-      // ملاحظة: valueChanges لا يشمل القيم المعطلة، لكننا سنستخدم getRawValue عند الإرسال
-      this.reconcileConflicts();
-    });
+    this.directions.valueChanges.subscribe(() => this.reconcileConflicts());
   }
 
   ngOnDestroy(): void {
@@ -185,22 +206,17 @@ export class TrafficWizard implements OnInit, OnDestroy {
   removeDirection(index: number) {
     if (this.directions.length <= 1) return;
 
-    // قبل الحذف: حرر أي تقاطعات مرتبطة بهذا الاتجاه
-    const removed = this.getDir(index);
-    // ابحث عن أي اتجاه يعتبر هذا الاتجاه شريكه (conflictWith = index)
     for (let i = 0; i < this.directions.length; i++) {
       if (i === index) continue;
       const g = this.getDir(i);
       const cw = g.get('conflictWith')?.value as number | null;
       if (cw === index) {
-        // فك الربط
         g.get('conflictWith')?.setValue(null, { emitEvent: false });
       }
     }
 
     this.directions.removeAt(index);
 
-    // عدل الـ indexes المخزنة بعد الحذف (لأن المؤشرات تغيرت)
     for (let i = 0; i < this.directions.length; i++) {
       const g = this.getDir(i);
       const cw = g.get('conflictWith')?.value as number | null;
@@ -219,13 +235,8 @@ export class TrafficWizard implements OnInit, OnDestroy {
     );
   }
 
-  // ======= Pattern changed hook (optional) =======
-  onPatternChanged(_item: any, _lightPatternId: number) {
-    // اختياري: عند تغيير نمط، سيتم أيضًا المزامنة عبر reconcileConflicts
-    // لدينا مزامنة مباشرة عبر الاشتراكات كذلك.
-  }
+  onPatternChanged(_item: any, _lightPatternId: number) {}
 
-  // ======= Helpers =======
   getGovernorateName(id: number | null): string {
     if (!id) return '';
     return this.governates.find((g) => g.id === id)?.name ?? '';
@@ -244,9 +255,8 @@ export class TrafficWizard implements OnInit, OnDestroy {
   private prettifyField(name: string): string {
     if (!name) return '';
     const lower = name.toLowerCase();
-    if (lower === 'ipaddress' || lower === 'ip_address' || lower === 'ip') {
-      return 'IP Address';
-    }
+    if (lower === 'ipaddress' || lower === 'ip_address' || lower === 'ip') return 'IP Address';
+    if (lower === 'ipcabinet' || lower === 'ip_cabinet') return 'IP Cabinet';
     return name
       .replace(/_/g, ' ')
       .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -289,7 +299,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
       g.get('name')?.setValue(name);
       g.get('order')?.setValue(order, { emitEvent: false });
       const lp: number | null = typeof u?.lightPatternId === 'number' ? u.lightPatternId : null;
-      // lightPatternId قد يكون disabled على البعض، فاستعمل enable/disable مؤقتًا لو لزم
       const ctrl = g.get('lightPatternId');
       const wasDisabled = ctrl?.disabled;
       if (wasDisabled) ctrl?.enable({ emitEvent: false });
@@ -301,52 +310,36 @@ export class TrafficWizard implements OnInit, OnDestroy {
     this.reconcileConflicts();
   }
 
-  // ====== Intersection selection ======
   onConflictSelected(currentIndex: number, selectedIndex: number | null) {
     const current = this.getDir(currentIndex);
     const oldIndex = current.get('conflictWith')?.value as number | null;
 
-    // لو كان عنده رابط سابق، فكّه أولاً
     if (oldIndex != null && this.existsDir(oldIndex)) {
       this.releaseConflict(oldIndex);
     }
 
-    // لو اختار فارغ => فك أي ربط
-    if (selectedIndex == null) {
+    if (selectedIndex == null || selectedIndex === currentIndex) {
       current.get('conflictWith')?.setValue(null, { emitEvent: false });
       this.reconcileConflicts();
       return;
     }
 
-    if (selectedIndex === currentIndex) {
-      // حماية من اختيار الذات
-      current.get('conflictWith')?.setValue(null, { emitEvent: false });
-      this.reconcileConflicts();
-      return;
-    }
-
-    // اربط الجديد
     current.get('conflictWith')?.setValue(selectedIndex, { emitEvent: false });
     this.reconcileConflicts();
   }
 
-  // ====== Conflict reconciliation & syncing ======
   private getDir(i: number): FormGroup {
     return this.directions.at(i) as FormGroup;
   }
-
   private existsDir(i: number): boolean {
     return i >= 0 && i < this.directions.length;
   }
-
   private enablePattern(ctrl: AbstractControl | null) {
     if (ctrl && ctrl.disabled) ctrl.enable({ emitEvent: false });
   }
-
   private disablePattern(ctrl: AbstractControl | null) {
     if (ctrl && ctrl.enabled) ctrl.disable({ emitEvent: false });
   }
-
   private copyPattern(src: FormGroup, dst: FormGroup) {
     const srcCtrl = src.get('lightPatternId');
     const dstCtrl = dst.get('lightPatternId');
@@ -355,44 +348,34 @@ export class TrafficWizard implements OnInit, OnDestroy {
     dstCtrl?.setValue(srcCtrl?.value ?? null, { emitEvent: false });
     if (wasDisabled) dstCtrl?.disable({ emitEvent: false });
   }
-
   private key(i: number, j: number) {
     return `${i}->${j}`;
   }
-
   private clearAllPatternSyncSubs() {
     this.patternSyncSubs.forEach((s) => s.unsubscribe());
     this.patternSyncSubs.clear();
   }
 
   private reconcileConflicts() {
-    // 1) إلغاء الاشتراكات القديمة مؤقتًا (سنعيد البناء)
     this.clearAllPatternSyncSubs();
 
-    // 2) أعد ضبط الجميع كـ "بدون تعارض"
     for (let i = 0; i < this.directions.length; i++) {
       const g = this.getDir(i);
       g.get('isConflict')?.setValue(false, { emitEvent: false });
-      // اسمح بتعديل النمط افتراضيًا
       this.enablePattern(g.get('lightPatternId'));
     }
 
-    // 3) طبق العلاقات الحالية (i -> j)
-    const usedAsConflict = new Set<number>(); // من اُختير كـ conflict
-
+    const usedAsConflict = new Set<number>();
     for (let i = 0; i < this.directions.length; i++) {
       const g = this.getDir(i);
       const j = g.get('conflictWith')?.value as number | null;
 
       if (j == null || !this.existsDir(j) || j === i) {
-        // علاقة غير صالحة: تجاهلها
         g.get('conflictWith')?.setValue(null, { emitEvent: false });
         continue;
       }
 
-      // منع استخدام نفس الاتجاه كـ conflict لأكثر من واحد (اختياريًا)
       if (usedAsConflict.has(j)) {
-        // كان مستخدمًا بالفعل: تجاهل هذا الربط
         g.get('conflictWith')?.setValue(null, { emitEvent: false });
         continue;
       }
@@ -402,14 +385,11 @@ export class TrafficWizard implements OnInit, OnDestroy {
       const primary = g;
       const conflict = this.getDir(j);
 
-      // انسخ النمط من الأساسي إلى المتقاطع
       this.copyPattern(primary, conflict);
 
-      // عيّن فلاغ التعارض وعطّل اختيار النمط على المتقاطع
       conflict.get('isConflict')?.setValue(true, { emitEvent: false });
       this.disablePattern(conflict.get('lightPatternId'));
 
-      // أنشئ اشتراك مزامنة: لو تغير نمط الأساسي، انسخه للمتقاطع
       const sub = primary.get('lightPatternId')?.valueChanges.subscribe((val) => {
         const cCtrl = conflict.get('lightPatternId');
         const wasDisabled = cCtrl?.disabled;
@@ -426,10 +406,8 @@ export class TrafficWizard implements OnInit, OnDestroy {
     const conflict = this.getDir(conflictIndex);
     conflict.get('isConflict')?.setValue(false, { emitEvent: false });
     this.enablePattern(conflict.get('lightPatternId'));
-    // إزالة أي اشتراكات قديمة ستتم عبر reconcileConflicts()
   }
 
-  // ===== Submit =====
   onApply(): void {
     if (this.trafficForm.invalid) {
       this.trafficForm.markAllAsTouched();
@@ -440,7 +418,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
       return;
     }
 
-    const v = this.trafficForm.getRawValue(); // ⬅️ مهم: يتضمن القيم المعطلة مثل lightPatternId على المتقاطع
+    const v = this.trafficForm.getRawValue();
     const areaId = Number(v.area);
     if (areaId <= 0) {
       this.showPopup(
@@ -450,10 +428,12 @@ export class TrafficWizard implements OnInit, OnDestroy {
       return;
     }
 
-    const payload: AddSignBoxWithUpdateLightPattern = {
+    const payload = {
+      id: Number(v.id),
       name: (v.name || '').trim(),
       areaId: areaId,
       ipAddress: (v.ipAddress || '').trim(),
+      ipCabinet: (v.ipCabinet ?? '').trim(),
       latitude: String(v.latitude),
       longitude: String(v.longitude),
       directions: (v.directions as any[]).map((d: any) => ({
@@ -462,14 +442,14 @@ export class TrafficWizard implements OnInit, OnDestroy {
         lightPatternId: d.lightPatternId,
         left: !!d.left,
         right: !!d.right,
-        isConflict: !!d.isConflict, // ⬅️ يُرسل للباك إند
+        isConflict: !!d.isConflict,
       })),
-    };
+    } as AddSignBoxWithUpdateLightPattern;
 
-    this.signBoxService.AddSignBox(payload).subscribe({
+    // ✅ استدعاء الإضافة عبر AddWithUpdateLightPattern (وليس AddSignBox)
+    this.signBoxService.AddWithUpdateLightPattern(payload).subscribe({
       next: () => {
         this.showPopup(this.isAr ? '✅ تم الحفظ بنجاح' : '✅ Saved successfully!', 'success');
-        // إعادة ضبط النموذج
         this.trafficForm.reset();
         this.clearAllPatternSyncSubs();
         this.directions.clear();
@@ -477,31 +457,11 @@ export class TrafficWizard implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('❌ Save failed', err);
-        if (err?.error?.errorMessages?.length) {
-          const ipTyped = this.trafficForm?.getRawValue()?.ipAddress ?? '';
-          const messages = err.error.errorMessages
-            .map((m: string, i: number) => {
-              const rawProp: string = err.error.propertyNames?.[i] || '';
-              const prop = this.prettifyField(rawProp);
-              let text = m.replace(
-                /ip\s*address|ipaddress/gi,
-                this.isAr ? 'عنوان IP' : 'IP Address'
-              );
-              if (prop) text += this.isAr ? `: ${prop}` : `: ${prop}`;
-              const isIpError = rawProp.toLowerCase() === 'ipaddress' || /ip\s*address/i.test(m);
-              if (isIpError && ipTyped) text += `: ${ipTyped}`;
-              return text;
-            })
-            .join('\n');
-          this.showPopup((this.isAr ? '⚠️ ' : '⚠️ ') + messages, 'warn');
-        } else {
-          this.showPopup(this.isAr ? '❌ حدث خطأ أثناء الحفظ' : '❌ Error while saving', 'error');
-        }
+        this.showPopup(this.isAr ? '❌ حدث خطأ أثناء الحفظ' : '❌ Error while saving', 'error');
       },
     });
   }
 
-  // ===== Template-driven popup API =====
   private showPopup(message: string, type: 'success' | 'error' | 'warn') {
     const id = ++this.toastSeq;
     this.toasts = [...this.toasts, { id, message, type, active: false }];
@@ -524,41 +484,30 @@ export class TrafficWizard implements OnInit, OnDestroy {
     setTimeout(() => {
       this.toasts = this.toasts.filter((t) => t.id !== id);
     }, 500);
-  } // يعيد الـ FormGroup للاتجاه
+  }
+
   private dirAt(i: number): FormGroup {
     return this.directions.at(i) as FormGroup;
   }
-
-  // يعيد قيمة lightPatternId حتى لو الـ control معطّل
   getRawPatternId(i: number): number | null {
     const raw = this.dirAt(i).getRawValue();
     return (raw?.lightPatternId ?? null) as number | null;
   }
-
-  // هل هذا الاتجاه متقاطع (isConflict = true)؟
   isConflict(i: number): boolean {
     return this.dirAt(i).get('isConflict')?.value === true;
   }
-
-  // هل الـ pattern لهذا الاتجاه مقفول (معطّل)؟
   isPatternLocked(i: number): boolean {
     return this.dirAt(i).get('lightPatternId')?.disabled === true;
   }
-
-  // اسم الاتجاه للعرض (fallback لاسم افتراضي)
   getDirectionDisplayName(i: number): string {
     const g = this.dirAt(i);
     const name = (g.get('name')?.value || '').toString().trim();
     if (name) return name;
     return this.isAr ? `اتجاه ${i + 1}` : `Direction ${i + 1}`;
   }
-
-  // رقم المسار (order)
   getDirectionOrder(i: number): number {
     return Number(this.dirAt(i).get('order')?.value ?? i + 1);
   }
-
-  // جِب فهرس الاتجاه المتقاطع معه (إن وُجد)
   getConflictWithIndex(i: number): number | null {
     const val = this.dirAt(i).get('conflictWith')?.value;
     return val === 0 || val ? Number(val) : null;

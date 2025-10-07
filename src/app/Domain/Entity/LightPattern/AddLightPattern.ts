@@ -1,7 +1,8 @@
 export interface AddLightPatternCommand {
-  id: number;          
+  id: number;
   name: string;
-  redTime: number;
-  yellowTime: number;
   greenTime: number;
+  yellowTime: number;
+  redTime: number;
+  blinkMs: number;
 }

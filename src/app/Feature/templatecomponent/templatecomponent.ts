@@ -145,12 +145,22 @@ export class Templatecomponent implements OnInit {
     rows: this.fb.array<FormGroup>([]),
   });
 
+  // Pattern editor form (right pane)
   patternForm: FormGroup = this.fb.group({
     name: ['', Validators.required],
     selectedPattern: [null as GetAllLightPattern | null],
+
     green: [0, [Validators.required, Validators.min(0)]],
     yellow: [0, [Validators.required, Validators.min(0)]],
     red: [0, [Validators.required, Validators.min(0)]],
+
+    // Blink flags (UI preview only)
+    blinkGreen: [false],
+    blinkYellow: [false],
+    blinkRed: [false],
+
+    // NEW: Blink interval (ms)
+    blinkMs: [500, [Validators.required, Validators.min(50), Validators.max(10000)]],
   });
 
   get rows(): FormArray<FormGroup> {
@@ -168,12 +178,30 @@ export class Templatecomponent implements OnInit {
       .valueChanges.subscribe((p: GetAllLightPattern | null) => {
         if (p) {
           this.patternForm.patchValue(
-            { name: p.name, green: p.green, yellow: p.yellow, red: p.red },
+            {
+              name: p.name,
+              green: p.green,
+              yellow: p.yellow,
+              red: p.red,
+              blinkMs: typeof (p as any).blinkMs === 'number' ? (p as any).blinkMs : 500,
+              blinkGreen: false,
+              blinkYellow: false,
+              blinkRed: false,
+            },
             { emitEvent: false }
           );
         } else {
           this.patternForm.patchValue(
-            { name: '', green: 0, yellow: 0, red: 0 },
+            {
+              name: '',
+              green: 0,
+              yellow: 0,
+              red: 0,
+              blinkMs: 500,
+              blinkGreen: false,
+              blinkYellow: false,
+              blinkRed: false,
+            },
             { emitEvent: false }
           );
         }
@@ -189,7 +217,12 @@ export class Templatecomponent implements OnInit {
 
   private loadLightPatterns() {
     this.lightPatternService.getAll().subscribe((resp) => {
-      this.lightPatterns = resp?.value ?? [];
+      // لو الـ API القديم لا يرجع blinkMs، نضبط قيمة افتراضية
+      const list = (resp?.value ?? []).map((p: any) => ({
+        ...p,
+        blinkMs: typeof p.blinkMs === 'number' ? p.blinkMs : 500,
+      }));
+      this.lightPatterns = list;
     });
   }
 
@@ -330,6 +363,10 @@ export class Templatecomponent implements OnInit {
         red: selected.red,
         green: selected.green,
         yellow: selected.yellow,
+        blinkMs: typeof (selected as any).blinkMs === 'number' ? (selected as any).blinkMs : 500,
+        blinkGreen: false,
+        blinkYellow: false,
+        blinkRed: false,
       });
     }
   }
@@ -347,6 +384,7 @@ export class Templatecomponent implements OnInit {
       greenTime: Number(raw.green) || 0,
       yellowTime: Number(raw.yellow) || 0,
       redTime: Number(raw.red) || 0,
+      blinkMs: Number(raw.blinkMs) || 500, // NEW
     };
 
     this.lightPatternService.add(payload).subscribe((resp) => {
@@ -359,6 +397,10 @@ export class Templatecomponent implements OnInit {
           green: 0,
           yellow: 0,
           red: 0,
+          blinkMs: 500,
+          blinkGreen: false,
+          blinkYellow: false,
+          blinkRed: false,
         });
         this.loadLightPatterns();
       } else {
@@ -384,6 +426,10 @@ export class Templatecomponent implements OnInit {
           green: 0,
           yellow: 0,
           red: 0,
+          blinkMs: 500,
+          blinkGreen: false,
+          blinkYellow: false,
+          blinkRed: false,
         });
         this.loadLightPatterns();
       } else {
@@ -408,5 +454,5 @@ export class Templatecomponent implements OnInit {
   // expose translator in template
   trPublic(key: keyof (typeof this.dict)['en']) {
     return this.tr(key);
-  } // (optional if needed)
+  }
 }

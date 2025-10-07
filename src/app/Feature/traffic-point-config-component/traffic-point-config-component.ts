@@ -36,7 +36,21 @@ export class TrafficPointConfigComponent implements OnInit {
       latitude: ['', [Validators.required]],
       longitude: ['', [Validators.required]],
       ipAddress: ['', [Validators.required]],
+
       pattern: [],
+
+      id: [
+        null,
+        [
+          Validators.required,
+          Validators.min(1),
+          Validators.max(42_944_696),
+
+          Validators.pattern(/^[1-9]\d*$/),
+        ],
+      ],
+      ipCabinet: [null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+$/)]],
+
       green: 0,
       yellow: 0,
       red: [{ value: 0, disabled: true }],
@@ -45,6 +59,7 @@ export class TrafficPointConfigComponent implements OnInit {
       blinkRed: [{ value: false, disabled: true }],
       blinkMs: [500],
     });
+
     this.trafficForm.get('green')?.valueChanges.subscribe(() => this.updateRedTime());
     this.trafficForm.get('yellow')?.valueChanges.subscribe(() => this.updateRedTime());
 
@@ -115,43 +130,38 @@ export class TrafficPointConfigComponent implements OnInit {
   }
 
   onApply(): void {
-    // لو في أي validator، أظهره للمستخدم وامنع الإرسال
     if (this.trafficForm.invalid) {
       this.trafficForm.markAllAsTouched();
       return;
     }
 
-    const clampByte = (n: unknown) => Math.max(0, Math.min(255, Number(n) || 0));
-
-    const v = this.trafficForm.value as {
-      name: string;
-      latitude: number | string;
-      longitude: number | string;
-      ipAddress: string;
-      area: number | string | null;
-      pattern: GetAllLightPattern | null;
-      red: number | string;
-      yellow: number | string;
-      green: number | string;
-    };
+    const id = Number(this.trafficForm.get('id')?.value);
+    const ipCabinet = Number(this.trafficForm.get('ipCabinet')?.value);
+    const name = (this.trafficForm.get('name')?.value ?? '').trim();
+    const ipAddress = (this.trafficForm.get('ipAddress')?.value ?? '').trim();
+    const latitude = String(this.trafficForm.get('latitude')?.value ?? '');
+    const longitude = String(this.trafficForm.get('longitude')?.value ?? '');
+    const areaId = Number(this.trafficForm.get('area')?.value) || 0;
+    const pattern = this.trafficForm.get('pattern')?.value as GetAllLightPattern | null;
 
     const payload: AddSignBoxWithUpdateLightPattern = {
-      name: (v.name ?? '').trim(),
-      latitude: String(v.latitude ?? ''),
-      longitude: String(v.longitude ?? ''),
-      areaId: Number(v.area) || 0,
-      ipAddress: (v.ipAddress ?? '').trim(),
+      id,
+      name,
+      areaId,
+      ipAddress,
+      ipCabinet,
+      latitude,
+      longitude,
       directions: [
         {
           name: 'Direction 1',
           order: 1,
-          lightPatternId: v.pattern?.id ?? 0,
+          lightPatternId: Number(pattern?.id ?? 0),
         },
       ],
     };
 
     console.log('Apply payload ->', payload);
-
-    this.signBoxControlService.AddWithUpdateLightPattern(payload).subscribe((data) => {});
+    this.signBoxControlService.AddWithUpdateLightPattern(payload).subscribe(() => {});
   }
 }

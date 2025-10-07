@@ -86,6 +86,7 @@
       </mat-step>
 
       <!-- Step 2: Basic Info -->
+      <!-- Step 2: Basic Info -->
       <mat-step [stepControl]="trafficForm">
         <ng-template matStepLabel>{{ isAr ? 'المعلومات الأساسية' : 'Basic Info' }}</ng-template>
 
@@ -101,6 +102,7 @@
             </p>
           </div>
 
+          <!-- Name -->
           <div class="form-row">
             <div class="form-group">
               <mat-form-field appearance="outline" class="full-width">
@@ -117,7 +119,40 @@
             </div>
           </div>
 
+          <!-- ID (1 .. 4 294 967 296) -->
+          <div class="form-row">
+            <div class="form-group">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ isAr ? 'المعرّف (ID)' : 'ID' }}</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="id"
+                  min="1"
+                  max="4294967296"
+                  step="1"
+                  dir="ltr"
+                  [placeholder]="isAr ? 'من 1 إلى 4294967296' : 'From 1 to 4294967296'"
+                />
+                <mat-error *ngIf="trafficForm.get('id')?.hasError('required')">
+                  {{ isAr ? 'المعرّف مطلوب.' : 'ID is required.' }}
+                </mat-error>
+                <mat-error *ngIf="trafficForm.get('id')?.hasError('min')">
+                  {{ isAr ? 'أقل قيمة 1.' : 'Minimum is 1.' }}
+                </mat-error>
+                <mat-error *ngIf="trafficForm.get('id')?.hasError('max')">
+                  {{ isAr ? 'أقصى قيمة 40,000,000.' : 'Maximum is 40,000,000.' }}
+                </mat-error>
+                <mat-error *ngIf="trafficForm.get('id')?.hasError('pattern')">
+                  {{ isAr ? 'يجب أن يكون رقمًا صحيحًا.' : 'Must be an integer.' }}
+                </mat-error>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <!-- IPs row: IP Address + Cabinet No. -->
           <div class="form-row py-3">
+            <!-- IPv4 -->
             <div class="form-group">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ isAr ? 'عنوان IP' : 'IP Address' }}</mat-label>
@@ -130,8 +165,38 @@
                 <mat-error *ngIf="trafficForm.get('ipAddress')?.hasError('required')">
                   {{ isAr ? 'عنوان IP مطلوب.' : 'IP Address is required.' }}
                 </mat-error>
+                <mat-error *ngIf="trafficForm.get('ipAddress')?.hasError('pattern')">
+                  {{ isAr ? 'صيغة IP غير صحيحة.' : 'Invalid IP format.' }}
+                </mat-error>
               </mat-form-field>
             </div>
+
+            <!-- Cabinet IP (integer only) -->
+            <div class="form-group">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ isAr ? 'IP الكبينة' : 'Cabinet IP' }}</mat-label>
+                <input
+                  matInput
+                  type="text"
+                  formControlName="ipCabinet"
+                  dir="ltr"
+                  [placeholder]="isAr ? 'مثال: 192.168.1.5' : 'e.g. 192.168.1.5'"
+                />
+                <mat-hint>{{
+                  isAr
+                    ? 'أدخل عنوان IP صالح مثل 192.168.1.5'
+                    : 'Enter valid IP address (e.g. 192.168.1.5)'
+                }}</mat-hint>
+                <mat-error *ngIf="trafficForm.get('ipCabinet')?.hasError('required')">
+                  {{ isAr ? 'عنوان IP مطلوب.' : 'Cabinet IP is required.' }}
+                </mat-error>
+                <mat-error *ngIf="trafficForm.get('ipCabinet')?.hasError('pattern')">
+                  {{ isAr ? 'صيغة عنوان IP غير صحيحة.' : 'Invalid IP address format.' }}
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <!-- Lat / Lng -->
             <div class="form-group">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ isAr ? 'خط العرض' : 'Latitude' }}</mat-label>
@@ -149,6 +214,7 @@
                 </mat-error>
               </mat-form-field>
             </div>
+
             <div class="form-group">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ isAr ? 'خط الطول' : 'Longitude' }}</mat-label>
@@ -183,7 +249,6 @@
               <div class="direction-number">{{ i + 1 }}</div>
 
               <div class="direction-fields">
-                <!-- Direction Name -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>
                     {{ isAr ? 'اسم الاتجاه ' + (i + 1) : 'Direction ' + (i + 1) + ' Name' }}
@@ -198,7 +263,6 @@
                   </mat-error>
                 </mat-form-field>
 
-                <!-- Light Pattern -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>{{ isAr ? 'نمط الإشارة' : 'Light Pattern' }}</mat-label>
                   <mat-select
@@ -222,7 +286,6 @@
                   </mat-error>
                 </mat-form-field>
 
-                <!-- Lane / Order -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>{{ isAr ? 'المسار' : 'Lane' }}</mat-label>
                   <input matInput type="number" formControlName="order" min="1" />
@@ -237,7 +300,6 @@
                   </mat-error>
                 </mat-form-field>
 
-                <!-- Intersection Choice -->
                 <mat-form-field
                   appearance="outline"
                   class="full-width"
@@ -251,8 +313,6 @@
                     <mat-option [value]="null">
                       {{ isAr ? '-- اختر --' : '-- Select --' }}
                     </mat-option>
-
-                    <!-- اعرض باقي الاتجاهات فقط، وتجنب اختياره لنفسه -->
                     <mat-option
                       *ngFor="let other of directions.controls; let j = index"
                       [value]="j"
@@ -272,7 +332,6 @@
                   </mat-hint>
                 </mat-form-field>
 
-                <!-- مخفيين لربط القيم -->
                 <input type="hidden" formControlName="left" />
                 <input type="hidden" formControlName="right" />
                 <input type="hidden" formControlName="isConflict" />
@@ -376,6 +435,17 @@
                     <strong>{{ isAr ? 'الاسم:' : 'Name:' }}</strong> {{ trafficForm.value.name }}
                   </p>
                   <p>
+                    <strong>{{ isAr ? 'المعرّف:' : 'ID:' }}</strong> {{ trafficForm.value.id }}
+                  </p>
+                  <p>
+                    <strong>{{ isAr ? 'IP رئيسي:' : 'IP Address:' }}</strong>
+                    {{ trafficForm.value.ipAddress }}
+                  </p>
+                  <p>
+                    <strong>{{ isAr ? 'IP للكبينة:' : 'IP Cabinet:' }}</strong>
+                    {{ trafficForm.value.ipCabinet }}
+                  </p>
+                  <p>
                     <strong>{{ isAr ? 'المحافظة:' : 'Governorate:' }}</strong>
                     {{ getGovernorateName(trafficForm.value.governorate) }}
                   </p>
@@ -388,19 +458,16 @@
 
               <mat-divider class="my-2"></mat-divider>
 
-              <!-- Summary: Directions (with conflicts) -->
               <section class="summary-section">
                 <h4>{{ isAr ? 'الاتجاهات' : 'Directions' }}</h4>
 
                 <div *ngIf="directions.controls.length; else noDir">
                   <div class="dir-card" *ngFor="let d of directions.controls; let i = index">
                     <div class="dir-header">
-                      <span class="dir-order">
-                        {{ isAr ? 'المسار: ' : 'Lane: ' }}{{ d.value.order }}
-                      </span>
+                      <span class="dir-order"
+                        >{{ isAr ? 'المسار: ' : 'Lane: ' }}{{ d.value.order }}</span
+                      >
                       <span class="dir-name">{{ getDirectionDisplayName(i) }}</span>
-
-                      <!-- Badge لو الاتجاه متقاطع -->
                       <span *ngIf="isConflict(i)" class="badge badge-conflict">
                         {{ isAr ? 'متقاطع' : 'Conflict' }}
                       </span>
@@ -426,7 +493,6 @@
                       </span>
                     </div>
 
-                    <!-- سطر يوضح التقاطع مع أي اتجاه (لو موجود) -->
                     <div class="dir-conflict-line" *ngIf="getConflictWithIndex(i) !== null">
                       <strong>{{ isAr ? 'متقاطع مع: ' : 'Conflicts with: ' }}</strong>
                       <span class="conflict-target">

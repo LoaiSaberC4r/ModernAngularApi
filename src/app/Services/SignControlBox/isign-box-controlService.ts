@@ -120,28 +120,22 @@ export class ISignBoxControlService {
 
   AddWithUpdateLightPattern(payload: AddSignBoxWithUpdateLightPattern): Observable<Result> {
     return this.http
-      .post<Result>(
-        // لو عايز تستعمل الـ baseUrl بدل الثابت: `${environment.baseUrl}/SignControlBox/ApplySignBox`
-        `${environment.baseUrl}/SignControlBox/AddWithUpdateLightPattern`,
-        payload
-      )
+      .post<Result>(`${environment.baseUrl}/SignControlBox/AddWithUpdateLightPattern`, payload)
       .pipe(
         map((resp) => {
           if (!resp.isSuccess) {
             throw new Error(resp.error?.description ?? 'Unknown error');
           }
-          // نفس النمط: نرجّع الـ Result كما هو بعد التحقق
-          const mapped: Result = resp;
-          alert('Success');
-          return mapped;
+          return resp;
         }),
         catchError((err) => {
-          console.error('Failed to apply sign box', err);
+          console.error('Failed to add-with-update light pattern', err);
           return of({} as Result);
         }),
         shareReplay(1)
       );
   }
+
   AddSignBox(payload: AddSignBoxCommandDto): Observable<Result> {
     const headers = new HttpHeaders({
       'Accept-Language': 'ar',
