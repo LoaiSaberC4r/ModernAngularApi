@@ -21,6 +21,7 @@ import {
   TemplatePattern,
 } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
+import { LanguageService } from '../../Services/Language/language-service';
 
 @Component({
   selector: 'app-templatecomponent',
@@ -35,6 +36,97 @@ export class Templatecomponent implements OnInit {
   private readonly templateService = inject(ITemplateService);
   private readonly templatePatternService = inject(ITemplatePatternService);
   private readonly lightPatternService = inject(LightPatternService);
+  public readonly lang = inject(LanguageService);
+
+  // langs
+  get isAr() {
+    return this.lang.current === 'ar';
+  }
+  private dict = {
+    en: {
+      templateManager: 'Template Manager',
+      configurePatterns: 'Configure traffic light patterns and schedules',
+      templateConfig: 'Template Configuration',
+      selectTemplate: 'Select Template',
+      chooseTemplate: 'Choose a template...',
+      templateName: 'Template Name',
+      templateNamePh: 'Enter a descriptive name',
+      templateNameReq: 'Template name is required',
+      scheduleTimeline: 'Schedule Timeline',
+      lightPattern: 'LightPattern',
+      removeRow: 'Remove row',
+      start: 'Start',
+      end: 'End',
+      noSchedule: 'No schedule entries yet',
+      selectPatternHint: 'Select a pattern below and click "Add to Schedule"',
+      chooseLightPattern: 'Choose a light pattern...',
+      pattern: 'Pattern',
+      addToSchedule: 'Add to Schedule',
+      deleteTemplate: 'Delete Template',
+      saveTemplate: 'Save Template',
+      saving: 'Saving…',
+      lightPatternEditor: 'Light Pattern Editor',
+      patternName: 'Pattern Name',
+      patternNamePh: 'Enter pattern name',
+      patternNameReq: 'Pattern name is required',
+      loadExisting: 'Load Existing Pattern',
+      createNewPattern: 'Create new pattern...',
+      lightDurations: 'Light Durations',
+      green: 'Green',
+      yellow: 'Yellow',
+      red: 'Red',
+      greenSec: 'Green seconds',
+      yellowSec: 'Yellow seconds',
+      redSec: 'Red seconds',
+      sec: 'sec',
+      delete: 'Delete',
+      createPattern: 'Create Pattern',
+    },
+    ar: {
+      templateManager: 'إدارة القوالب',
+      configurePatterns: 'إعداد أنماط إشارات المرور والجداول الزمنية',
+      templateConfig: 'تهيئة القالب',
+      selectTemplate: 'اختر القالب',
+      chooseTemplate: 'اختر قالبًا...',
+      templateName: 'اسم القالب',
+      templateNamePh: 'اكتب اسمًا وصفيًا',
+      templateNameReq: 'اسم القالب مطلوب',
+      scheduleTimeline: 'الخط الزمني للجدول',
+      lightPattern: 'نمط الإشارة',
+      removeRow: 'حذف الصف',
+      start: 'البداية',
+      end: 'النهاية',
+      noSchedule: 'لا توجد إدخالات جدول بعد',
+      selectPatternHint: 'اختر نمطًا بالأسفل ثم اضغط "إضافة إلى الجدول"',
+      chooseLightPattern: 'اختر نمط الإشارة...',
+      pattern: 'النمط',
+      addToSchedule: 'إضافة إلى الجدول',
+      deleteTemplate: 'حذف القالب',
+      saveTemplate: 'حفظ القالب',
+      saving: 'جارٍ الحفظ…',
+      lightPatternEditor: 'محرر نمط الإشارة',
+      patternName: 'اسم النمط',
+      patternNamePh: 'اكتب اسم النمط',
+      patternNameReq: 'اسم النمط مطلوب',
+      loadExisting: 'تحميل نمط موجود',
+      createNewPattern: 'إنشاء نمط جديد...',
+      lightDurations: 'مدد الإشارات',
+      green: 'أخضر',
+      yellow: 'أصفر',
+      red: 'أحمر',
+      greenSec: 'ثواني الأخضر',
+      yellowSec: 'ثواني الأصفر',
+      redSec: 'ثواني الأحمر',
+      sec: 'ث',
+      delete: 'حذف',
+      createPattern: 'إنشاء النمط',
+    },
+  } as const;
+
+  tr(key: keyof (typeof this.dict)['en']): string {
+    const lang = this.isAr ? 'ar' : 'en';
+    return this.dict[lang][key] ?? key;
+  }
 
   // Data
   templates: GetAllTemplate[] = [];
@@ -43,11 +135,9 @@ export class Templatecomponent implements OnInit {
   // UI state
   submitting = false;
 
-  // =========================
-  // Forms (templateId يبدأ بـ 0 دائمًا)
-  // =========================
+  // Forms
   templateForm: FormGroup = this.fb.group({
-    templateId: new FormControl<number>(0, { nonNullable: true }), // 👈 default = 0
+    templateId: new FormControl<number>(0, { nonNullable: true }),
     templateName: new FormControl<string>('', {
       nonNullable: true,
       validators: [Validators.required],
@@ -67,14 +157,12 @@ export class Templatecomponent implements OnInit {
     return this.templateForm.get('rows') as FormArray<FormGroup>;
   }
 
-  // =========================
   // Lifecycle
-  // =========================
   ngOnInit(): void {
     this.loadTemplates();
     this.loadLightPatterns();
 
-    // Auto-fill من الاختيار
+    // sync fields when selecting an existing pattern
     this.patternForm
       .get('selectedPattern')!
       .valueChanges.subscribe((p: GetAllLightPattern | null) => {
@@ -92,9 +180,7 @@ export class Templatecomponent implements OnInit {
       });
   }
 
-  // =========================
   // Loaders
-  // =========================
   private loadTemplates() {
     this.templateService.GetAll().subscribe((resp) => {
       this.templates = resp?.value ?? [];
@@ -107,15 +193,12 @@ export class Templatecomponent implements OnInit {
     });
   }
 
-  // =========================
   // Template selection
-  // =========================
   onTemplateChange(e: Event) {
     const select = e.target as HTMLSelectElement;
-    const id = select.value ? Number(select.value) : 0; // 👈 لو فاضي يبقى 0
+    const id = select.value ? Number(select.value) : 0;
 
     if (!id) {
-      // رجّع 0 بدل null
       this.templateForm.reset({ templateId: 0, templateName: '' });
       this.rows.clear();
       return;
@@ -125,7 +208,6 @@ export class Templatecomponent implements OnInit {
       .GetAllTemplatePatternByTemplateId(id)
       .subscribe((resp: ResultV<LightPatternForTemplatePattern>) => {
         const list = resp?.value ?? [];
-
         const patterns: LightPatternForTemplatePattern[] = list.map((p) => ({
           ...p,
           lightPatternName:
@@ -144,9 +226,7 @@ export class Templatecomponent implements OnInit {
       });
   }
 
-  // =========================
   // Row helpers
-  // =========================
   private createRow(p: LightPatternForTemplatePattern): FormGroup {
     return this.fb.group({
       lightPatternId: new FormControl<number>(p.lightPatternId, { nonNullable: true }),
@@ -167,7 +247,7 @@ export class Templatecomponent implements OnInit {
         lightPatternName: lp?.name || `#${lightPatternId}`,
         startFrom: '00:00',
         finishBy: '00:00',
-      })
+      } as any)
     );
   }
 
@@ -175,9 +255,7 @@ export class Templatecomponent implements OnInit {
     this.rows.removeAt(index);
   }
 
-  // =========================
   // Save / Delete (Templates)
-  // =========================
   saveTemplatePattern() {
     if (!this.templateForm.valid || this.rows.length === 0) {
       this.templateForm.markAllAsTouched();
@@ -199,20 +277,18 @@ export class Templatecomponent implements OnInit {
     this.templatePatternService.AddOrUpdateLightPattern(payload).subscribe((resp) => {
       this.submitting = false;
       if (resp?.isSuccess) {
-        alert('Template saved successfully ✅');
+        alert(this.isAr ? 'تم حفظ القالب بنجاح ✅' : 'Template saved successfully ✅');
 
-        // لو فيه id (حتى لو 0) هنعمل refresh مناسب:
         const currentId = payload.templateId || 0;
         if (currentId > 0) {
           const fakeEvent = { target: { value: String(currentId) } } as unknown as Event;
           this.onTemplateChange(fakeEvent);
         } else {
-          // لو 0 امسح الجدول وخلي الاسم فاضي
           this.templateForm.reset({ templateId: 0, templateName: '' });
           this.rows.clear();
         }
       } else {
-        alert(resp?.error?.description ?? 'Save failed');
+        alert(resp?.error?.description ?? (this.isAr ? 'فشل الحفظ' : 'Save failed'));
       }
     });
   }
@@ -220,28 +296,33 @@ export class Templatecomponent implements OnInit {
   deleteTemplate() {
     const id = (this.templateForm.value.templateId as number) || 0;
     if (id <= 0) {
-      alert('Please select a template to delete.');
+      alert(this.isAr ? 'من فضلك اختر قالبًا للحذف.' : 'Please select a template to delete.');
       return;
     }
-    if (!confirm('Are you sure you want to delete this template?')) return;
+    if (
+      !confirm(
+        this.isAr
+          ? 'هل أنت متأكد من حذف هذا القالب؟'
+          : 'Are you sure you want to delete this template?'
+      )
+    )
+      return;
 
     this.submitting = true;
     this.templatePatternService.deleteTemplate(id).subscribe((resp) => {
       this.submitting = false;
       if (resp?.isSuccess) {
-        alert('Template deleted successfully 🗑️');
-        this.templateForm.reset({ templateId: 0, templateName: '' }); // 👈 ارجاع 0
+        alert(this.isAr ? 'تم حذف القالب 🗑️' : 'Template deleted successfully 🗑️');
+        this.templateForm.reset({ templateId: 0, templateName: '' });
         this.rows.clear();
         this.loadTemplates();
       } else {
-        alert(resp?.error?.description ?? 'Delete failed');
+        alert(resp?.error?.description ?? (this.isAr ? 'فشل الحذف' : 'Delete failed'));
       }
     });
   }
 
-  // =========================
-  // Light Pattern CRUD (اختياري)
-  // =========================
+  // Light Pattern CRUD
   onPatternChange(): void {
     const selected: GetAllLightPattern | null = this.patternForm.value.selectedPattern;
     if (selected) {
@@ -271,7 +352,7 @@ export class Templatecomponent implements OnInit {
     this.lightPatternService.add(payload).subscribe((resp) => {
       this.submitting = false;
       if (resp?.isSuccess) {
-        alert('Pattern saved successfully!');
+        alert(this.isAr ? 'تم حفظ النمط!' : 'Pattern saved successfully!');
         this.patternForm.reset({
           name: '',
           selectedPattern: null,
@@ -281,7 +362,7 @@ export class Templatecomponent implements OnInit {
         });
         this.loadLightPatterns();
       } else {
-        alert(resp?.error?.description ?? 'Failed to save pattern');
+        alert(resp?.error?.description ?? (this.isAr ? 'فشل حفظ النمط' : 'Failed to save pattern'));
       }
     });
   }
@@ -289,14 +370,14 @@ export class Templatecomponent implements OnInit {
   deletePattern(): void {
     const selected: GetAllLightPattern | null = this.patternForm.value.selectedPattern;
     if (!selected) {
-      alert('Please select a pattern to delete.');
+      alert(this.isAr ? 'من فضلك اختر نمطًا للحذف.' : 'Please select a pattern to delete.');
       return;
     }
-    if (!confirm(`Delete "${selected.name}"?`)) return;
+    if (!confirm(this.isAr ? `حذف "${selected.name}"؟` : `Delete "${selected.name}"?`)) return;
 
     this.lightPatternService.delete(selected.id).subscribe((resp) => {
       if (resp?.isSuccess) {
-        alert('Pattern deleted successfully!');
+        alert(this.isAr ? 'تم حذف النمط!' : 'Pattern deleted successfully!');
         this.patternForm.reset({
           name: '',
           selectedPattern: null,
@@ -306,14 +387,12 @@ export class Templatecomponent implements OnInit {
         });
         this.loadLightPatterns();
       } else {
-        alert(resp?.error?.description ?? 'Delete failed');
+        alert(resp?.error?.description ?? (this.isAr ? 'فشل الحذف' : 'Delete failed'));
       }
     });
   }
 
-  // =========================
   // Time utils
-  // =========================
   private toHHmm(s?: string | null): string {
     if (!s) return '00:00';
     const [h = '00', m = '00'] = s.split(':');
@@ -325,4 +404,9 @@ export class Templatecomponent implements OnInit {
     const [h = '00', m = '00'] = s.split(':');
     return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
   }
+
+  // expose translator in template
+  trPublic(key: keyof (typeof this.dict)['en']) {
+    return this.tr(key);
+  } // (optional if needed)
 }

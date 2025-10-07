@@ -1,4 +1,8 @@
-<div class="template-container" [formGroup]="templateForm">
+<div
+  class="template-container mt-5 mb-5 py-5"
+  [formGroup]="templateForm"
+  [attr.dir]="isAr ? 'rtl' : 'ltr'"
+>
   <!-- Page Header -->
   <div class="page-header">
     <div class="header-content">
@@ -18,8 +22,8 @@
         </svg>
       </div>
       <div>
-        <h2 class="page-title">Template Manager</h2>
-        <p class="page-subtitle">Configure traffic light patterns and schedules</p>
+        <h2 class="page-title">{{ tr('templateManager') }}</h2>
+        <p class="page-subtitle">{{ tr('configurePatterns') }}</p>
       </div>
     </div>
   </div>
@@ -42,7 +46,7 @@
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
               />
             </svg>
-            <span>Template Configuration</span>
+            <span>{{ tr('templateConfig') }}</span>
           </div>
         </div>
 
@@ -62,14 +66,14 @@
                   d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
                 />
               </svg>
-              Select Template
+              {{ tr('selectTemplate') }}
             </label>
             <select
               id="templateSelect"
               class="form-control-modern"
               (change)="onTemplateChange($event)"
             >
-              <option value="">Choose a template...</option>
+              <option value="">{{ tr('chooseTemplate') }}</option>
               <option *ngFor="let t of templates" [value]="t.id">
                 {{ t.name }}
               </option>
@@ -90,13 +94,13 @@
                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
               </svg>
-              Template Name <span class="required-mark">*</span>
+              {{ tr('templateName') }} <span class="required-mark">*</span>
             </label>
             <input
               id="templateName"
               type="text"
               class="form-control-modern"
-              placeholder="Enter a descriptive name"
+              [placeholder]="tr('templateNamePh')"
               formControlName="templateName"
               [class.is-invalid]="
                 templateForm.get('templateName')?.invalid &&
@@ -110,7 +114,7 @@
                 templateForm.get('templateName')?.touched
               "
             >
-              Template name is required
+              {{ tr('templateNameReq') }}
             </div>
           </div>
 
@@ -130,9 +134,10 @@
                 <line x1="8" y1="2" x2="8" y2="6" />
                 <line x1="3" y1="10" x2="21" y2="10" />
               </svg>
-              Schedule Timeline
+              {{ tr('scheduleTimeline') }}
               <span class="badge-count">{{ rows.length }}</span>
             </label>
+
             <div class="schedule-list" formArrayName="rows">
               <div
                 class="schedule-card"
@@ -147,7 +152,7 @@
                     <div class="pattern-name">
                       {{
                         rows.at(i).get('lightPatternName')?.value ||
-                          'LightPattern #' + rows.at(i).get('lightPatternId')?.value
+                          tr('lightPattern') + ' #' + rows.at(i).get('lightPatternId')?.value
                       }}
                     </div>
                   </div>
@@ -155,7 +160,7 @@
                     class="btn-icon-danger"
                     type="button"
                     (click)="removeRow(i)"
-                    aria-label="Remove row"
+                    [attr.aria-label]="tr('removeRow')"
                   >
                     <svg
                       width="16"
@@ -174,22 +179,24 @@
 
                 <div class="time-range">
                   <div class="time-input-group">
-                    <label for="startFrom{{ i }}" class="time-label">Start</label>
+                    <label for="startFrom{{ i }}" class="time-label">{{ tr('start') }}</label>
                     <input
                       id="startFrom{{ i }}"
                       type="time"
                       class="time-input"
                       formControlName="startFrom"
+                      dir="ltr"
                     />
                   </div>
-                  <div class="time-divider">→</div>
+                  <div class="time-divider">{{ isAr ? '←' : '→' }}</div>
                   <div class="time-input-group">
-                    <label for="finishBy{{ i }}" class="time-label">End</label>
+                    <label for="finishBy{{ i }}" class="time-label">{{ tr('end') }}</label>
                     <input
                       id="finishBy{{ i }}"
                       type="time"
                       class="time-input"
                       formControlName="finishBy"
+                      dir="ltr"
                     />
                   </div>
                 </div>
@@ -208,8 +215,8 @@
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 8v4m0 4h.01" />
                 </svg>
-                <p class="empty-text">No schedule entries yet</p>
-                <p class="empty-hint">Select a pattern below and click "Add to Schedule"</p>
+                <p class="empty-text">{{ tr('noSchedule') }}</p>
+                <p class="empty-hint">{{ tr('selectPatternHint') }}</p>
               </div>
             </div>
           </div>
@@ -218,9 +225,9 @@
           <div class="add-pattern-section">
             <div class="add-pattern-controls">
               <select id="lpSel" class="form-control-modern flex-grow-1" #lpSel>
-                <option value="">Choose a light pattern...</option>
+                <option value="">{{ tr('chooseLightPattern') }}</option>
                 <option *ngFor="let lp of lightPatterns" [value]="lp.id">
-                  {{ lp.name || 'Pattern #' + lp.id }}
+                  {{ lp.name || tr('pattern') + ' #' + lp.id }}
                 </option>
               </select>
               <button
@@ -239,7 +246,7 @@
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                Add to Schedule
+                {{ tr('addToSchedule') }}
               </button>
             </div>
           </div>
@@ -253,7 +260,7 @@
             (click)="deleteTemplate()"
             [disabled]="!templateForm.value.templateId || submitting"
           >
-            Delete Template
+            {{ tr('deleteTemplate') }}
           </button>
           <button
             class="btn btn-success"
@@ -261,7 +268,7 @@
             (click)="saveTemplatePattern()"
             [disabled]="submitting || templateForm.invalid || rows.length === 0"
           >
-            {{ submitting ? 'Saving…' : 'Save Template' }}
+            {{ submitting ? tr('saving') : tr('saveTemplate') }}
           </button>
         </div>
       </section>
@@ -287,7 +294,7 @@
               <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
               <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
             </svg>
-            <span>Light Pattern Editor</span>
+            <span>{{ tr('lightPatternEditor') }}</span>
           </div>
         </div>
 
@@ -305,13 +312,13 @@
               >
                 <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
               </svg>
-              Pattern Name <span class="required-mark">*</span>
+              {{ tr('patternName') }} <span class="required-mark">*</span>
             </label>
             <input
               id="lpName"
               type="text"
               class="form-control-modern"
-              placeholder="Enter pattern name"
+              [placeholder]="tr('patternNamePh')"
               formControlName="name"
               [class.is-invalid]="
                 patternForm.get('name')?.invalid && patternForm.get('name')?.touched
@@ -321,7 +328,7 @@
               class="error-message"
               *ngIf="patternForm.get('name')?.invalid && patternForm.get('name')?.touched"
             >
-              Pattern name is required
+              {{ tr('patternNameReq') }}
             </div>
           </div>
 
@@ -339,7 +346,7 @@
                 <polyline points="9 11 12 14 22 4" />
                 <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
               </svg>
-              Load Existing Pattern
+              {{ tr('loadExisting') }}
             </label>
             <select
               id="patternSelect"
@@ -347,7 +354,7 @@
               formControlName="selectedPattern"
               (change)="onPatternChange()"
             >
-              <option [ngValue]="null">Create new pattern...</option>
+              <option [ngValue]="null">{{ tr('createNewPattern') }}</option>
               <option *ngFor="let p of lightPatterns" [ngValue]="p">{{ p.name }}</option>
             </select>
           </div>
@@ -366,14 +373,15 @@
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
-              Light Durations
+              {{ tr('lightDurations') }}
             </label>
+
             <div class="lights-config">
               <!-- Green Light -->
               <div class="light-row green-light">
                 <div class="light-visual">
                   <img src="assets/img/g.png" alt="green" height="40" />
-                  <span class="light-label">Green</span>
+                  <span class="light-label">{{ tr('green') }}</span>
                 </div>
                 <div class="light-input-wrapper">
                   <input
@@ -383,9 +391,10 @@
                     min="0"
                     max="1000"
                     step="1"
-                    aria-label="Green seconds"
+                    dir="ltr"
+                    [attr.aria-label]="tr('greenSec')"
                   />
-                  <span class="light-unit">sec</span>
+                  <span class="light-unit">{{ tr('sec') }}</span>
                 </div>
               </div>
 
@@ -393,7 +402,7 @@
               <div class="light-row yellow-light">
                 <div class="light-visual">
                   <img src="assets/img/a.png" alt="yellow" height="40" />
-                  <span class="light-label">Yellow</span>
+                  <span class="light-label">{{ tr('yellow') }}</span>
                 </div>
                 <div class="light-input-wrapper">
                   <input
@@ -403,9 +412,10 @@
                     min="0"
                     max="1000"
                     step="1"
-                    aria-label="Yellow seconds"
+                    dir="ltr"
+                    [attr.aria-label]="tr('yellowSec')"
                   />
-                  <span class="light-unit">sec</span>
+                  <span class="light-unit">{{ tr('sec') }}</span>
                 </div>
               </div>
 
@@ -413,7 +423,7 @@
               <div class="light-row red-light">
                 <div class="light-visual">
                   <img src="assets/img/r.png" alt="red" height="40" />
-                  <span class="light-label">Red</span>
+                  <span class="light-label">{{ tr('red') }}</span>
                 </div>
                 <div class="light-input-wrapper">
                   <input
@@ -423,9 +433,10 @@
                     min="0"
                     max="1000"
                     step="1"
-                    aria-label="Red seconds"
+                    dir="ltr"
+                    [attr.aria-label]="tr('redSec')"
                   />
-                  <span class="light-unit">sec</span>
+                  <span class="light-unit">{{ tr('sec') }}</span>
                 </div>
               </div>
             </div>
@@ -440,19 +451,7 @@
             (click)="deletePattern()"
             [disabled]="!patternForm.value.selectedPattern"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
-              />
-            </svg>
-            Delete
+            {{ tr('delete') }}
           </button>
           <button
             class="btn-save"
@@ -460,19 +459,7 @@
             (click)="createPattern()"
             [disabled]="patternForm.invalid || submitting"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
-              <polyline points="17 21 17 13 7 13 7 21" />
-              <polyline points="7 3 7 8 15 8" />
-            </svg>
-            {{ submitting ? 'Saving...' : 'Create Pattern' }}
+            {{ submitting ? tr('saving') : tr('createPattern') }}
           </button>
         </div>
       </section>
