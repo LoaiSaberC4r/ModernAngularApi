@@ -57,7 +57,7 @@ export class TrafficPointConfigComponent implements OnInit {
       blinkGreen: [{ value: false, disabled: true }],
       blinkYellow: [{ value: false, disabled: true }],
       blinkRed: [{ value: false, disabled: true }],
-      blinkMs: [500],
+      BlinkInterval: [500],
     });
 
     this.trafficForm.get('green')?.valueChanges.subscribe(() => this.updateRedTime());

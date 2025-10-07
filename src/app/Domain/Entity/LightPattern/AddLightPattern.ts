@@ -4,5 +4,8 @@ export interface AddLightPatternCommand {
   greenTime: number;
   yellowTime: number;
   redTime: number;
-  blinkMs: number;
+  BlinkInterval: number;
+  BlinkGreen: boolean;
+  BlinkYellow: boolean;
+  BlinkRed: boolean;
 }

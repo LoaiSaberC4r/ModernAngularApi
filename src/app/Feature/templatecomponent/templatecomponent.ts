@@ -160,7 +160,7 @@ export class Templatecomponent implements OnInit {
     blinkRed: [false],
 
     // NEW: Blink interval (ms)
-    blinkMs: [500, [Validators.required, Validators.min(50), Validators.max(10000)]],
+    BlinkInterval: [500, [Validators.required, Validators.min(50), Validators.max(10000)]],
   });
 
   get rows(): FormArray<FormGroup> {
@@ -183,7 +183,7 @@ export class Templatecomponent implements OnInit {
               green: p.green,
               yellow: p.yellow,
               red: p.red,
-              blinkMs: typeof (p as any).blinkMs === 'number' ? (p as any).blinkMs : 500,
+              BlinkInterval: typeof (p as any).blinkMs === 'number' ? (p as any).blinkMs : 500,
               blinkGreen: false,
               blinkYellow: false,
               blinkRed: false,
@@ -197,7 +197,7 @@ export class Templatecomponent implements OnInit {
               green: 0,
               yellow: 0,
               red: 0,
-              blinkMs: 500,
+              BlinkInterval: 500,
               blinkGreen: false,
               blinkYellow: false,
               blinkRed: false,
@@ -220,7 +220,7 @@ export class Templatecomponent implements OnInit {
       // لو الـ API القديم لا يرجع blinkMs، نضبط قيمة افتراضية
       const list = (resp?.value ?? []).map((p: any) => ({
         ...p,
-        blinkMs: typeof p.blinkMs === 'number' ? p.blinkMs : 500,
+        BlinkInterval: typeof p.BlinkInterval === 'number' ? p.BlinkInterval : 500,
       }));
       this.lightPatterns = list;
     });
@@ -363,7 +363,7 @@ export class Templatecomponent implements OnInit {
         red: selected.red,
         green: selected.green,
         yellow: selected.yellow,
-        blinkMs: typeof (selected as any).blinkMs === 'number' ? (selected as any).blinkMs : 500,
+        BlinkInterval: typeof (selected as any).BlinkInterval === 'number' ? (selected as any).BlinkInterval : 500,
         blinkGreen: false,
         blinkYellow: false,
         blinkRed: false,
@@ -384,7 +384,10 @@ export class Templatecomponent implements OnInit {
       greenTime: Number(raw.green) || 0,
       yellowTime: Number(raw.yellow) || 0,
       redTime: Number(raw.red) || 0,
-      blinkMs: Number(raw.blinkMs) || 500, // NEW
+      BlinkInterval: Number(raw.BlinkInterval) || 500, // NEW ,
+      BlinkGreen: raw.blinkGreen,
+      BlinkYellow: raw.blinkYellow,
+      BlinkRed: raw.blinkRed,
     };
 
     this.lightPatternService.add(payload).subscribe((resp) => {
