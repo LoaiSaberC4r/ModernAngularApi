@@ -1,23 +1,46 @@
+// app.routes.ts
 import { Routes } from '@angular/router';
-import { Greenwaycomponent } from './Feature/greenwaycomponent/greenwaycomponent';
-import { SignBoxComponent } from './Feature/sign-box-component/sign-box-component';
-import { SignBoxController } from './Feature/sign-box-controller/sign-box-controller';
-import { Mapviewcomponent } from './Feature/mapviewcomponent/mapviewcomponent';
-import { TrafficPointConfigComponent } from './Feature/traffic-point-config-component/traffic-point-config-component';
-import { Templatecomponent } from './Feature/templatecomponent/templatecomponent';
-import { TrafficWizard } from './Feature/traffic-wizard/traffic-wizard';
-import { SignBoxEditComponent } from './Feature/sign-box-edit-component/sign-box-edit-component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'trafficSignal', pathMatch: 'full' },
-  { path: 'map', component: Greenwaycomponent },
-  { path: 'trafficSignal', component: SignBoxComponent },
-  { path: 'trafficController', component: SignBoxController },
-  { path: 'trafficController/edit-sign-box/:id', component: SignBoxEditComponent },
 
-  { path: 'mapview', component: Mapviewcomponent },
-  // { path: 'trafficPointConfig', component: TrafficPointConfigComponent },
-  { path: 'template', component: Templatecomponent },
-  { path: 'trafficWizard', component: TrafficWizard },
+  {
+    path: 'map',
+    loadComponent: () =>
+      import('./Feature/greenwaycomponent/greenwaycomponent').then((m) => m.Greenwaycomponent),
+  },
+  {
+    path: 'trafficSignal',
+    loadComponent: () =>
+      import('./Feature/sign-box-component/sign-box-component').then((m) => m.SignBoxComponent),
+  },
+  {
+    path: 'trafficController',
+    loadComponent: () =>
+      import('./Feature/sign-box-controller/sign-box-controller').then((m) => m.SignBoxController),
+  },
+  {
+    path: 'trafficController/edit-sign-box/:id',
+    loadComponent: () =>
+      import('./Feature/sign-box-edit-component/sign-box-edit-component').then(
+        (m) => m.SignBoxEditComponent
+      ),
+  },
+  {
+    path: 'mapview',
+    loadComponent: () =>
+      import('./Feature/mapviewcomponent/mapviewcomponent').then((m) => m.Mapviewcomponent),
+  },
+  {
+    path: 'template',
+    loadComponent: () =>
+      import('./Feature/templatecomponent/templatecomponent').then((m) => m.Templatecomponent),
+  },
+  {
+    path: 'trafficWizard',
+    loadComponent: () =>
+      import('./Feature/traffic-wizard/traffic-wizard').then((m) => m.TrafficWizard),
+  },
+
   { path: '**', redirectTo: 'map' },
 ];
