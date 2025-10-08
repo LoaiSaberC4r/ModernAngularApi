@@ -7,6 +7,7 @@ import {
   ReactiveFormsModule,
   FormArray,
   AbstractControl,
+  FormControl,
 } from '@angular/forms';
 import { MatStep, MatStepperModule } from '@angular/material/stepper';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -22,7 +23,6 @@ import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
 import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern';
 import { LightPatternService } from '../../Services/LightPattern/light-pattern-service';
 
-// استبدلنا بـ DTO الجديد (لو عندك تعريفه في الدومين استورده بدل local type)
 type AddSignBoxCommandDTO = {
   name: string;
   areaId: number;
@@ -37,7 +37,7 @@ type AddSignBoxCommandDTO = {
     left: boolean;
     right: boolean;
     isConflict: boolean;
-    conflictWith: number; // Lane number (order)
+    conflictWith: number;
   }>;
 };
 
@@ -52,6 +52,10 @@ import { ResultError } from '../../Domain/ResultPattern/Error';
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { LanguageService } from '../../Services/Language/language-service';
 import { Subscription } from 'rxjs';
+import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
+import { ITemplateService } from '../../Services/Template/itemplate-service';
+import { ITemplatePatternService } from '../../Services/TemplatePattern/itemplate-pattern-service';
+import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
 
 type RoundDirection = {
   name?: string;
@@ -92,10 +96,15 @@ export class TrafficWizard implements OnInit, OnDestroy {
   private readonly areaService = inject(IAreaService);
   public fb = inject(FormBuilder);
   public langService = inject(LanguageService);
+  private readonly templateService = inject(ITemplateService);
+  private readonly templatePatternService = inject(ITemplatePatternService);
 
   get isAr() {
     return this.langService.current === 'ar';
   }
+
+  templates: GetAllTemplate[] = [];
+  lightPatterns: GetAllLightPattern[] = [];
 
   governates: GetAllGovernate[] = [];
   areas: GetAllArea[] = [];
@@ -145,6 +154,15 @@ export class TrafficWizard implements OnInit, OnDestroy {
       longitude: ['', Validators.required],
 
       directions: this.fb.array([this.buildDirectionGroup(1)]),
+
+      templateForm: this.fb.group({
+        templateId: new FormControl<number>(0, { nonNullable: true }),
+        templateName: new FormControl<string>('', {
+          nonNullable: true,
+          validators: [Validators.required],
+        }),
+        rows: this.fb.array<FormGroup>([]),
+      }),
     });
   }
 
@@ -538,5 +556,66 @@ export class TrafficWizard implements OnInit, OnDestroy {
   getConflictWithIndex(i: number): number | null {
     const lane = this.dirAt(i).get('conflictWith')?.value as number | null;
     return this.findIndexByLane(lane);
+  }
+
+  get templateForm(): FormGroup {
+    return this.trafficForm.get('templateForm') as FormGroup;
+  }
+  get rows(): FormArray<FormGroup> {
+    return this.templateForm.get('rows') as FormArray<FormGroup>;
+  }
+
+  private createRow(p: LightPatternForTemplatePattern): FormGroup {
+    return this.fb.group({
+      lightPatternId: new FormControl<number>(p.lightPatternId, { nonNullable: true }),
+      lightPatternName: new FormControl<string>(p.lightPatternName ?? `#${p.lightPatternId}`, {
+        nonNullable: true,
+      }),
+      startFrom: new FormControl<string>(this.toHHmm(p.startFrom), { nonNullable: true }),
+      finishBy: new FormControl<string>(this.toHHmm(p.finishBy), { nonNullable: true }),
+    });
+  }
+
+  onTemplateChange(e: Event) {
+    const select = e.target as HTMLSelectElement;
+    const id = select.value ? Number(select.value) : 0;
+
+    if (!id) {
+      this.templateForm.reset({ templateId: 0, templateName: '' });
+      this.rows.clear();
+      return;
+    }
+
+    this.templatePatternService
+      .GetAllTemplatePatternByTemplateId(id)
+      .subscribe((resp: ResultV<LightPatternForTemplatePattern>) => {
+        const list = resp?.value ?? [];
+        const patterns: LightPatternForTemplatePattern[] = list.map((p) => ({
+          ...p,
+          lightPatternName:
+            p.lightPatternName ||
+            this.lightPatterns.find((lp) => lp.id === p.lightPatternId)?.name ||
+            `#${p.lightPatternId}`,
+        }));
+
+        this.templateForm.patchValue({
+          templateId: id,
+          templateName: this.templates.find((t) => t.id === id)?.name ?? '',
+        });
+
+        this.rows.clear();
+        patterns.forEach((p) => this.rows.push(this.createRow(p)));
+      });
+  }
+  private toHHmm(s?: string | null): string {
+    if (!s) return '00:00';
+    const [h = '00', m = '00'] = s.split(':');
+    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+  }
+
+  private toHHmmss(s?: string | null): string {
+    if (!s) return '00:00:00';
+    const [h = '00', m = '00'] = s.split(':');
+    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
   }
 }

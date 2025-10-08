@@ -238,25 +238,20 @@
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ isAr ? 'نمط الإشارة' : 'Light Pattern' }}</mat-label>
+                  <mat-label>{{ isAr ? 'القالب' : 'Template' }}</mat-label>
                   <mat-select
-                    formControlName="lightPatternId"
-                    (selectionChange)="onPatternChanged(dir.value, $event.value)"
+                    formControlName="templateId"
+                    (selectionChange)="onTemplateChange($event.value)"
                   >
                     <mat-option [value]="null">{{
-                      isAr ? '-- اختر --' : '-- Select --'
+                      isAr ? '-- اختر القالب --' : '-- Select Template --'
                     }}</mat-option>
-                    <mat-option *ngFor="let p of lightPatternEntity.value" [value]="p.id">{{
-                      p.name
-                    }}</mat-option>
+                    <mat-option *ngFor="let t of templates" [value]="t.id">
+                      {{ t.name }}
+                    </mat-option>
                   </mat-select>
-                  <mat-hint *ngIf="dir.get('lightPatternId')?.disabled">
-                    {{
-                      isAr ? 'تم تثبيت النمط بسبب التقاطع' : 'Pattern locked due to intersection'
-                    }}
-                  </mat-hint>
-                  <mat-error *ngIf="dir.get('lightPatternId')?.hasError('required')">
-                    {{ isAr ? 'نمط الإشارة مطلوب.' : 'Light pattern is required.' }}
+                  <mat-error *ngIf="dir.get('templateId')?.hasError('required')">
+                    {{ isAr ? 'القالب مطلوب.' : 'Template is required.' }}
                   </mat-error>
                 </mat-form-field>
 
