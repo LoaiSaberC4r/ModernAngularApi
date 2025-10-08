@@ -86,7 +86,6 @@
       </mat-step>
 
       <!-- Step 2: Basic Info -->
-      <!-- Step 2: Basic Info -->
       <mat-step [stepControl]="trafficForm">
         <ng-template matStepLabel>{{ isAr ? 'المعلومات الأساسية' : 'Basic Info' }}</ng-template>
 
@@ -119,38 +118,38 @@
             </div>
           </div>
 
-          <!-- ID (1 .. 4 294 967 296) -->
+          <!-- CabinetId (1 .. 4 294 967 296) -->
           <div class="form-row">
             <div class="form-group">
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ isAr ? 'المعرّف (ID)' : 'ID' }}</mat-label>
+                <mat-label>{{ isAr ? 'معرّف الكبينة' : 'Cabinet ID' }}</mat-label>
                 <input
                   matInput
                   type="number"
-                  formControlName="id"
+                  formControlName="cabinetId"
                   min="1"
                   max="4294967296"
                   step="1"
                   dir="ltr"
                   [placeholder]="isAr ? 'من 1 إلى 4294967296' : 'From 1 to 4294967296'"
                 />
-                <mat-error *ngIf="trafficForm.get('id')?.hasError('required')">
+                <mat-error *ngIf="trafficForm.get('cabinetId')?.hasError('required')">
                   {{ isAr ? 'المعرّف مطلوب.' : 'ID is required.' }}
                 </mat-error>
-                <mat-error *ngIf="trafficForm.get('id')?.hasError('min')">
+                <mat-error *ngIf="trafficForm.get('cabinetId')?.hasError('min')">
                   {{ isAr ? 'أقل قيمة 1.' : 'Minimum is 1.' }}
                 </mat-error>
-                <mat-error *ngIf="trafficForm.get('id')?.hasError('max')">
+                <mat-error *ngIf="trafficForm.get('cabinetId')?.hasError('max')">
                   {{ isAr ? 'أقصى قيمة 40,000,000.' : 'Maximum is 40,000,000.' }}
                 </mat-error>
-                <mat-error *ngIf="trafficForm.get('id')?.hasError('pattern')">
+                <mat-error *ngIf="trafficForm.get('cabinetId')?.hasError('pattern')">
                   {{ isAr ? 'يجب أن يكون رقمًا صحيحًا.' : 'Must be an integer.' }}
                 </mat-error>
               </mat-form-field>
             </div>
           </div>
 
-          <!-- IPs row: IP Address + Cabinet No. -->
+          <!-- IP + Lat/Lng -->
           <div class="form-row py-3">
             <!-- IPv4 -->
             <div class="form-group">
@@ -167,31 +166,6 @@
                 </mat-error>
                 <mat-error *ngIf="trafficForm.get('ipAddress')?.hasError('pattern')">
                   {{ isAr ? 'صيغة IP غير صحيحة.' : 'Invalid IP format.' }}
-                </mat-error>
-              </mat-form-field>
-            </div>
-
-            <!-- Cabinet IP (integer only) -->
-            <div class="form-group">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ isAr ? 'IP الكبينة' : 'Cabinet IP' }}</mat-label>
-                <input
-                  matInput
-                  type="text"
-                  formControlName="ipCabinet"
-                  dir="ltr"
-                  [placeholder]="isAr ? 'مثال: 192.168.1.5' : 'e.g. 192.168.1.5'"
-                />
-                <mat-hint>{{
-                  isAr
-                    ? 'أدخل عنوان IP صالح مثل 192.168.1.5'
-                    : 'Enter valid IP address (e.g. 192.168.1.5)'
-                }}</mat-hint>
-                <mat-error *ngIf="trafficForm.get('ipCabinet')?.hasError('required')">
-                  {{ isAr ? 'عنوان IP مطلوب.' : 'Cabinet IP is required.' }}
-                </mat-error>
-                <mat-error *ngIf="trafficForm.get('ipCabinet')?.hasError('pattern')">
-                  {{ isAr ? 'صيغة عنوان IP غير صحيحة.' : 'Invalid IP address format.' }}
                 </mat-error>
               </mat-form-field>
             </div>
@@ -269,12 +243,12 @@
                     formControlName="lightPatternId"
                     (selectionChange)="onPatternChanged(dir.value, $event.value)"
                   >
-                    <mat-option [value]="null">
-                      {{ isAr ? '-- اختر --' : '-- Select --' }}
-                    </mat-option>
-                    <mat-option *ngFor="let p of lightPatternEntity.value" [value]="p.id">
-                      {{ p.name }}
-                    </mat-option>
+                    <mat-option [value]="null">{{
+                      isAr ? '-- اختر --' : '-- Select --'
+                    }}</mat-option>
+                    <mat-option *ngFor="let p of lightPatternEntity.value" [value]="p.id">{{
+                      p.name
+                    }}</mat-option>
                   </mat-select>
                   <mat-hint *ngIf="dir.get('lightPatternId')?.disabled">
                     {{
@@ -305,29 +279,34 @@
                   class="full-width"
                   *ngIf="directions.length > 1"
                 >
-                  <mat-label>{{ isAr ? 'التقاطع' : 'Intersection' }}</mat-label>
+                  <mat-label>{{
+                    isAr ? 'يتقاطع مع (رقم المسار)' : 'Conflicts with (Lane #)'
+                  }}</mat-label>
                   <mat-select
                     formControlName="conflictWith"
                     (selectionChange)="onConflictSelected(i, $event.value)"
                   >
-                    <mat-option [value]="null">
-                      {{ isAr ? '-- اختر --' : '-- Select --' }}
-                    </mat-option>
+                    <mat-option [value]="null">{{
+                      isAr ? '-- اختر --' : '-- Select --'
+                    }}</mat-option>
+
+                    <!-- القيمة هنا هي رقم المسار (order) مش index -->
                     <mat-option
                       *ngFor="let other of directions.controls; let j = index"
-                      [value]="j"
+                      [value]="other.get('order')?.value"
                       [disabled]="j === i || other.get('isConflict')?.value === true"
                     >
                       {{
                         other.value?.name || (isAr ? 'اتجاه ' + (j + 1) : 'Direction ' + (j + 1))
                       }}
+                      — {{ isAr ? 'مسار' : 'Lane' }} {{ other.get('order')?.value }}
                     </mat-option>
                   </mat-select>
                   <mat-hint>
                     {{
                       isAr
-                        ? 'اختر اتجاهًا يتقاطع مع هذا الاتجاه ليشارك نفس نمط الإشارة'
-                        : 'Pick a conflicting direction to share the same light pattern'
+                        ? 'اختر رقم مسار يتقاطع مع هذا المسار ليشارك نفس نمط الإشارة'
+                        : 'Pick a lane number that conflicts to share the same light pattern'
                     }}
                   </mat-hint>
                 </mat-form-field>
@@ -435,15 +414,12 @@
                     <strong>{{ isAr ? 'الاسم:' : 'Name:' }}</strong> {{ trafficForm.value.name }}
                   </p>
                   <p>
-                    <strong>{{ isAr ? 'المعرّف:' : 'ID:' }}</strong> {{ trafficForm.value.id }}
+                    <strong>{{ isAr ? 'معرّف الكبينة:' : 'Cabinet ID:' }}</strong>
+                    {{ trafficForm.value.cabinetId }}
                   </p>
                   <p>
-                    <strong>{{ isAr ? 'IP رئيسي:' : 'IP Address:' }}</strong>
+                    <strong>{{ isAr ? 'عنوان IP:' : 'IP Address:' }}</strong>
                     {{ trafficForm.value.ipAddress }}
-                  </p>
-                  <p>
-                    <strong>{{ isAr ? 'IP للكبينة:' : 'IP Cabinet:' }}</strong>
-                    {{ trafficForm.value.ipCabinet }}
                   </p>
                   <p>
                     <strong>{{ isAr ? 'المحافظة:' : 'Governorate:' }}</strong>

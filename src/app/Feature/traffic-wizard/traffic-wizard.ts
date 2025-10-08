@@ -22,7 +22,25 @@ import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
 import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern';
 import { LightPatternService } from '../../Services/LightPattern/light-pattern-service';
 
-import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern';
+// استبدلنا بـ DTO الجديد (لو عندك تعريفه في الدومين استورده بدل local type)
+type AddSignBoxCommandDTO = {
+  name: string;
+  areaId: number;
+  ipAddress: string;
+  latitude: string;
+  longitude: string;
+  cabinetId: number;
+  directions: Array<{
+    name: string;
+    lightPatternId: number;
+    order: number;
+    left: boolean;
+    right: boolean;
+    isConflict: boolean;
+    conflictWith: number; // Lane number (order)
+  }>;
+};
+
 import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-controlService';
 
 import { MatCardModule } from '@angular/material/card';
@@ -108,10 +126,10 @@ export class TrafficWizard implements OnInit, OnDestroy {
       governorate: [null, Validators.required],
       area: [null, Validators.required],
 
-      // Step 2
+      // Step 2 (مطابق للباك)
       name: ['', Validators.required],
 
-      id: [
+      cabinetId: [
         null,
         [
           Validators.required,
@@ -122,17 +140,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
       ],
 
       ipAddress: ['', [Validators.required, Validators.pattern(IPV4_REGEX)]],
-
-      ipCabinet: [
-        null,
-        [
-          Validators.required,
-          Validators.min(0),
-          Validators.pattern(
-            /^(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}$/
-          ),
-        ],
-      ],
 
       latitude: ['', Validators.required],
       longitude: ['', Validators.required],
@@ -191,14 +198,14 @@ export class TrafficWizard implements OnInit, OnDestroy {
       left: [false],
       right: [false],
       isConflict: [false],
-      conflictWith: [null],
+      conflictWith: [null], // Lane number (order)
     });
   }
 
   addDirection() {
     if (this.directions.length < 4) {
       this.directions.push(this.buildDirectionGroup(this.directions.length + 1));
-      this.reindexOrders();
+      this.reindexOrders(); // نحافظ على تسلسل المسارات
       this.reconcileConflicts();
     }
   }
@@ -206,26 +213,32 @@ export class TrafficWizard implements OnInit, OnDestroy {
   removeDirection(index: number) {
     if (this.directions.length <= 1) return;
 
+    // فضّ أي علاقات تتقاطع مع المسار المحذوف: حسب رقم المسار (order)
+    const removedOrder = Number(this.getDir(index).get('order')?.value ?? index + 1);
+
+    // ارفع التحديد من الآخرين لو كانوا يشيروا للمسار المحذوف
     for (let i = 0; i < this.directions.length; i++) {
       if (i === index) continue;
       const g = this.getDir(i);
-      const cw = g.get('conflictWith')?.value as number | null;
-      if (cw === index) {
+      const cwLane = g.get('conflictWith')?.value as number | null;
+      if (cwLane === removedOrder) {
         g.get('conflictWith')?.setValue(null, { emitEvent: false });
       }
     }
 
     this.directions.removeAt(index);
 
+    // بعد الحذف هنعيد ترقيم order تلقائيًا
+    // عشان كده لازم نعدّل قيم conflictWith لو كانت أكبر من المسار المحذوف
+    this.reindexOrders();
     for (let i = 0; i < this.directions.length; i++) {
       const g = this.getDir(i);
-      const cw = g.get('conflictWith')?.value as number | null;
-      if (cw != null && cw > index) {
-        g.get('conflictWith')?.setValue(cw - 1, { emitEvent: false });
+      const cwLane = g.get('conflictWith')?.value as number | null;
+      if (cwLane != null && cwLane > removedOrder) {
+        g.get('conflictWith')?.setValue(cwLane - 1, { emitEvent: false });
       }
     }
 
-    this.reindexOrders();
     this.reconcileConflicts();
   }
 
@@ -250,19 +263,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
   getPatternName(id: number | null): string {
     if (!id) return '';
     return this.lightPatternEntity.value.find((p) => p.id === id)?.name ?? '';
-  }
-
-  private prettifyField(name: string): string {
-    if (!name) return '';
-    const lower = name.toLowerCase();
-    if (lower === 'ipaddress' || lower === 'ip_address' || lower === 'ip') return 'IP Address';
-    if (lower === 'ipcabinet' || lower === 'ip_cabinet') return 'IP Cabinet';
-    return name
-      .replace(/_/g, ' ')
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .replace(/^(\w)/, (c) => c.toUpperCase());
   }
 
   getDirectionsForRoundabout(): RoundDirection[] {
@@ -310,21 +310,26 @@ export class TrafficWizard implements OnInit, OnDestroy {
     this.reconcileConflicts();
   }
 
-  onConflictSelected(currentIndex: number, selectedIndex: number | null) {
+  /**
+   * selectedIndexOrLane: هنا هنستقبل رقم المسار (Lane = order)
+   */
+  onConflictSelected(currentIndex: number, selectedLane: number | null) {
     const current = this.getDir(currentIndex);
-    const oldIndex = current.get('conflictWith')?.value as number | null;
+    const oldLane = current.get('conflictWith')?.value as number | null;
 
-    if (oldIndex != null && this.existsDir(oldIndex)) {
-      this.releaseConflict(oldIndex);
+    if (oldLane != null) {
+      // فكّ قفل المسار القديم لو موجود
+      const oldIdx = this.findIndexByLane(oldLane);
+      if (oldIdx !== null) this.releaseConflict(oldIdx);
     }
 
-    if (selectedIndex == null || selectedIndex === currentIndex) {
+    if (selectedLane == null) {
       current.get('conflictWith')?.setValue(null, { emitEvent: false });
       this.reconcileConflicts();
       return;
     }
 
-    current.get('conflictWith')?.setValue(selectedIndex, { emitEvent: false });
+    current.get('conflictWith')?.setValue(selectedLane, { emitEvent: false });
     this.reconcileConflicts();
   }
 
@@ -356,37 +361,47 @@ export class TrafficWizard implements OnInit, OnDestroy {
     this.patternSyncSubs.clear();
   }
 
+  /**
+   * تحويل ConflictWith من رقم مسار إلى index + ربط الأنماط
+   */
   private reconcileConflicts() {
     this.clearAllPatternSyncSubs();
 
+    // reset
     for (let i = 0; i < this.directions.length; i++) {
       const g = this.getDir(i);
       g.get('isConflict')?.setValue(false, { emitEvent: false });
       this.enablePattern(g.get('lightPatternId'));
     }
 
-    const usedAsConflict = new Set<number>();
+    const usedAsConflictLane = new Set<number>();
     for (let i = 0; i < this.directions.length; i++) {
-      const g = this.getDir(i);
-      const j = g.get('conflictWith')?.value as number | null;
+      const primary = this.getDir(i);
+      const lane = primary.get('conflictWith')?.value as number | null; // Lane number
 
-      if (j == null || !this.existsDir(j) || j === i) {
-        g.get('conflictWith')?.setValue(null, { emitEvent: false });
+      if (lane == null) {
+        primary.get('conflictWith')?.setValue(null, { emitEvent: false });
         continue;
       }
 
-      if (usedAsConflict.has(j)) {
-        g.get('conflictWith')?.setValue(null, { emitEvent: false });
+      const j = this.findIndexByLane(lane);
+      if (j === null || j === i) {
+        primary.get('conflictWith')?.setValue(null, { emitEvent: false });
         continue;
       }
 
-      usedAsConflict.add(j);
+      // lane مستخدم بالفعل كـ conflict؟
+      if (usedAsConflictLane.has(lane)) {
+        primary.get('conflictWith')?.setValue(null, { emitEvent: false });
+        continue;
+      }
 
-      const primary = g;
+      usedAsConflictLane.add(lane);
+
       const conflict = this.getDir(j);
 
+      // نسخ النمط وقفل اختيار المسار المتقاطع
       this.copyPattern(primary, conflict);
-
       conflict.get('isConflict')?.setValue(true, { emitEvent: false });
       this.disablePattern(conflict.get('lightPatternId'));
 
@@ -406,6 +421,15 @@ export class TrafficWizard implements OnInit, OnDestroy {
     const conflict = this.getDir(conflictIndex);
     conflict.get('isConflict')?.setValue(false, { emitEvent: false });
     this.enablePattern(conflict.get('lightPatternId'));
+  }
+
+  private findIndexByLane(lane: number | null): number | null {
+    if (lane == null) return null;
+    for (let i = 0; i < this.directions.length; i++) {
+      const g = this.getDir(i);
+      if (Number(g.get('order')?.value) === Number(lane)) return i;
+    }
+    return null;
   }
 
   onApply(): void {
@@ -428,26 +452,25 @@ export class TrafficWizard implements OnInit, OnDestroy {
       return;
     }
 
-    const payload = {
-      id: Number(v.id),
+    const payload: AddSignBoxCommandDTO = {
       name: (v.name || '').trim(),
       areaId: areaId,
       ipAddress: (v.ipAddress || '').trim(),
-      ipCabinet: (v.ipCabinet ?? '').trim(),
       latitude: String(v.latitude),
       longitude: String(v.longitude),
+      cabinetId: Number(v.cabinetId),
       directions: (v.directions as any[]).map((d: any) => ({
         name: d.name,
-        order: d.order,
-        lightPatternId: d.lightPatternId,
+        order: Number(d.order),
+        lightPatternId: Number(d.lightPatternId),
         left: !!d.left,
         right: !!d.right,
         isConflict: !!d.isConflict,
+        conflictWith: d.conflictWith == null ? 0 : Number(d.conflictWith),
       })),
-    } as AddSignBoxWithUpdateLightPattern;
+    };
 
-    // ✅ استدعاء الإضافة عبر AddWithUpdateLightPattern (وليس AddSignBox)
-    this.signBoxService.AddWithUpdateLightPattern(payload).subscribe({
+    this.signBoxService.AddSignBox(payload as any).subscribe({
       next: () => {
         this.showPopup(this.isAr ? '✅ تم الحفظ بنجاح' : '✅ Saved successfully!', 'success');
         this.trafficForm.reset();
@@ -456,8 +479,11 @@ export class TrafficWizard implements OnInit, OnDestroy {
         this.addDirection();
       },
       error: (err) => {
-        console.error('❌ Save failed', err);
-        this.showPopup(this.isAr ? '❌ حدث خطأ أثناء الحفظ' : '❌ Error while saving', 'error');
+        console.error(' Save failed', err);
+        console.log('Server error body:', err?.error);
+        console.log('Server model errors:', err?.error?.errors);
+        console.error(' Save failed', err);
+        this.showPopup(this.isAr ? ' حدث خطأ أثناء الحفظ' : ' Error while saving', 'error');
       },
     });
   }
@@ -508,8 +534,9 @@ export class TrafficWizard implements OnInit, OnDestroy {
   getDirectionOrder(i: number): number {
     return Number(this.dirAt(i).get('order')?.value ?? i + 1);
   }
+
   getConflictWithIndex(i: number): number | null {
-    const val = this.dirAt(i).get('conflictWith')?.value;
-    return val === 0 || val ? Number(val) : null;
+    const lane = this.dirAt(i).get('conflictWith')?.value as number | null;
+    return this.findIndexByLane(lane);
   }
 }
