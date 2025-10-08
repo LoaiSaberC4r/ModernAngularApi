@@ -36,6 +36,7 @@
         formControlName="name"
         class="form-control border"
         [placeholder]="isAr ? 'اسم وصفي' : 'Descriptive name'"
+        [attr.dir]="isAr ? 'rtl' : 'ltr'"
       />
       <div *ngIf="form.controls['name'].invalid && form.controls['name'].touched" class="error">
         {{ isAr ? 'الاسم مطلوب' : 'Name is required' }}
@@ -56,7 +57,12 @@
         *ngIf="form.controls['ipAddress'].invalid && form.controls['ipAddress'].touched"
         class="error"
       >
-        {{ isAr ? 'عنوان IP مطلوب' : 'IP Address is required' }}
+        <span *ngIf="form.controls['ipAddress'].errors?.['required']">
+          {{ isAr ? 'عنوان IP مطلوب' : 'IP Address is required' }}
+        </span>
+        <span *ngIf="form.controls['ipAddress'].errors?.['pattern']">
+          {{ isAr ? 'صيغة IP غير صحيحة' : 'Invalid IP format' }}
+        </span>
       </div>
     </div>
 
@@ -90,12 +96,12 @@
         <label for="gov">{{ isAr ? 'المحافظة' : 'Governorate' }}</label>
         <select
           id="gov"
-          class="form-control border"
+          class="form-control-modern"
           formControlName="governateId"
           (change)="onGovernorateChange()"
           [attr.dir]="isAr ? 'rtl' : 'ltr'"
         >
-          <option [ngValue]="null" disabled>
+          <option [ngValue]="null" disabled selected>
             {{ isAr ? 'اختر المحافظة' : 'Select governorate' }}
           </option>
           <option *ngFor="let g of governates" [ngValue]="g.id">{{ g.name }}</option>
@@ -112,11 +118,13 @@
         <label for="area">{{ isAr ? 'الحي' : 'Area' }}</label>
         <select
           id="area"
-          class="form-control border"
+          class="form-control-modern"
           formControlName="areaId"
           [attr.dir]="isAr ? 'rtl' : 'ltr'"
         >
-          <option [ngValue]="null" disabled>{{ isAr ? 'اختر الحي' : 'Select area' }}</option>
+          <option [ngValue]="null" disabled selected>
+            {{ isAr ? 'اختر الحي' : 'Select area' }}
+          </option>
           <option *ngFor="let a of areas" [ngValue]="a.id">{{ a.name }}</option>
         </select>
         <div
@@ -143,6 +151,7 @@
             formControlName="name"
             class="form-control flex-1"
             [placeholder]="isAr ? 'اسم الاتجاه' : 'Direction name'"
+            [attr.dir]="isAr ? 'rtl' : 'ltr'"
           />
 
           <!-- Order -->
@@ -154,6 +163,7 @@
             step="1"
             class="form-control small"
             [placeholder]="isAr ? 'الترتيب' : 'Order'"
+            dir="ltr"
           />
           <div
             class="error"
@@ -171,18 +181,38 @@
             }}</span>
           </div>
 
-          <!-- Light Pattern -->
-          <select
-            class="form-control small"
-            formControlName="lightPatternId"
-            (change)="onPatternChange(i)"
-            [attr.dir]="isAr ? 'rtl' : 'ltr'"
-          >
-            <option [ngValue]="null" disabled>
-              {{ isAr ? 'اختر نمط الإشارة' : 'Select light pattern' }}
-            </option>
-            <option *ngFor="let lp of lightPatterns" [ngValue]="lp.id">{{ lp.name }}</option>
-          </select>
+          <!-- Template select (per direction) -->
+          <div class="form-section">
+            <label
+              [for]="'templateSelect' + i"
+              class="section-label"
+              [attr.dir]="isAr ? 'rtl' : 'ltr'"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                />
+              </svg>
+              {{ tr('selectTemplate') }}
+            </label>
+            <select
+              class="form-control-modern"
+              [id]="'templateSelect' + i"
+              formControlName="templateId"
+              (change)="onTemplateChange(i, $event)"
+              [attr.dir]="isAr ? 'rtl' : 'ltr'"
+            >
+              <option [ngValue]="null">{{ tr('chooseTemplate') }}</option>
+              <option *ngFor="let t of templates" [ngValue]="t.id">{{ t.name }}</option>
+            </select>
+          </div>
 
           <button type="button" class="btn btn-danger text-white" (click)="removeDirection(i)">
             {{ isAr ? 'حذف' : 'Remove' }}
@@ -190,14 +220,14 @@
         </div>
       </div>
 
-      <button type="button" class="btn btn-success mt-2" (click)="addDirection()">
+      <button type="button" class="btn btn-success mt-2 mb-3" (click)="addDirection()">
         {{ isAr ? 'إضافة اتجاه' : 'Add Direction' }}
       </button>
     </div>
 
     <!-- Actions -->
     <div class="actions">
-      <button type="submit" class="apply-button">{{ isAr ? 'تطبيق' : 'Apply' }}</button>
+      <button type="submit" class="apply-button me-2">{{ isAr ? 'تطبيق' : 'Apply' }}</button>
       <button type="button" (click)="cancel()" class="cancel-button">
         {{ isAr ? 'إلغاء' : 'Cancel' }}
       </button>

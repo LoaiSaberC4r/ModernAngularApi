@@ -8,6 +8,7 @@ import {
   Validators,
   AbstractControl,
   ValidationErrors,
+  FormControl,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -25,12 +26,20 @@ import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
 import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox';
 import { SignDirection } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
 import { LanguageService } from '../../Services/Language/language-service';
+import { ITemplateService } from '../../Services/Template/itemplate-service';
+import { ITemplatePatternService } from '../../Services/TemplatePattern/itemplate-pattern-service';
+import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
+import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
+
+// Simple IPv4 regex
+const IPV4_REGEX = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
 
 type DirectionView = {
   name: string;
   order: number | null;
   lightPatternId: number | null;
   lightPatternName: string | null;
+  templateId?: number | null;
 };
 
 type LightPatternItem = { id: number; name: string };
@@ -52,22 +61,27 @@ export class SignBoxEditComponent implements OnInit {
   private readonly areaService = inject(IAreaService);
   private readonly governateService = inject(IGovernateService);
   public langService = inject(LanguageService);
+
+  private readonly templateService = inject(ITemplateService);
+  private readonly templatePatternService = inject(ITemplatePatternService);
+
   get isAr() {
     return this.langService.current === 'ar';
   }
+
   governates: GetAllGovernate[] = [];
   areas: GetAllArea[] = [];
-
+  templates: GetAllTemplate[] = [];
   loading = false;
   id!: number;
 
-  // مصدر الدروب داون
+  // مصدر الدروب داون (لو احتجته لاحقاً)
   lightPatterns: LightPatternItem[] = [];
 
   form: FormGroup = this.fb.group({
     id: [0],
     name: ['', Validators.required],
-    ipAddress: ['', Validators.required],
+    ipAddress: ['', [Validators.required, Validators.pattern(IPV4_REGEX)]],
     governateId: [null, Validators.required],
     areaId: [null, Validators.required],
     latitude: [''],
@@ -132,8 +146,10 @@ export class SignBoxEditComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    // تحميل القوائم المرجعية
     this.loadLightPatterns();
     this.loadGovernate();
+    this.loadTemplates();
 
     // attach validator for unique order
     this.directions.setValidators([this.uniqueOrderValidator]);
@@ -151,7 +167,7 @@ export class SignBoxEditComponent implements OnInit {
     else this.loadFromApi();
   }
 
-  // ========== Light Patterns ==========
+  // ========== Light Patterns (optional source) ==========
   private loadLightPatterns(): void {
     this.lpService.getAll().subscribe((resp: ResultV<GetAllLightPattern> | any) => {
       const arr = (resp?.value?.data ?? resp?.value ?? resp?.data ?? resp?.items ?? []) as any[];
@@ -208,6 +224,7 @@ export class SignBoxEditComponent implements OnInit {
             order: [d.order ?? null, [Validators.required, Validators.min(1), Validators.max(4)]],
             lightPatternId: [d.lightPatternId ?? null],
             lightPatternName: [d.lightPatternName ?? ''],
+            templateId: [d.templateId ?? null],
           })
         )
       );
@@ -227,6 +244,7 @@ export class SignBoxEditComponent implements OnInit {
       order: d?.order ?? d?.Order ?? null,
       lightPatternId: d?.lightPatternId ?? d?.LightPatternId ?? null,
       lightPatternName: d?.lightPatternName ?? d?.LightPatternName ?? boxLevelName ?? null,
+      templateId: d?.templateId ?? d?.TemplateId ?? null,
     }));
   }
 
@@ -238,6 +256,7 @@ export class SignBoxEditComponent implements OnInit {
         order: [null, [Validators.required, Validators.min(1), Validators.max(4)]],
         lightPatternId: [null],
         lightPatternName: [''],
+        templateId: [null],
       })
     );
     this.directions.updateValueAndValidity({ onlySelf: true });
@@ -259,7 +278,10 @@ export class SignBoxEditComponent implements OnInit {
   apply(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.showPopup('⚠️ Please fill all required fields', 'warn');
+      this.showPopup(
+        this.isAr ? '⚠️ يرجى ملء الحقول المطلوبة' : '⚠️ Please fill all required fields',
+        'warn'
+      );
       return;
     }
 
@@ -272,17 +294,17 @@ export class SignBoxEditComponent implements OnInit {
       latitude: String(v.latitude ?? ''),
       longitude: String(v.longitude ?? ''),
       areaId: Number(v.areaId),
-      directions: (v.directions as SignDirection[]).map((d) => ({
+      directions: (v.directions as any[]).map((d) => ({
         name: d?.name ?? '',
         order: d?.order,
-        lightPatternId: d?.lightPatternId,
-      })),
+        templateId: d?.templateId ?? null,
+      })) as unknown as SignDirection[],
     };
 
     this.service.Update(payload).subscribe({
       next: () => {
         // Show success toast and navigate after it closes
-        this.showPopup('  Updated successfully!', 'success', {
+        this.showPopup(this.isAr ? '✅ تم التحديث بنجاح' : '✅ Updated successfully!', 'success', {
           duration: 2000,
           onClose: () => this.router.navigate(['/trafficController']),
         });
@@ -300,7 +322,7 @@ export class SignBoxEditComponent implements OnInit {
               if (isIpError && ipTyped) text += `: ${ipTyped}`;
               return text;
             })
-          : ['  Update failed'];
+          : [this.isAr ? 'حدث خطأ أثناء التحديث' : 'Update failed'];
         this.showPopup(msgs.join('\n'), 'error');
       },
     });
@@ -332,6 +354,21 @@ export class SignBoxEditComponent implements OnInit {
         this.form.get('areaId')?.setValue(selectedAreaId);
       }
     });
+  }
+
+  // ===== Templates (list for dropdown) =====
+  private loadTemplates() {
+    this.templateService.GetAll().subscribe((resp) => {
+      this.templates = resp?.value ?? [];
+    });
+  }
+
+  // تغيير القالب لكل صف اتجاه
+  onTemplateChange(index: number, e: Event) {
+    const select = e.target as HTMLSelectElement;
+    const id = select.value ? Number(select.value) : null;
+    const grp = this.directions.at(index) as FormGroup;
+    grp.get('templateId')?.setValue(id);
   }
 
   // ===== Helpers for user-friendly messages & toasts =====
@@ -385,5 +422,43 @@ export class SignBoxEditComponent implements OnInit {
         } catch {}
       }
     }, 500);
+  }
+
+  // Mini i18n helper for template strings used in HTML
+  tr(key: string): string {
+    const en: Record<string, string> = {
+      selectTemplate: 'Template',
+      chooseTemplate: '-- Select Template --',
+    };
+    const ar: Record<string, string> = {
+      selectTemplate: 'القالب',
+      chooseTemplate: '-- اختر القالب --',
+    };
+    const dict = this.isAr ? ar : en;
+    return dict[key] ?? key;
+  }
+
+  // (kept from earlier if you later want to render time ranges)
+  private createRow(p: LightPatternForTemplatePattern): FormGroup {
+    return this.fb.group({
+      lightPatternId: new FormControl<number>(p.lightPatternId, { nonNullable: true }),
+      lightPatternName: new FormControl<string>(p.lightPatternName ?? `#${p.lightPatternId}`, {
+        nonNullable: true,
+      }),
+      startFrom: new FormControl<string>(this.toHHmm(p.startFrom), { nonNullable: true }),
+      finishBy: new FormControl<string>(this.toHHmm(p.finishBy), { nonNullable: true }),
+    });
+  }
+
+  private toHHmm(s?: string | null): string {
+    if (!s) return '00:00';
+    const [h = '00', m = '00'] = s.split(':');
+    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+  }
+
+  private toHHmmss(s?: string | null): string {
+    if (!s) return '00:00:00';
+    const [h = '00', m = '00'] = s.split(':');
+    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
   }
 }

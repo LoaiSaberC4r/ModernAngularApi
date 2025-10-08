@@ -31,6 +31,8 @@ export interface SignDirection {
   lightPatternId?: number;
   lightPatternName?: string;
   left?: boolean;
+  templateId?: number;
+  templateName?: string;
   right?: boolean;
   isConflict?: boolean;
 }

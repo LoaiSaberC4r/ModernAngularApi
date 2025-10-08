@@ -118,7 +118,7 @@
             </div>
           </div>
 
-          <!-- CabinetId (1 .. 4 294 967 296) -->
+          <!-- CabinetId -->
           <div class="form-row">
             <div class="form-group">
               <mat-form-field appearance="outline" class="full-width">
@@ -128,10 +128,10 @@
                   type="number"
                   formControlName="cabinetId"
                   min="1"
-                  max="4294967296"
+                  max="40000000"
                   step="1"
                   dir="ltr"
-                  [placeholder]="isAr ? 'من 1 إلى 4294967296' : 'From 1 to 4294967296'"
+                  [placeholder]="isAr ? 'من 1 إلى 40000000' : 'From 1 to 40000000'"
                 />
                 <mat-error *ngIf="trafficForm.get('cabinetId')?.hasError('required')">
                   {{ isAr ? 'المعرّف مطلوب.' : 'ID is required.' }}
@@ -170,7 +170,7 @@
               </mat-form-field>
             </div>
 
-            <!-- Lat / Lng -->
+            <!-- Lat -->
             <div class="form-group">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ isAr ? 'خط العرض' : 'Latitude' }}</mat-label>
@@ -189,6 +189,7 @@
               </mat-form-field>
             </div>
 
+            <!-- Lng -->
             <div class="form-group">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ isAr ? 'خط الطول' : 'Longitude' }}</mat-label>
@@ -223,6 +224,7 @@
               <div class="direction-number">{{ i + 1 }}</div>
 
               <div class="direction-fields">
+                <!-- Direction Name -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>
                     {{ isAr ? 'اسم الاتجاه ' + (i + 1) : 'Direction ' + (i + 1) + ' Name' }}
@@ -237,6 +239,7 @@
                   </mat-error>
                 </mat-form-field>
 
+                <!-- Template per direction (fills global template rows) -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>{{ isAr ? 'القالب' : 'Template' }}</mat-label>
                   <mat-select
@@ -250,11 +253,10 @@
                       {{ t.name }}
                     </mat-option>
                   </mat-select>
-                  <mat-error *ngIf="dir.get('templateId')?.hasError('required')">
-                    {{ isAr ? 'القالب مطلوب.' : 'Template is required.' }}
-                  </mat-error>
+                  <!-- ممكن تخليها اختيارية: شيل الـ mat-error لو مش حابب تجبر المستخدم -->
                 </mat-form-field>
 
+                <!-- Lane / Order -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>{{ isAr ? 'المسار' : 'Lane' }}</mat-label>
                   <input matInput type="number" formControlName="order" min="1" />
@@ -269,6 +271,7 @@
                   </mat-error>
                 </mat-form-field>
 
+                <!-- Conflict With -->
                 <mat-form-field
                   appearance="outline"
                   class="full-width"
@@ -284,8 +287,6 @@
                     <mat-option [value]="null">{{
                       isAr ? '-- اختر --' : '-- Select --'
                     }}</mat-option>
-
-                    <!-- القيمة هنا هي رقم المسار (order) مش index -->
                     <mat-option
                       *ngFor="let other of directions.controls; let j = index"
                       [value]="other.get('order')?.value"
@@ -306,6 +307,7 @@
                   </mat-hint>
                 </mat-form-field>
 
+                <!-- Hidden fields (managed by code) -->
                 <input type="hidden" formControlName="left" />
                 <input type="hidden" formControlName="right" />
                 <input type="hidden" formControlName="isConflict" />
@@ -346,7 +348,7 @@
             color="primary"
             matStepperNext
             class="btn-next"
-            [disabled]="trafficForm.invalid"
+            [disabled]="isStep2Invalid()"
           >
             {{ isAr ? 'متابعة' : 'Continue' }}
             <mat-icon>{{ isAr ? 'arrow_back' : 'arrow_forward' }}</mat-icon>

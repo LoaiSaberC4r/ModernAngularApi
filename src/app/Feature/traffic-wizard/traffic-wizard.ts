@@ -32,7 +32,7 @@ type AddSignBoxCommandDTO = {
   cabinetId: number;
   directions: Array<{
     name: string;
-    lightPatternId: number;
+    templateId: number;
     order: number;
     left: boolean;
     right: boolean;
@@ -87,7 +87,7 @@ const IPV4_REGEX = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}
     MatStep,
   ],
   templateUrl: './traffic-wizard.html',
-  styleUrl: './traffic-wizard.css',
+  styleUrls: ['./traffic-wizard.css'],
 })
 export class TrafficWizard implements OnInit, OnDestroy {
   private readonly governateService = inject(IGovernateService);
@@ -135,7 +135,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
       governorate: [null, Validators.required],
       area: [null, Validators.required],
 
-      // Step 2 (مطابق للباك)
+      // Step 2
       name: ['', Validators.required],
 
       cabinetId: [
@@ -143,6 +143,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
         [
           Validators.required,
           Validators.min(1),
+          // NOTE: لو حابب تطابق الرسالة في الـ HTML غيّر القيمة هنا وهناك لنفس الحد
           Validators.max(40_000_000),
           Validators.pattern(/^[1-9]\d*$/),
         ],
@@ -170,6 +171,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
     this.loadGovernate();
     this.loadLightPattern();
     this.directions.valueChanges.subscribe(() => this.reconcileConflicts());
+    this.loadTemplates();
   }
 
   ngOnDestroy(): void {
@@ -180,6 +182,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
   loadLightPattern() {
     this.lightPatternService.getAll().subscribe((data) => {
       this.lightPatternEntity = data;
+      this.lightPatterns = data?.value ?? []; // ✅ لازم نملأ الليست الفعلية
     });
   }
 
@@ -211,19 +214,22 @@ export class TrafficWizard implements OnInit, OnDestroy {
   private buildDirectionGroup(order: number): FormGroup {
     return this.fb.group({
       name: ['', Validators.required],
-      lightPatternId: [null, Validators.required],
+      // ⚠️ مش Required في Step 2 — هيتحدد لاحقًا أو من الـ Template
+      lightPatternId: [null],
       order: [order, [Validators.required, Validators.min(1)]],
       left: [false],
       right: [false],
       isConflict: [false],
       conflictWith: [null], // Lane number (order)
+      // ✅ جديد: علشان الـ HTML عندك بيستخدم templateId جوّا كل اتجاه
+      templateId: [null],
     });
   }
 
   addDirection() {
     if (this.directions.length < 4) {
       this.directions.push(this.buildDirectionGroup(this.directions.length + 1));
-      this.reindexOrders(); // نحافظ على تسلسل المسارات
+      this.reindexOrders();
       this.reconcileConflicts();
     }
   }
@@ -231,10 +237,8 @@ export class TrafficWizard implements OnInit, OnDestroy {
   removeDirection(index: number) {
     if (this.directions.length <= 1) return;
 
-    // فضّ أي علاقات تتقاطع مع المسار المحذوف: حسب رقم المسار (order)
     const removedOrder = Number(this.getDir(index).get('order')?.value ?? index + 1);
 
-    // ارفع التحديد من الآخرين لو كانوا يشيروا للمسار المحذوف
     for (let i = 0; i < this.directions.length; i++) {
       if (i === index) continue;
       const g = this.getDir(i);
@@ -246,8 +250,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
 
     this.directions.removeAt(index);
 
-    // بعد الحذف هنعيد ترقيم order تلقائيًا
-    // عشان كده لازم نعدّل قيم conflictWith لو كانت أكبر من المسار المحذوف
     this.reindexOrders();
     for (let i = 0; i < this.directions.length; i++) {
       const g = this.getDir(i);
@@ -329,14 +331,13 @@ export class TrafficWizard implements OnInit, OnDestroy {
   }
 
   /**
-   * selectedIndexOrLane: هنا هنستقبل رقم المسار (Lane = order)
+   * selectedLane: هنا هنستقبل رقم المسار (Lane = order)
    */
   onConflictSelected(currentIndex: number, selectedLane: number | null) {
     const current = this.getDir(currentIndex);
     const oldLane = current.get('conflictWith')?.value as number | null;
 
     if (oldLane != null) {
-      // فكّ قفل المسار القديم لو موجود
       const oldIdx = this.findIndexByLane(oldLane);
       if (oldIdx !== null) this.releaseConflict(oldIdx);
     }
@@ -408,7 +409,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
         continue;
       }
 
-      // lane مستخدم بالفعل كـ conflict؟
       if (usedAsConflictLane.has(lane)) {
         primary.get('conflictWith')?.setValue(null, { emitEvent: false });
         continue;
@@ -450,6 +450,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
     return null;
   }
 
+  // ======= Apply =======
   onApply(): void {
     if (this.trafficForm.invalid) {
       this.trafficForm.markAllAsTouched();
@@ -480,7 +481,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
       directions: (v.directions as any[]).map((d: any) => ({
         name: d.name,
         order: Number(d.order),
-        lightPatternId: Number(d.lightPatternId),
+        templateId: Number(d.templateId),
         left: !!d.left,
         right: !!d.right,
         isConflict: !!d.isConflict,
@@ -500,12 +501,34 @@ export class TrafficWizard implements OnInit, OnDestroy {
         console.error(' Save failed', err);
         console.log('Server error body:', err?.error);
         console.log('Server model errors:', err?.error?.errors);
-        console.error(' Save failed', err);
         this.showPopup(this.isAr ? ' حدث خطأ أثناء الحفظ' : ' Error while saving', 'error');
       },
     });
   }
 
+  // ======= Step 2 guard (للاستخدام في الـ HTML) =======
+  isStep2Invalid(): boolean {
+    const nameInvalid = this.trafficForm.get('name')?.invalid;
+    const cabInvalid = this.trafficForm.get('cabinetId')?.invalid;
+    const ipInvalid = this.trafficForm.get('ipAddress')?.invalid;
+    const latInvalid = this.trafficForm.get('latitude')?.invalid;
+    const lngInvalid = this.trafficForm.get('longitude')?.invalid;
+
+    const dirBasicInvalid = this.directions.controls.some(
+      (g) => g.get('name')?.invalid || g.get('order')?.invalid
+    );
+
+    return !!(
+      nameInvalid ||
+      cabInvalid ||
+      ipInvalid ||
+      latInvalid ||
+      lngInvalid ||
+      dirBasicInvalid
+    );
+  }
+
+  // ======= Toasts =======
   private showPopup(message: string, type: 'success' | 'error' | 'warn') {
     const id = ++this.toastSeq;
     this.toasts = [...this.toasts, { id, message, type, active: false }];
@@ -530,34 +553,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
     }, 500);
   }
 
-  private dirAt(i: number): FormGroup {
-    return this.directions.at(i) as FormGroup;
-  }
-  getRawPatternId(i: number): number | null {
-    const raw = this.dirAt(i).getRawValue();
-    return (raw?.lightPatternId ?? null) as number | null;
-  }
-  isConflict(i: number): boolean {
-    return this.dirAt(i).get('isConflict')?.value === true;
-  }
-  isPatternLocked(i: number): boolean {
-    return this.dirAt(i).get('lightPatternId')?.disabled === true;
-  }
-  getDirectionDisplayName(i: number): string {
-    const g = this.dirAt(i);
-    const name = (g.get('name')?.value || '').toString().trim();
-    if (name) return name;
-    return this.isAr ? `اتجاه ${i + 1}` : `Direction ${i + 1}`;
-  }
-  getDirectionOrder(i: number): number {
-    return Number(this.dirAt(i).get('order')?.value ?? i + 1);
-  }
-
-  getConflictWithIndex(i: number): number | null {
-    const lane = this.dirAt(i).get('conflictWith')?.value as number | null;
-    return this.findIndexByLane(lane);
-  }
-
+  // ======= Template Form =======
   get templateForm(): FormGroup {
     return this.trafficForm.get('templateForm') as FormGroup;
   }
@@ -576,10 +572,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
     });
   }
 
-  onTemplateChange(e: Event) {
-    const select = e.target as HTMLSelectElement;
-    const id = select.value ? Number(select.value) : 0;
-
+  onTemplateChange(id: number | null) {
     if (!id) {
       this.templateForm.reset({ templateId: 0, templateName: '' });
       this.rows.clear();
@@ -607,6 +600,13 @@ export class TrafficWizard implements OnInit, OnDestroy {
         patterns.forEach((p) => this.rows.push(this.createRow(p)));
       });
   }
+
+  private loadTemplates() {
+    this.templateService.GetAll().subscribe((resp) => {
+      this.templates = resp?.value ?? [];
+    });
+  }
+
   private toHHmm(s?: string | null): string {
     if (!s) return '00:00';
     const [h = '00', m = '00'] = s.split(':');
@@ -617,5 +617,38 @@ export class TrafficWizard implements OnInit, OnDestroy {
     if (!s) return '00:00:00';
     const [h = '00', m = '00'] = s.split(':');
     return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
+  }
+  // ===== HTML helpers (must be public) =====
+  private dirAt(i: number): FormGroup {
+    return this.directions.at(i) as FormGroup;
+  }
+
+  public getRawPatternId(i: number): number | null {
+    const raw = this.dirAt(i).getRawValue() as any;
+    const v = raw?.lightPatternId;
+    if (v == null) return null;
+    return typeof v === 'number' ? v : Number(v);
+  }
+
+  public isConflict(i: number): boolean {
+    return !!this.dirAt(i).get('isConflict')?.value;
+  }
+
+  public isPatternLocked(i: number): boolean {
+    return this.dirAt(i).get('lightPatternId')?.disabled === true;
+  }
+
+  public getDirectionDisplayName(i: number): string {
+    const name = (this.dirAt(i).get('name')?.value ?? '').toString().trim();
+    return name || (this.isAr ? `اتجاه ${i + 1}` : `Direction ${i + 1}`);
+  }
+
+  public getDirectionOrder(i: number): number {
+    return Number(this.dirAt(i).get('order')?.value ?? i + 1);
+  }
+
+  public getConflictWithIndex(i: number): number | null {
+    const lane = this.dirAt(i).get('conflictWith')?.value as number | null;
+    return this.findIndexByLane(lane);
   }
 }
