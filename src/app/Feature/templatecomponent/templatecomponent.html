@@ -54,17 +54,8 @@
           <!-- Template Selection -->
           <div class="form-section">
             <label for="templateSelect" class="section-label">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
               </svg>
               {{ tr('selectTemplate') }}
             </label>
@@ -74,23 +65,14 @@
               (change)="onTemplateChange($event)"
             >
               <option value="">{{ tr('chooseTemplate') }}</option>
-              <option *ngFor="let t of templates" [value]="t.id">
-                {{ t.name }}
-              </option>
+              <option *ngFor="let t of templates" [value]="t.id">{{ t.name }}</option>
             </select>
           </div>
 
           <!-- Template Name -->
           <div class="form-section">
             <label for="templateName" class="section-label">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
               </svg>
@@ -102,18 +84,10 @@
               class="form-control-modern"
               [placeholder]="tr('templateNamePh')"
               formControlName="templateName"
-              [class.is-invalid]="
-                templateForm.get('templateName')?.invalid &&
-                templateForm.get('templateName')?.touched
-              "
+              [class.is-invalid]="templateForm.get('templateName')?.invalid && templateForm.get('templateName')?.touched"
             />
-            <div
-              class="error-message"
-              *ngIf="
-                templateForm.get('templateName')?.invalid &&
-                templateForm.get('templateName')?.touched
-              "
-            >
+            <div class="error-message"
+                 *ngIf="templateForm.get('templateName')?.invalid && templateForm.get('templateName')?.touched">
               {{ tr('templateNameReq') }}
             </div>
           </div>
@@ -121,14 +95,7 @@
           <!-- Schedule Rows -->
           <div class="form-section">
             <label class="section-label">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                 <line x1="16" y1="2" x2="16" y2="6" />
                 <line x1="8" y1="2" x2="8" y2="6" />
@@ -139,11 +106,7 @@
             </label>
 
             <div class="schedule-list" formArrayName="rows">
-              <div
-                class="schedule-card"
-                *ngFor="let row of rows.controls; let i = index"
-                [formGroupName]="i"
-              >
+              <div class="schedule-card" *ngFor="let row of rows.controls; let i = index" [formGroupName]="i">
                 <div class="schedule-header">
                   <div class="pattern-info">
                     <div class="pattern-icon">
@@ -152,27 +115,13 @@
                     <div class="pattern-name">
                       {{
                         rows.at(i).get('lightPatternName')?.value ||
-                          tr('lightPattern') + ' #' + rows.at(i).get('lightPatternId')?.value
+                        tr('lightPattern') + ' #' + rows.at(i).get('lightPatternId')?.value
                       }}
                     </div>
                   </div>
-                  <button
-                    class="btn-icon-danger"
-                    type="button"
-                    (click)="removeRow(i)"
-                    [attr.aria-label]="tr('removeRow')"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path
-                        d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
-                      />
+                  <button class="btn-icon-danger" type="button" (click)="removeRow(i)" [attr.aria-label]="tr('removeRow')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                     </svg>
                   </button>
                 </div>
@@ -180,38 +129,19 @@
                 <div class="time-range">
                   <div class="time-input-group">
                     <label for="startFrom{{ i }}" class="time-label">{{ tr('start') }}</label>
-                    <input
-                      id="startFrom{{ i }}"
-                      type="time"
-                      class="time-input"
-                      formControlName="startFrom"
-                      dir="ltr"
-                    />
+                    <input id="startFrom{{ i }}" type="time" class="time-input" formControlName="startFrom" dir="ltr" />
                   </div>
                   <div class="time-divider">{{ isAr ? '←' : '→' }}</div>
                   <div class="time-input-group">
                     <label for="finishBy{{ i }}" class="time-label">{{ tr('end') }}</label>
-                    <input
-                      id="finishBy{{ i }}"
-                      type="time"
-                      class="time-input"
-                      formControlName="finishBy"
-                      dir="ltr"
-                    />
+                    <input id="finishBy{{ i }}" type="time" class="time-input" formControlName="finishBy" dir="ltr" />
                   </div>
                 </div>
               </div>
 
               <!-- Empty State -->
               <div class="empty-state" *ngIf="rows.length === 0">
-                <svg
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                >
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 8v4m0 4h.01" />
                 </svg>
@@ -230,19 +160,8 @@
                   {{ lp.name || tr('pattern') + ' #' + lp.id }}
                 </option>
               </select>
-              <button
-                class="btn-add"
-                type="button"
-                (click)="lpSel.value && addRowFromSelect(+lpSel.value)"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
+              <button class="btn-add" type="button" (click)="lpSel.value && addRowFromSelect(+lpSel.value)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
@@ -254,20 +173,12 @@
 
         <!-- Footer -->
         <div class="modern-footer">
-          <button
-            class="btn btn-outline-danger"
-            type="button"
-            (click)="deleteTemplate()"
-            [disabled]="!templateForm.value.templateId || submitting"
-          >
+          <button class="btn btn-outline-danger" type="button" (click)="deleteTemplate()"
+                  [disabled]="!templateForm.value.templateId || submitting">
             {{ tr('deleteTemplate') }}
           </button>
-          <button
-            class="btn btn-success"
-            type="button"
-            (click)="saveTemplatePattern()"
-            [disabled]="submitting || templateForm.invalid || rows.length === 0"
-          >
+          <button class="btn btn-success" type="button" (click)="saveTemplatePattern()"
+                  [disabled]="submitting || templateForm.invalid || rows.length === 0">
             {{ submitting ? tr('saving') : tr('saveTemplate') }}
           </button>
         </div>
@@ -279,14 +190,7 @@
       <section class="modern-card pattern-editor" [formGroup]="patternForm">
         <div class="card-header">
           <div class="header-title">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10" />
               <circle cx="12" cy="12" r="3" />
               <line x1="12" y1="1" x2="12" y2="3" />
@@ -302,14 +206,7 @@
           <!-- Pattern Name -->
           <div class="form-section">
             <label for="lpName" class="section-label">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
               </svg>
               {{ tr('patternName') }} <span class="required-mark">*</span>
@@ -320,14 +217,9 @@
               class="form-control-modern"
               [placeholder]="tr('patternNamePh')"
               formControlName="name"
-              [class.is-invalid]="
-                patternForm.get('name')?.invalid && patternForm.get('name')?.touched
-              "
+              [class.is-invalid]="patternForm.get('name')?.invalid && patternForm.get('name')?.touched"
             />
-            <div
-              class="error-message"
-              *ngIf="patternForm.get('name')?.invalid && patternForm.get('name')?.touched"
-            >
+            <div class="error-message" *ngIf="patternForm.get('name')?.invalid && patternForm.get('name')?.touched">
               {{ tr('patternNameReq') }}
             </div>
           </div>
@@ -335,14 +227,7 @@
           <!-- Select Existing Pattern -->
           <div class="form-section">
             <label for="patternSelect" class="section-label">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="9 11 12 14 22 4" />
                 <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
               </svg>
@@ -362,14 +247,7 @@
           <!-- Timing Configuration + Blink -->
           <div class="form-section">
             <label class="section-label">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
@@ -381,22 +259,14 @@
               <div
                 class="light-visual"
                 [class.blink]="patternForm.value.blinkGreen"
-                [style.--blinkMs.ms]="patternForm.value.blinkMs || 500"
+                [style.--blinkMs.ms]="patternForm.value.blinkInterval || 500"
               >
                 <img src="assets/img/g.png" alt="green" height="40" />
                 <span class="light-label">{{ tr('green') }}</span>
               </div>
               <div class="light-input-wrapper">
-                <input
-                  type="number"
-                  class="light-input"
-                  formControlName="green"
-                  min="0"
-                  max="1000"
-                  step="1"
-                  dir="ltr"
-                  [attr.aria-label]="tr('greenSec')"
-                />
+                <input type="number" class="light-input" formControlName="green" min="0" max="1000" step="1" dir="ltr"
+                       [attr.aria-label]="tr('greenSec')" />
                 <span class="light-unit">{{ tr('sec') }}</span>
               </div>
               <label class="blink-toggle">
@@ -410,22 +280,14 @@
               <div
                 class="light-visual"
                 [class.blink]="patternForm.value.blinkYellow"
-                [style.--blinkMs.ms]="patternForm.value.blinkMs || 500"
+                [style.--blinkMs.ms]="patternForm.value.blinkInterval || 500"
               >
                 <img src="assets/img/a.png" alt="yellow" height="40" />
                 <span class="light-label">{{ tr('yellow') }}</span>
               </div>
               <div class="light-input-wrapper">
-                <input
-                  type="number"
-                  class="light-input"
-                  formControlName="yellow"
-                  min="0"
-                  max="1000"
-                  step="1"
-                  dir="ltr"
-                  [attr.aria-label]="tr('yellowSec')"
-                />
+                <input type="number" class="light-input" formControlName="yellow" min="0" max="1000" step="1" dir="ltr"
+                       [attr.aria-label]="tr('yellowSec')" />
                 <span class="light-unit">{{ tr('sec') }}</span>
               </div>
               <label class="blink-toggle">
@@ -439,22 +301,14 @@
               <div
                 class="light-visual"
                 [class.blink]="patternForm.value.blinkRed"
-                [style.--blinkMs.ms]="patternForm.value.blinkMs || 500"
+                [style.--blinkMs.ms]="patternForm.value.blinkInterval || 500"
               >
                 <img src="assets/img/r.png" alt="red" height="40" />
                 <span class="light-label">{{ tr('red') }}</span>
               </div>
               <div class="light-input-wrapper">
-                <input
-                  type="number"
-                  class="light-input"
-                  formControlName="red"
-                  min="0"
-                  max="1000"
-                  step="1"
-                  dir="ltr"
-                  [attr.aria-label]="tr('redSec')"
-                />
+                <input type="number" class="light-input" formControlName="red" min="0" max="1000" step="1" dir="ltr"
+                       [attr.aria-label]="tr('redSec')" />
                 <span class="light-unit">{{ tr('sec') }}</span>
               </div>
               <label class="blink-toggle">
@@ -466,14 +320,7 @@
             <!-- Blink interval (ms) -->
             <div class="form-section" style="margin-top: 0.5rem">
               <label for="blinkMs" class="section-label">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 6v6l4 2" />
                   <circle cx="12" cy="12" r="10" />
                 </svg>
@@ -484,7 +331,7 @@
                   id="blinkMs"
                   type="number"
                   class="form-control-modern"
-                  formControlName="blinkMs"
+                  formControlName="blinkInterval"
                   min="50"
                   max="10000"
                   step="10"
@@ -496,10 +343,8 @@
                   {{ isAr ? 'المدى المقترح 50–10000 مللي ثانية' : 'Suggested range 50–10000 ms' }}
                 </small>
               </div>
-              <div
-                class="error-message"
-                *ngIf="patternForm.get('blinkMs')?.invalid && patternForm.get('blinkMs')?.touched"
-              >
+              <div class="error-message"
+                   *ngIf="patternForm.get('blinkInterval')?.invalid && patternForm.get('blinkInterval')?.touched">
                 {{ isAr ? 'قيمة غير صالحة.' : 'Invalid value.' }}
               </div>
             </div>
@@ -508,20 +353,11 @@
 
         <!-- Footer -->
         <div class="card-footer">
-          <button
-            class="btn-delete"
-            type="button"
-            (click)="deletePattern()"
-            [disabled]="!patternForm.value.selectedPattern"
-          >
+          <button class="btn-delete" type="button" (click)="deletePattern()"
+                  [disabled]="!patternForm.value.selectedPattern">
             {{ tr('delete') }}
           </button>
-          <button
-            class="btn-save"
-            type="button"
-            (click)="createPattern()"
-            [disabled]="patternForm.invalid || submitting"
-          >
+          <button class="btn-save" type="button" (click)="createPattern()" [disabled]="patternForm.invalid || submitting">
             {{ submitting ? tr('saving') : tr('createPattern') }}
           </button>
         </div>

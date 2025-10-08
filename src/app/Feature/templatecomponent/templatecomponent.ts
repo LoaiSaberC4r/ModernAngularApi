@@ -42,6 +42,7 @@ export class Templatecomponent implements OnInit {
   get isAr() {
     return this.lang.current === 'ar';
   }
+
   private dict = {
     en: {
       templateManager: 'Template Manager',
@@ -154,13 +155,12 @@ export class Templatecomponent implements OnInit {
     yellow: [0, [Validators.required, Validators.min(0)]],
     red: [0, [Validators.required, Validators.min(0)]],
 
-    // Blink flags (UI preview only)
     blinkGreen: [false],
     blinkYellow: [false],
     blinkRed: [false],
 
-    // NEW: Blink interval (ms)
-    BlinkInterval: [500, [Validators.required, Validators.min(50), Validators.max(10000)]],
+    // موحّد: blinkInterval (ms)
+    blinkInterval: [500, [Validators.required, Validators.min(50), Validators.max(10000)]],
   });
 
   get rows(): FormArray<FormGroup> {
@@ -183,7 +183,7 @@ export class Templatecomponent implements OnInit {
               green: p.green,
               yellow: p.yellow,
               red: p.red,
-              BlinkInterval: typeof (p as any).blinkMs === 'number' ? (p as any).blinkMs : 500,
+              blinkInterval: (p as any).BlinkInterval ?? 500,
               blinkGreen: false,
               blinkYellow: false,
               blinkRed: false,
@@ -197,7 +197,7 @@ export class Templatecomponent implements OnInit {
               green: 0,
               yellow: 0,
               red: 0,
-              BlinkInterval: 500,
+              blinkInterval: 500,
               blinkGreen: false,
               blinkYellow: false,
               blinkRed: false,
@@ -217,9 +217,9 @@ export class Templatecomponent implements OnInit {
 
   private loadLightPatterns() {
     this.lightPatternService.getAll().subscribe((resp) => {
-      // لو الـ API القديم لا يرجع blinkMs، نضبط قيمة افتراضية
       const list = (resp?.value ?? []).map((p: any) => ({
         ...p,
+        // نضمن وجود BlinkInterval من الـ API
         BlinkInterval: typeof p.BlinkInterval === 'number' ? p.BlinkInterval : 500,
       }));
       this.lightPatterns = list;
@@ -363,7 +363,7 @@ export class Templatecomponent implements OnInit {
         red: selected.red,
         green: selected.green,
         yellow: selected.yellow,
-        BlinkInterval: typeof (selected as any).BlinkInterval === 'number' ? (selected as any).BlinkInterval : 500,
+        blinkInterval: (selected as any).BlinkInterval ?? 500,
         blinkGreen: false,
         blinkYellow: false,
         blinkRed: false,
@@ -384,10 +384,10 @@ export class Templatecomponent implements OnInit {
       greenTime: Number(raw.green) || 0,
       yellowTime: Number(raw.yellow) || 0,
       redTime: Number(raw.red) || 0,
-      BlinkInterval: Number(raw.BlinkInterval) || 500, // NEW ,
-      BlinkGreen: raw.blinkGreen,
-      BlinkYellow: raw.blinkYellow,
-      BlinkRed: raw.blinkRed,
+      BlinkInterval: Number(raw.blinkInterval) || 500, // التحويل لاسم الـ DTO
+      BlinkGreen: !!raw.blinkGreen,
+      BlinkYellow: !!raw.blinkYellow,
+      BlinkRed: !!raw.blinkRed,
     };
 
     this.lightPatternService.add(payload).subscribe((resp) => {
@@ -400,7 +400,7 @@ export class Templatecomponent implements OnInit {
           green: 0,
           yellow: 0,
           red: 0,
-          blinkMs: 500,
+          blinkInterval: 500,
           blinkGreen: false,
           blinkYellow: false,
           blinkRed: false,
@@ -429,7 +429,7 @@ export class Templatecomponent implements OnInit {
           green: 0,
           yellow: 0,
           red: 0,
-          blinkMs: 500,
+          blinkInterval: 500,
           blinkGreen: false,
           blinkYellow: false,
           blinkRed: false,
