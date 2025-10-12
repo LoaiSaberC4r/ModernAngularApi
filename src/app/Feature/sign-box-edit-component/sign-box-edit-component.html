@@ -8,19 +8,11 @@
 
     <!-- Toast stack -->
     <div class="popup-stack" aria-live="polite" aria-atomic="true">
-      <div
-        *ngFor="let t of toasts"
-        class="custom-popup"
-        [ngClass]="[t.active ? 'show' : '', 'popup-' + t.type]"
-        role="status"
-      >
+      <div *ngFor="let t of toasts" class="custom-popup" [ngClass]="[t.active ? 'show' : '', 'popup-' + t.type]"
+        role="status">
         <span class="popup-msg">{{ t.message }}</span>
-        <button
-          type="button"
-          class="popup-close"
-          (click)="dismissToast(t.id)"
-          [attr.aria-label]="isAr ? 'إغلاق الإشعار' : 'Close notification'"
-        >
+        <button type="button" class="popup-close" (click)="dismissToast(t.id)"
+          [attr.aria-label]="isAr ? 'إغلاق الإشعار' : 'Close notification'">
           ×
         </button>
       </div>
@@ -31,13 +23,8 @@
     <!-- Name -->
     <div class="form-group">
       <label for="name">{{ isAr ? 'الاسم' : 'Name' }}</label>
-      <input
-        id="name"
-        formControlName="name"
-        class="form-control border"
-        [placeholder]="isAr ? 'اسم وصفي' : 'Descriptive name'"
-        [attr.dir]="isAr ? 'rtl' : 'ltr'"
-      />
+      <input id="name" formControlName="name" class="form-control border"
+        [placeholder]="isAr ? 'اسم وصفي' : 'Descriptive name'" [attr.dir]="isAr ? 'rtl' : 'ltr'" />
       <div *ngIf="form.controls['name'].invalid && form.controls['name'].touched" class="error">
         {{ isAr ? 'الاسم مطلوب' : 'Name is required' }}
       </div>
@@ -46,17 +33,9 @@
     <!-- IP -->
     <div class="form-group">
       <label for="ip">{{ isAr ? 'عنوان IP' : 'IP Address' }}</label>
-      <input
-        id="ip"
-        formControlName="ipAddress"
-        class="form-control border"
-        dir="ltr"
-        [placeholder]="isAr ? 'مثال: 192.168.1.50' : 'e.g. 192.168.1.50'"
-      />
-      <div
-        *ngIf="form.controls['ipAddress'].invalid && form.controls['ipAddress'].touched"
-        class="error"
-      >
+      <input id="ip" formControlName="ipAddress" class="form-control border" dir="ltr"
+        [placeholder]="isAr ? 'مثال: 192.168.1.50' : 'e.g. 192.168.1.50'" />
+      <div *ngIf="form.controls['ipAddress'].invalid && form.controls['ipAddress'].touched" class="error">
         <span *ngIf="form.controls['ipAddress'].errors?.['required']">
           {{ isAr ? 'عنوان IP مطلوب' : 'IP Address is required' }}
         </span>
@@ -70,23 +49,13 @@
     <div class="row-2">
       <div class="form-group">
         <label for="lat">{{ isAr ? 'خط العرض' : 'Latitude' }}</label>
-        <input
-          id="lat"
-          formControlName="latitude"
-          class="form-control border"
-          dir="ltr"
-          [placeholder]="isAr ? 'مثال: 30.0444' : 'e.g. 30.0444'"
-        />
+        <input id="lat" formControlName="latitude" class="form-control border" dir="ltr"
+          [placeholder]="isAr ? 'مثال: 30.0444' : 'e.g. 30.0444'" />
       </div>
       <div class="form-group">
         <label for="lng">{{ isAr ? 'خط الطول' : 'Longitude' }}</label>
-        <input
-          id="lng"
-          formControlName="longitude"
-          class="form-control border"
-          dir="ltr"
-          [placeholder]="isAr ? 'مثال: 31.2357' : 'e.g. 31.2357'"
-        />
+        <input id="lng" formControlName="longitude" class="form-control border" dir="ltr"
+          [placeholder]="isAr ? 'مثال: 31.2357' : 'e.g. 31.2357'" />
       </div>
     </div>
 
@@ -94,43 +63,27 @@
     <div class="row-2">
       <div class="form-group">
         <label for="gov">{{ isAr ? 'المحافظة' : 'Governorate' }}</label>
-        <select
-          id="gov"
-          class="form-control-modern"
-          formControlName="governateId"
-          (change)="onGovernorateChange()"
-          [attr.dir]="isAr ? 'rtl' : 'ltr'"
-        >
+        <select id="gov" class="form-control-modern" formControlName="governateId" (change)="onGovernorateChange()"
+          [attr.dir]="isAr ? 'rtl' : 'ltr'">
           <option [ngValue]="null" disabled selected>
             {{ isAr ? 'اختر المحافظة' : 'Select governorate' }}
           </option>
           <option *ngFor="let g of governates" [ngValue]="g.id">{{ g.name }}</option>
         </select>
-        <div
-          *ngIf="form.controls['governateId'].invalid && form.controls['governateId'].touched"
-          class="error"
-        >
+        <div *ngIf="form.controls['governateId'].invalid && form.controls['governateId'].touched" class="error">
           {{ isAr ? 'المحافظة مطلوبة' : 'Governorate is required' }}
         </div>
       </div>
 
       <div class="form-group">
         <label for="area">{{ isAr ? 'الحي' : 'Area' }}</label>
-        <select
-          id="area"
-          class="form-control-modern"
-          formControlName="areaId"
-          [attr.dir]="isAr ? 'rtl' : 'ltr'"
-        >
+        <select id="area" class="form-control-modern" formControlName="areaId" [attr.dir]="isAr ? 'rtl' : 'ltr'">
           <option [ngValue]="null" disabled selected>
             {{ isAr ? 'اختر الحي' : 'Select area' }}
           </option>
           <option *ngFor="let a of areas" [ngValue]="a.id">{{ a.name }}</option>
         </select>
-        <div
-          *ngIf="form.controls['areaId'].invalid && form.controls['areaId'].touched"
-          class="error"
-        >
+        <div *ngIf="form.controls['areaId'].invalid && form.controls['areaId'].touched" class="error">
           {{ isAr ? 'الحي مطلوب' : 'Area is required' }}
         </div>
       </div>
@@ -141,82 +94,62 @@
       <label>{{ isAr ? 'الاتجاهات' : 'Directions' }}</label>
 
       <div formArrayName="directions">
-        <div
-          class="dir-row"
-          *ngFor="let dir of directions.controls; let i = index"
-          [formGroupName]="i"
-        >
+        <div class="dir-row" *ngFor="let dir of directions.controls; let i = index" [formGroupName]="i">
           <!-- Direction name -->
-          <input
-            formControlName="name"
-            class="form-control flex-1"
-            [placeholder]="isAr ? 'اسم الاتجاه' : 'Direction name'"
-            [attr.dir]="isAr ? 'rtl' : 'ltr'"
-          />
+          <div class="form-section">
+            <label class="section-label" [attr.dir]="isAr ? 'rtl' : 'ltr'">
+              {{ isAr ? 'اسم الاتجاه' : 'Direction Name' }}
+            </label>
+            <input formControlName="name" class="form-control flex-1"
+              [placeholder]="isAr ? 'اسم الاتجاه' : 'Direction name'" [attr.dir]="isAr ? 'rtl' : 'ltr'" />
+          </div>
 
           <!-- Order -->
-          <input
-            type="number"
-            formControlName="order"
-            min="1"
-            max="4"
-            step="1"
-            class="form-control small"
-            [placeholder]="isAr ? 'الترتيب' : 'Order'"
-            dir="ltr"
-          />
-          <div
-            class="error"
-            *ngIf="
-              (directions.at(i).get('order')?.touched || directions.at(i).get('order')?.dirty) &&
-              directions.at(i).get('order')?.errors as e
-            "
-          >
-            <span *ngIf="e['required']">{{ isAr ? 'الترتيب مطلوب.' : 'Order is required.' }}</span>
-            <span *ngIf="e['min'] || e['max']">{{
-              isAr ? 'يجب أن يكون الترتيب بين 1 و 4.' : 'Order must be between 1 and 4.'
-            }}</span>
-            <span *ngIf="e['duplicateOrder']">{{
-              isAr ? 'رقم الترتيب مستخدم بالفعل.' : 'This order number is already used.'
-            }}</span>
+          <div class="form-section">
+            <label class="section-label" [attr.dir]="isAr ? 'rtl' : 'ltr'">
+              {{ isAr ? 'طريق' : 'Lane' }}
+            </label>
+            <input type="number" formControlName="order" min="1" max="4" step="1" class="form-control small"
+              [placeholder]="isAr ? 'طريق' : 'Lane'" dir="ltr" />
+            <div class="error" *ngIf="
+            (directions.at(i).get('order')?.touched || directions.at(i).get('order')?.dirty) &&
+            directions.at(i).get('order')?.errors as e
+          ">
+              <span *ngIf="e['required']">{{
+                isAr ? 'طريق مطلوب.' : 'Lane is required.'
+                }}</span>
+              <span *ngIf="e['min'] || e['max']">{{
+                isAr ? 'يجب أن يكون الطريقة بين 1 و 4.' : 'Lane must be between 1 and 4.'
+                }}</span>
+              <span *ngIf="e['duplicateOrder']">{{
+                isAr ? 'رقم الطريقة مستخدم بالفعل.' : 'This lane number is already used.'
+                }}</span>
+            </div>
           </div>
 
           <!-- Template select (per direction) -->
           <div class="form-section">
-            <label
-              [for]="'templateSelect' + i"
-              class="section-label"
-              [attr.dir]="isAr ? 'rtl' : 'ltr'"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                />
-              </svg>
-              {{ tr('selectTemplate') }}
+            <label [for]="'templateSelect' + i" class="section-label" [attr.dir]="isAr ? 'rtl' : 'ltr'">
+              {{ isAr ? 'القالب' : 'Template' }}
             </label>
-            <select
-              class="form-control-modern"
-              [id]="'templateSelect' + i"
-              formControlName="templateId"
-              (change)="onTemplateChange(i, $event)"
-              [attr.dir]="isAr ? 'rtl' : 'ltr'"
-            >
-              <option [ngValue]="null">{{ tr('chooseTemplate') }}</option>
-              <option *ngFor="let t of templates" [ngValue]="t.id">{{ t.name }}</option>
+            <select class="form-control-modern" [id]="'templateSelect' + i" formControlName="templateId"
+              (change)="onTemplateChange(i, $event)" [attr.dir]="isAr ? 'rtl' : 'ltr'">
+              <option [ngValue]="null">
+                {{ isAr ? 'اختر القالب' : 'Choose template' }}
+              </option>
+              <option *ngFor="let t of templates" [ngValue]="t.id">
+                {{ t.name }}
+              </option>
             </select>
           </div>
 
-          <button type="button" class="btn btn-danger text-white" (click)="removeDirection(i)">
-            {{ isAr ? 'حذف' : 'Remove' }}
-          </button>
+          <!-- Remove button -->
+          <div class="form-section">
+            <label class="section-label">&nbsp;</label>
+            <button type="button" class="btn btn-danger text-white" (click)="removeDirection(i)">
+              {{ isAr ? 'حذف' : 'Remove' }}
+            </button>
+          </div>
         </div>
       </div>
 
