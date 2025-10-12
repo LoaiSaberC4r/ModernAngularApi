@@ -7,14 +7,10 @@
     <div class="search-container">
       <div class="search-box">
         <i class="fas fa-search search-icon"></i>
-        <input
-          type="text"
-          class="search-input"
+        <input type="text" class="search-input"
           [placeholder]="isAr ? 'ابحث بالاسم أو المعرّف...' : 'Search by name or ID...'"
-          [(ngModel)]="searchParameter.searchText"
-          (ngModelChange)="onSearchEnter()"
-          [attr.dir]="isAr ? 'rtl' : 'ltr'"
-        />
+          [(ngModel)]="searchParameter.searchText" (ngModelChange)="onSearchEnter()"
+          [attr.dir]="isAr ? 'rtl' : 'ltr'" />
       </div>
 
       <!-- Active Filter -->
@@ -53,12 +49,8 @@
       </tr>
     </thead>
     <tbody>
-      <tr
-        *ngFor="let item of filteredData"
-        (mouseenter)="showPopup(item, $event)"
-        (mousemove)="movePopup($event)"
-        (mouseleave)="hidePopup()"
-      >
+      <tr *ngFor="let item of filteredData" (mouseenter)="showPopup(item, $event)" (mousemove)="movePopup($event)"
+        (mouseleave)="hidePopup()">
         <td>{{ item.id }}</td>
         <td dir="ltr">{{ item.ipAddress }}</td>
         <td>{{ item.name }}</td>
@@ -78,11 +70,7 @@
   </table>
 
   <!-- Popup -->
-  <div
-    class="traffic-popup"
-    *ngIf="popupVisible"
-    [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }"
-  >
+  <div class="traffic-popup" *ngIf="popupVisible" [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }">
     <div class="tp-header">
       <div class="tp-title">
         <span class="tp-dot connected"></span>
@@ -98,30 +86,23 @@
             {{ isAr ? 'اتجاه' : 'Direction' }}: {{ dir.name }}
           </span>
           <span class="tp-timer">
-            {{ !isDisconnected ? dir.timer + (isAr ? ' ث' : 's') : '--' }}
+            {{ !isDisconnected ? dir.time + (isAr ? ' ث' : 's') : '--' }}
           </span>
         </div>
         <div class="traffic-light">
-          <div
-            class="tp-lamp"
-            [ngClass]="{ 'is-red': true, disconnected: isDisconnected, active: dir.code === 'R' }"
-          >
+          <div class="tp-lamp"
+            [ngClass]="{ 'is-red': true, disconnected: isDisconnected, active: dir.lightCode === 'R' }">
             🔴
           </div>
-          <div
-            class="tp-lamp"
-            [ngClass]="{
+          <div class="tp-lamp" [ngClass]="{
               'is-yellow': true,
               disconnected: isDisconnected,
-              active: dir.code === 'Y'
-            }"
-          >
+              active: dir.lightCode === 'Y'
+            }">
             🟡
           </div>
-          <div
-            class="tp-lamp"
-            [ngClass]="{ 'is-green': true, disconnected: isDisconnected, active: dir.code === 'G' }"
-          >
+          <div class="tp-lamp"
+            [ngClass]="{ 'is-green': true, disconnected: isDisconnected, active: dir.lightCode === 'G' }">
             🟢
           </div>
         </div>
@@ -129,4 +110,3 @@
     </div>
   </div>
 </div>
-  

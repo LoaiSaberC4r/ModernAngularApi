@@ -1,14 +1,10 @@
 import { TrafficColor } from '../PopUpSignBox/PopUpSignBox';
+import { TrafficBroadcast } from './TrafficBroadcast';
 
-export interface ChatMessage {
+export interface ChatMessage<T = TrafficBroadcast> {
   user: string;
-  message: ReceiveMessage;
+  message: T;
   at: Date;
 }
-export interface ReceiveMessage {
-  L1: TrafficColor;
-  L2: TrafficColor;
-  T1: number;
-  T2: number;
-  ID: number;
-}
+
+export type ReceiveMessage = TrafficBroadcast;

@@ -3,4 +3,4 @@ export interface UnitAction {
   actionId: string;
   operatorData: string;
   at: Date;
-}   
+}

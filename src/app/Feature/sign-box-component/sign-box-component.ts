@@ -15,18 +15,9 @@ import { PopUpDirection, PopUpSignBox, TrafficColor } from '../../Domain/PopUpSi
 import { Subscription, timer } from 'rxjs';
 import { LanguageService } from '../../Services/Language/language-service';
 
-export interface ReceiveMessage {
-  L1: 'R' | 'Y' | 'G';
-  L2: 'R' | 'Y' | 'G';
-  T1: number;
-  T2: number;
-  ID: number;
-}
-export interface ChatMessage {
-  user: string;
-  message: ReceiveMessage;
-  at: Date;
-}
+import { TrafficBroadcast } from '../../Domain/SignalR/TrafficBroadcast';
+import { ChatMessage } from '../../Domain/SignalR/ChatMessage';
+import { HubConnectionStatus } from '../../Domain/SignalR/HubConnectionStatus';
 
 @Component({
   selector: 'app-sign-box-component',
@@ -84,18 +75,20 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   popupX = 0;
   popupY = 0;
   popupData: PopUpSignBox | null = null;
-  popupLive: ReceiveMessage | null = null;
-  latestById: Record<number, ReceiveMessage> = {};
+  popupLive: TrafficBroadcast | null = null;
+
+  // آخر بث لكل صندوق حسب الـ ID
+  latestById: Record<number, TrafficBroadcast> = {};
 
   constructor() {
+    // استقبل البث وحدث الجدول والـpopup
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
+        console.log(message);
         if (!message) return;
-        const id = message.ID;
 
-        this.disconnectTimerSub?.unsubscribe();
-        this.isDisconnected = false;
+        const id = message.ID;
 
         this.latestById[id] = message;
 
@@ -109,17 +102,14 @@ export class SignBoxComponent implements OnInit, OnDestroy {
         };
 
         if (this.popupData?.Id === id) {
-          this.popupLive = message;
           const row = this.signBoxEntity.value.data.find((x) => x.id === id);
-          if (row) {
-            this.popupData = {
-              ...this.popupData,
-              name: row.name ?? this.popupData.name,
-              Latitude: row.latitude ?? this.popupData.Latitude,
-              Longitude: row.longitude ?? this.popupData.Longitude,
-            };
-          }
+          if (row) this.popupData = this.toPopup(row, message);
+          this.popupLive = message;
+          this.isDisconnected = false;
         }
+
+        this.disconnectTimerSub?.unsubscribe();
+        this.isDisconnected = false;
       });
 
     toObservable(this.signalr.status)
@@ -183,19 +173,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   // ===== Popup =====
   showPopup(row: GetAllSignControlBox, event: MouseEvent) {
     const live = this.latestById[row.id] ?? null;
-
-    this.popupData = {
-      Id: row.id,
-      name: row.name ?? '—',
-      Latitude: row.latitude ?? '—',
-      Longitude: row.longitude ?? '—',
-      directions: (row.directions ?? []).map((d, idx) => ({
-        name: d.name,
-        code: (live ? (live as any)[`L${idx + 1}`] : 'R') as TrafficColor,
-        timer: (live ? (live as any)[`T${idx + 1}`] : 0) as number,
-      })),
-    };
-
+    this.popupData = this.toPopup(row, live ?? undefined);
     this.popupLive = live;
     this.popupVisible = true;
     this.updatePopupPosition(event);
@@ -223,10 +201,32 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     this.popupY = y + window.scrollY;
   }
 
-  mapCodeToClass(code?: 'R' | 'Y' | 'G') {
+  // يبني الـpopup من بيانات الصف + آخر بث متاح
+  private toPopup(row: GetAllSignControlBox, live?: TrafficBroadcast): PopUpSignBox {
+    // لاحظ: بنستخدم lightCode/time عشان نطابق تعريف PopUpDirection عندك
+    const directions: PopUpDirection[] = (row.directions ?? []).slice(0, 4).map((d, idx) => {
+      const ln = `L${idx + 1}` as keyof TrafficBroadcast;
+      const tn = `T${idx + 1}` as keyof TrafficBroadcast;
+      return {
+        name: d.name,
+        lightCode: live ? (live[ln] as TrafficColor) : 'R',
+        time: live ? (live[tn] as number) : 0,
+      } as PopUpDirection;
+    });
+
+    return {
+      Id: row.id,
+      name: row.name ?? '—',
+      Latitude: row.latitude ?? '—',
+      Longitude: row.longitude ?? '—',
+      directions,
+    };
+  }
+
+  mapCodeToClass(code?: TrafficColor) {
     return code === 'G' ? 'is-green' : code === 'Y' ? 'is-yellow' : 'is-red';
   }
-  lightEmoji(code?: 'R' | 'Y' | 'G') {
+  lightEmoji(code?: TrafficColor) {
     return code === 'G' ? '🟢' : code === 'Y' ? '🟡' : '🔴';
   }
 }

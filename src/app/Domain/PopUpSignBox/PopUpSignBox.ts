@@ -9,11 +9,7 @@ export interface PopUpSignBox {
   name: string;
   Latitude: string;
   Longitude: string;
-  directions: {
-    name: string;
-    code: TrafficColor;
-    timer: number;
-  }[];
+  directions: PopUpDirection[];
 }
 
 export type TrafficColor = 'R' | 'G' | 'Y';
