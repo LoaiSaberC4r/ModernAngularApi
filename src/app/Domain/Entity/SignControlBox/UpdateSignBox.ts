@@ -6,5 +6,6 @@ export interface UpdateSignControlBox {
   latitude: string;
   longitude: string;
   areaId: number;
+  cabinetId: number;
   directions: SignDirection[];
 }

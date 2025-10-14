@@ -65,7 +65,7 @@
         <label for="gov">{{ isAr ? 'المحافظة' : 'Governorate' }}</label>
         <select id="gov" class="form-control-modern" formControlName="governateId" (change)="onGovernorateChange()"
           [attr.dir]="isAr ? 'rtl' : 'ltr'">
-          <option [ngValue]="null" disabled selected>
+          <option [ngValue]="null" disabled>
             {{ isAr ? 'اختر المحافظة' : 'Select governorate' }}
           </option>
           <option *ngFor="let g of governates" [ngValue]="g.id">{{ g.name }}</option>
@@ -78,7 +78,7 @@
       <div class="form-group">
         <label for="area">{{ isAr ? 'الحي' : 'Area' }}</label>
         <select id="area" class="form-control-modern" formControlName="areaId" [attr.dir]="isAr ? 'rtl' : 'ltr'">
-          <option [ngValue]="null" disabled selected>
+          <option [ngValue]="null" disabled>
             {{ isAr ? 'اختر الحي' : 'Select area' }}
           </option>
           <option *ngFor="let a of areas" [ngValue]="a.id">{{ a.name }}</option>
@@ -153,18 +153,28 @@
         </div>
       </div>
 
-      <button type="button" class="btn btn-success mt-2 mb-3" (click)="addDirection()">
-        {{ isAr ? 'إضافة اتجاه' : 'Add Direction' }}
-      </button>
+
     </div>
 
     <!-- Actions -->
     <div class="actions">
-      <button type="submit" class="apply-button me-2">{{ isAr ? 'تطبيق' : 'Apply' }}</button>
-      <button type="button" (click)="cancel()" class="cancel-button">
-        {{ isAr ? 'إلغاء' : 'Cancel' }}
+      <button type="button" class="add-direction-button" (click)="addDirection()">
+        {{ isAr ? 'إضافة اتجاه' : 'Add Direction' }}
       </button>
+
+      <div class="actions-end">
+        <button type="submit" class="apply-button">
+          {{ isAr ? 'تطبيق' : 'Apply' }}
+        </button>
+        <button type="button" (click)="cancel()" class="cancel-button">
+          {{ isAr ? 'إلغاء' : 'Cancel' }}
+        </button>
+      </div>
     </div>
+
+
+
+
   </form>
 </div>
 

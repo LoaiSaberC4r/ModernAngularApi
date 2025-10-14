@@ -34,7 +34,7 @@ export class ISignBoxControlService {
       .set('SearchText', params.searchText ?? '')
       .set('SortOrder', params.sortOrder ?? 'Newest')
       .set('Page', params.page?.toString() ?? '1')
-      .set('PageSize', params.pageSize?.toString() ?? '10');
+      .set('PageSize', (params.pageSize ?? 1000).toString());
 
     const cacheKey = query.toString();
     if (this.cache.has(cacheKey)) {

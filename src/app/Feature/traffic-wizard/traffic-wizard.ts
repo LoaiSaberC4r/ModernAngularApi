@@ -298,7 +298,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
   }
 
   /**
-   * selectedIndexOrLane: هنا هنستقبل رقم المسار (Lane = order)
+   * selectedIndexOrLane: هنا هنستقبل رقم المسار 
    */
   onConflictSelected(currentIndex: number, selectedLane: number | null) {
     const current = this.getDir(currentIndex);

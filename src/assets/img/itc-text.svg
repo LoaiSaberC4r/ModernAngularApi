@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="420" height="160" viewBox="0 0 420 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ITC logo wordmark">
+  <!-- Red accent square (brand dot echo) -->
+  <rect x="34" y="22" width="16" height="16" rx="3" fill="#EF4444"/>
+  <!-- Wordmark -->
+  <text x="60" y="116"
+        font-family="Segoe UI, Roboto, Arial, Helvetica, sans-serif"
+        font-size="96"
+        font-weight="800"
+        letter-spacing="2"
+        fill="#0EA5E9">ITC</text>
+</svg>

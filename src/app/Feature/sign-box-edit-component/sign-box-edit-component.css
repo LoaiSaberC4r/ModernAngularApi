@@ -28,7 +28,6 @@
   box-shadow: var(--shadow-md);
   border: 1px solid var(--border);
   color: var(--text);
-  
 }
 
 /* Title */
@@ -225,11 +224,61 @@ input[type='number'].small {
 .cancel-button:hover {
   filter: brightness(0.97);
 }
+/* Actions container */
 .actions {
   display: flex;
+  align-items: center;
   gap: 0.6rem;
-  margin-top: 0.4rem;
+  margin-top: 1rem;
   flex-wrap: wrap;
+}
+
+.actions-end {
+  display: flex;
+  gap: 0.6rem;
+  margin-inline-start: auto;
+}
+
+.add-direction-button {
+  background-color: #38bdf8;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.add-direction-button:hover {
+  background-color: #0ea5e9;
+}
+
+.apply-button {
+  background-color: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.apply-button:hover {
+  background-color: #16a34a;
+}
+
+.cancel-button {
+  background-color: #e5e7eb;
+  color: #111827;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.cancel-button:hover {
+  background-color: #d1d5db;
 }
 
 /* Toasts */

@@ -31,7 +31,6 @@ import { ITemplatePatternService } from '../../Services/TemplatePattern/itemplat
 import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
 import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
 
-// Simple IPv4 regex
 const IPV4_REGEX = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
 
 type DirectionView = {
@@ -52,7 +51,6 @@ type LightPatternItem = { id: number; name: string };
   styleUrls: ['./sign-box-edit-component.css'],
 })
 export class SignBoxEditComponent implements OnInit {
-  // DI
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
@@ -61,7 +59,6 @@ export class SignBoxEditComponent implements OnInit {
   private readonly areaService = inject(IAreaService);
   private readonly governateService = inject(IGovernateService);
   public langService = inject(LanguageService);
-
   private readonly templateService = inject(ITemplateService);
   private readonly templatePatternService = inject(ITemplatePatternService);
 
@@ -69,13 +66,18 @@ export class SignBoxEditComponent implements OnInit {
     return this.langService.current === 'ar';
   }
 
+  // sync flags + pending IDs
+  private governatesLoaded = false;
+  private pendingGovId: number | null = null;
+  private pendingAreaId: number | null = null;
+  private resolvingGovFromArea = false;
+
   governates: GetAllGovernate[] = [];
   areas: GetAllArea[] = [];
   templates: GetAllTemplate[] = [];
   loading = false;
   id!: number;
 
-  // مصدر الدروب داون (لو احتجته لاحقاً)
   lightPatterns: LightPatternItem[] = [];
 
   form: FormGroup = this.fb.group({
@@ -89,7 +91,6 @@ export class SignBoxEditComponent implements OnInit {
     directions: this.fb.array<FormGroup>([]),
   });
 
-  // Toast state (template-driven popup)
   toasts: Array<{
     id: number;
     message: string;
@@ -105,53 +106,47 @@ export class SignBoxEditComponent implements OnInit {
     return this.form.get('directions') as FormArray<FormGroup>;
   }
 
-  // ========= Duplicate order validator for directions =========
+  // ====== unique lane validator ======
   private uniqueOrderValidator = (ctrl: AbstractControl): ValidationErrors | null => {
     const fa = ctrl as FormArray;
     if (!fa?.controls?.length) return null;
 
-    // clear previous duplicate flags
     fa.controls.forEach((g) => {
       const c = (g as FormGroup).get('order')!;
-      if (!c) return;
       const errs = { ...(c.errors || {}) };
       delete (errs as any).duplicateOrder;
       c.setErrors(Object.keys(errs).length ? errs : null);
     });
 
-    // collect valid orders (1..4)
     const map = new Map<number, number[]>();
     fa.controls.forEach((g, idx) => {
       const raw = (g as FormGroup).get('order')?.value;
-      const val = raw === '' || raw === null || raw === undefined ? null : Number(raw);
-      if (val !== null && !Number.isNaN(val) && val >= 1 && val <= 4) {
+      const val = raw === '' || raw == null ? null : Number(raw);
+      if (val != null && !Number.isNaN(val) && val >= 1 && val <= 4) {
         const arr = map.get(val) ?? [];
         arr.push(idx);
         map.set(val, arr);
       }
     });
 
-    let hasDup = false;
+    let dup = false;
     map.forEach((idxs) => {
       if (idxs.length > 1) {
-        hasDup = true;
+        dup = true;
         idxs.forEach((i) => {
           const c = (fa.at(i) as FormGroup).get('order')!;
           c.setErrors({ ...(c.errors || {}), duplicateOrder: true });
         });
       }
     });
-
-    return hasDup ? { duplicateOrder: true } : null;
+    return dup ? { duplicateOrder: true } : null;
   };
 
   ngOnInit(): void {
-    // تحميل القوائم المرجعية
     this.loadLightPatterns();
     this.loadGovernate();
     this.loadTemplates();
 
-    // attach validator for unique order
     this.directions.setValidators([this.uniqueOrderValidator]);
     this.directions.updateValueAndValidity({ onlySelf: true });
 
@@ -167,7 +162,7 @@ export class SignBoxEditComponent implements OnInit {
     else this.loadFromApi();
   }
 
-  // ========== Light Patterns (optional source) ==========
+  // ====== Light Patterns (optional) ======
   private loadLightPatterns(): void {
     this.lpService.getAll().subscribe((resp: ResultV<GetAllLightPattern> | any) => {
       const arr = (resp?.value?.data ?? resp?.value ?? resp?.data ?? resp?.items ?? []) as any[];
@@ -178,7 +173,7 @@ export class SignBoxEditComponent implements OnInit {
     });
   }
 
-  // ========== Load Box ==========
+  // ====== Box by Id ======
   private loadFromApi(): void {
     this.loading = true;
     this.service.getById(this.id).subscribe({
@@ -186,14 +181,15 @@ export class SignBoxEditComponent implements OnInit {
         this.hydrateForm(data);
         this.loading = false;
       },
-      error: () => (this.loading = false),
+      error: () => {
+        this.loading = false;
+      },
     });
   }
 
   private hydrateForm(data: GetAllSignControlBoxWithLightPattern): void {
     while (this.directions.length) this.directions.removeAt(0);
 
-    // patch base fields
     this.form.patchValue({
       id: data.id,
       name: data.name ?? '',
@@ -202,21 +198,36 @@ export class SignBoxEditComponent implements OnInit {
       longitude: data.longitude ?? '',
     });
 
-    // governorate/area if returned by API
+    // Get governorate/area from any shape. (في GetAll قد يكون معانا areaId بس)
     const anyData = data as any;
-    const govId = anyData.governateId ?? null;
-    const areaId = anyData.areaId ?? null;
+    const govId = this.toNumber(
+      anyData.governateId ??
+        anyData.governorateId ??
+        anyData.governId ??
+        anyData.governorId ??
+        anyData.governate?.id ??
+        anyData.governorate?.id
+    );
+    const areaId = this.toNumber(anyData.areaId ?? anyData.area?.id);
 
-    if (govId) {
-      this.form.patchValue({ governateId: govId });
-      this.getAreas(govId, areaId ?? null);
+    this.pendingGovId = govId ?? null;
+    this.pendingAreaId = areaId ?? null;
+
+    // لو المحافظات اتحمّلت
+    if (this.governatesLoaded) {
+      if (this.pendingGovId != null) {
+        this.form.get('governateId')?.setValue(this.pendingGovId, { emitEvent: false });
+        this.getAreas(this.pendingGovId, this.pendingAreaId);
+      } else if (this.pendingAreaId != null) {
+        // مفيش govId في الداتا، نستنتجه من الـ area
+        this.resolveGovernorateFromArea(this.pendingAreaId);
+      }
     }
 
     // directions
     const dirs = this.normalizeDirections(data);
-    if (dirs.length === 0) {
-      this.addDirection();
-    } else {
+    if (dirs.length === 0) this.addDirection();
+    else {
       dirs.forEach((d) =>
         this.directions.push(
           this.fb.group({
@@ -229,8 +240,53 @@ export class SignBoxEditComponent implements OnInit {
         )
       );
     }
-
     this.directions.updateValueAndValidity({ onlySelf: true });
+  }
+
+  private resolveGovernorateFromArea(areaId: number): void {
+    if (this.resolvingGovFromArea || !this.governatesLoaded) return;
+    this.resolvingGovFromArea = true;
+
+    let found = false;
+    let pending = 0;
+
+    const finish = () => {
+      this.resolvingGovFromArea = false;
+    };
+
+    for (const g of this.governates) {
+      if (found) break;
+      pending++;
+      this.areaService.getAll(g.id).subscribe({
+        next: (resp) => {
+          if (found) return;
+          const list = resp?.value ?? [];
+          const hit = list.find((a) => a.id === areaId);
+          if (hit) {
+            found = true;
+            // عيّن المحافظة والليست بتاعة مناطقها والـ area
+            this.form.get('governateId')?.setValue(g.id, { emitEvent: false });
+            this.areas = list;
+            this.form.get('areaId')?.setValue(areaId, { emitEvent: false });
+          }
+        },
+        complete: () => {
+          pending--;
+          if (pending === 0) finish();
+        },
+        error: () => {
+          pending--;
+          if (pending === 0) finish();
+        },
+      });
+    }
+
+    if (this.governates.length === 0) finish();
+  }
+
+  private toNumber(v: any): number | null {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
   }
 
   private normalizeDirections(src: any): DirectionView[] {
@@ -248,7 +304,7 @@ export class SignBoxEditComponent implements OnInit {
     }));
   }
 
-  // ========== Form actions ==========
+  // ====== Form actions ======
   addDirection(): void {
     this.directions.push(
       this.fb.group({
@@ -294,6 +350,7 @@ export class SignBoxEditComponent implements OnInit {
       latitude: String(v.latitude ?? ''),
       longitude: String(v.longitude ?? ''),
       areaId: Number(v.areaId),
+      cabinetId: Number((v as any).cabinetId ?? 0),
       directions: (v.directions as any[]).map((d) => ({
         name: d?.name ?? '',
         order: d?.order,
@@ -303,7 +360,6 @@ export class SignBoxEditComponent implements OnInit {
 
     this.service.Update(payload).subscribe({
       next: () => {
-        // Show success toast and navigate after it closes
         this.showPopup(this.isAr ? '✅ تم التحديث بنجاح' : '✅ Updated successfully!', 'success', {
           duration: 2000,
           onClose: () => this.router.navigate(['/trafficController']),
@@ -344,34 +400,28 @@ export class SignBoxEditComponent implements OnInit {
   }
 
   loadGovernate(): void {
-    this.governateService.getAll({}).subscribe((data) => (this.governates = data.value ?? []));
+    this.governateService.getAll({ pageSize: 1000 }).subscribe((data) => {
+      this.governates = data.value ?? [];
+      this.governatesLoaded = true;
+
+      if (this.pendingGovId != null) {
+        this.form.get('governateId')?.setValue(this.pendingGovId, { emitEvent: false });
+        this.getAreas(this.pendingGovId, this.pendingAreaId);
+      } else if (this.pendingAreaId != null) {
+        this.resolveGovernorateFromArea(this.pendingAreaId);
+      }
+    });
   }
 
   getAreas(governateId: number, selectedAreaId?: number | null): void {
     this.areaService.getAll(governateId).subscribe((data) => {
       this.areas = data.value ?? [];
-      if (selectedAreaId) {
-        this.form.get('areaId')?.setValue(selectedAreaId);
+      if (selectedAreaId != null) {
+        this.form.get('areaId')?.setValue(selectedAreaId, { emitEvent: false });
       }
     });
   }
 
-  // ===== Templates (list for dropdown) =====
-  private loadTemplates() {
-    this.templateService.GetAll().subscribe((resp) => {
-      this.templates = resp?.value ?? [];
-    });
-  }
-
-  // تغيير القالب لكل صف اتجاه
-  onTemplateChange(index: number, e: Event) {
-    const select = e.target as HTMLSelectElement;
-    const id = select.value ? Number(select.value) : null;
-    const grp = this.directions.at(index) as FormGroup;
-    grp.get('templateId')?.setValue(id);
-  }
-
-  // ===== Helpers for user-friendly messages & toasts =====
   private prettifyField(name: string): string {
     if (!name) return '';
     const lower = name.toLowerCase();
@@ -398,7 +448,6 @@ export class SignBoxEditComponent implements OnInit {
     setTimeout(() => {
       this.toasts = this.toasts.map((t) => (t.id === id ? { ...t, active: true } : t));
     }, 0);
-
     const timer = setTimeout(() => this.dismissToast(id), duration);
     this.toastTimers.set(id, timer);
   }
@@ -416,29 +465,12 @@ export class SignBoxEditComponent implements OnInit {
     });
     setTimeout(() => {
       this.toasts = this.toasts.filter((t) => t.id !== id);
-      if (onClose) {
-        try {
-          onClose();
-        } catch {}
-      }
+      try {
+        onClose && onClose();
+      } catch {}
     }, 500);
   }
 
-  // Mini i18n helper for template strings used in HTML
-  tr(key: string): string {
-    const en: Record<string, string> = {
-      selectTemplate: 'Template',
-      chooseTemplate: '-- Select Template --',
-    };
-    const ar: Record<string, string> = {
-      selectTemplate: 'القالب',
-      chooseTemplate: '-- اختر القالب --',
-    };
-    const dict = this.isAr ? ar : en;
-    return dict[key] ?? key;
-  }
-
-  // (kept from earlier if you later want to render time ranges)
   private createRow(p: LightPatternForTemplatePattern): FormGroup {
     return this.fb.group({
       lightPatternId: new FormControl<number>(p.lightPatternId, { nonNullable: true }),
@@ -460,5 +492,23 @@ export class SignBoxEditComponent implements OnInit {
     if (!s) return '00:00:00';
     const [h = '00', m = '00'] = s.split(':');
     return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
+  }
+  onTemplateChange(index: number, event: any): void {
+    const direction = this.directions.at(index) as FormGroup;
+    const templateId = Number(event.target.value);
+    const template = this.templates.find((t) => t.id === templateId);
+    direction.get('lightPatternId')?.setValue(template?.id ?? null);
+    direction.get('lightPatternName')?.setValue(template?.name ?? '');
+  }
+  private loadTemplates(): void {
+    this.templateService.GetAll().subscribe({
+      next: (resp) => {
+        this.templates = resp?.value ?? [];
+      },
+      error: (err) => {
+        console.error('Failed to load templates', err);
+        this.templates = [];
+      },
+    });
   }
 }

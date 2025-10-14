@@ -2,11 +2,12 @@
   <div class="navbar-container">
     <a class="navbar-brand" routerLink="/">
       <img src="../../../assets/img/traffic-light-30625.png" alt="logo" height="40" />
-      <span class="logo">
+      <span class="logo" dir="ltr">
         <span class="i-letter">i<span class="dot">.</span></span>
         <span class="tc">TC</span>
       </span>
     </a>
+
 
     <button class="hamburger" (click)="toggleMenu()" aria-label="Toggle navigation" [attr.aria-expanded]="isMenuOpen"
       aria-controls="primary-nav">
@@ -22,19 +23,19 @@
 
       <li class="nav-item">
         <a class="nav-link" [routerLink]="['/trafficController']" routerLinkActive="active">
-          {{ isAr ? 'كبينة التحكم المروري' : 'Traffic cabinets' }}
+          {{ isAr ? 'كبينة التحكم المروري' : 'Traffic Cabinets' }}
         </a>
       </li>
 
       <li class="nav-item">
         <a class="nav-link" [routerLink]="['/trafficWizard']" routerLinkActive="active">
-          {{ isAr ? 'إضافة كبينة' : 'Add cabinet' }}
+          {{ isAr ? 'إضافة كبينة' : 'Add Cabinet' }}
         </a>
       </li>
 
       <li class="nav-item">
         <a class="nav-link" [routerLink]="['/template']" routerLinkActive="active">
-          {{ isAr ? 'جدولة الإشارات' : 'TrafficLight Schedule' }}
+          {{ isAr ? 'جدولة الإشارات' : 'Traffic Light Schedule' }}
         </a>
       </li>
 
