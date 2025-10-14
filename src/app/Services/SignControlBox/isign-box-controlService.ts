@@ -134,7 +134,8 @@ export class ISignBoxControlService {
         }),
         shareReplay(1)
       );
-  }
+  } 
+  //Withord Error PopUp Show
 
   AddSignBox(payload: AddSignBoxCommandDto): Observable<Result> {
     const headers = new HttpHeaders({
@@ -151,7 +152,12 @@ export class ISignBoxControlService {
           return resp;
         }),
         catchError((err) => {
-          console.error('❌ Failed to add sign box', err);
+          if (err.error.type === 'Validation') {
+            console.log(err.error.errorMessages);
+          } else {
+            console.log(err.error.title);
+          }
+
           return throwError(() => err);
         }),
         shareReplay(1)
