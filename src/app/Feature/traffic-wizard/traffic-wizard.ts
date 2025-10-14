@@ -286,9 +286,8 @@ export class TrafficWizard implements OnInit, OnDestroy {
     for (let i = 0; i < count; i++) {
       const u = updated[i] ?? {};
       const g = this.directions.at(i) as FormGroup;
-      const name = (u?.name ?? (this.isAr ? `اتجاه ${i + 1}` : `Direction ${i + 1}`))
-        .toString()
-        .trim();
+      const name = (u?.name ?? (this.isAr ? `اتجاه ${i + 1}` : `Direction ${i + 1}`)).toString();
+
       const order = Number(u?.order ?? i + 1);
       g.get('name')?.setValue(name);
       g.get('order')?.setValue(order, { emitEvent: false });
@@ -660,5 +659,33 @@ export class TrafficWizard implements OnInit, OnDestroy {
     const g = this.directions.at(index) as FormGroup;
     g.get('templateId')?.setValue(Number(templateId || 0), { emitEvent: true });
     this.reconcileConflicts();
+  }
+  directionLabel(i: number): string {
+    return this.isAr ? `اسم الاتجاه ${i + 1}` : `Direction ${i + 1} Name`;
+  }
+
+  forceSpaceAtCaret(e: Event, dir: FormGroup) {
+    const input = e.target as HTMLInputElement;
+    if (!input) return;
+
+    e.stopPropagation();
+    e.preventDefault();
+
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+
+    const before = input.value.slice(0, start);
+    const after = input.value.slice(end);
+    const newVal = before + ' ' + after;
+
+    input.value = newVal;
+    dir.get('name')?.setValue(newVal);
+
+    const caret = start + 1;
+    setTimeout(() => {
+      try {
+        input.setSelectionRange(caret, caret);
+      } catch {}
+    });
   }
 }

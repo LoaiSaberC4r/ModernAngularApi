@@ -177,15 +177,17 @@
               <div class="direction-fields">
                 <!-- Direction Name -->
                 <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>
-                    {{ isAr ? 'اسم الاتجاه ' + (i + 1) : 'Direction ' + (i + 1) + ' Name' }}
-                  </mat-label>
-                  <input matInput formControlName="name"
+                  <mat-label>{{ directionLabel(i) }}</mat-label>
+
+                  <input matInput formControlName="name" (keypress.space.capture)="forceSpaceAtCaret($event, dir)"
                     [placeholder]="isAr ? 'مثال: اتجاه السويس' : 'e.g. Direction: Suez'" />
+
                   <mat-error *ngIf="dir.get('name')?.hasError('required')">
                     {{ isAr ? 'اسم الاتجاه مطلوب.' : 'Direction name is required.' }}
                   </mat-error>
                 </mat-form-field>
+
+
 
                 <!-- Template per direction -->
                 <mat-form-field appearance="outline" class="full-width">
