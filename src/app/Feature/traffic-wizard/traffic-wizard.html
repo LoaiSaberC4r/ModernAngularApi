@@ -1,5 +1,5 @@
 <div class="wizard-wrapper" [attr.dir]="isAr ? 'rtl' : 'ltr'">
-  <div class="wizard-header">
+  <div class="wizard-header" [class.rtl]="isAr">
     <div class="header-icon">
       <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="2">
@@ -8,16 +8,15 @@
         <circle cx="12" cy="18" r="2" />
       </svg>
     </div>
-    <h1 class="wizard-title">
-      {{ isAr ? 'معالج إعداد إشارات المرور' : 'Traffic Signal Wizard' }}
-    </h1>
-    <p class="wizard-subtitle">
-      {{
-      isAr
-      ? 'قم بضبط نظام التحكم خطوة بخطوة'
-      : 'Configure your traffic control system step by step'
-      }}
-    </p>
+
+    <div class="header-text">
+      <h1 class="wizard-title">
+        {{ isAr ? 'معالج إعداد إشارات المرور' : 'Traffic Signal Wizard' }}
+      </h1>
+      <p class="wizard-subtitle">
+        {{ isAr ? 'قم بضبط نظام التحكم خطوة بخطوة' : 'Configure your traffic control system step by step' }}
+      </p>
+    </div>
   </div>
 
   <form [formGroup]="trafficForm" class="wizard-form">

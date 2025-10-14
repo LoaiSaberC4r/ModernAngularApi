@@ -70,7 +70,7 @@
   </table>
 
   <!-- Popup -->
-  <div class="traffic-popup" *ngIf="popupVisible" [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }">
+  <div #popupRef class="traffic-popup" *ngIf="popupVisible" [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }">
     <div class="tp-header">
       <div class="tp-title">
         <span class="tp-dot connected"></span>

@@ -18,12 +18,12 @@
   --radius-md: 12px;
   --radius-sm: 10px;
 
-  /* Container look */
   background: radial-gradient(90rem 90rem at -20% -40%, #e6f3ff 0%, transparent 60%),
     radial-gradient(90rem 90rem at 120% 140%, #f5fff7 0%, transparent 60%), var(--bg);
   margin: 16px auto;
   padding: 28px 18px;
-  max-width: 1000px;
+  max-width: 1700px;
+
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   border: 1px solid var(--border);
@@ -48,26 +48,10 @@
   color: var(--muted);
 }
 
-/* Layout */
-.form-group {
-  margin-bottom: 0.95rem;
-}
-.row-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.85rem;
-}
-@media (max-width: 720px) {
-  .row-2 {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ============= Inputs & selects (override Bootstrap) ============= */
-.edit-container input.form-control,
-.edit-container select.form-control,
+/* Bootstrap overrides for inputs/selects */
 .edit-container .form-control,
-.edit-container .form-control-modern {
+.edit-container .form-control-modern,
+.edit-container select.form-control {
   width: 100%;
   height: 42px;
   border: 1px solid var(--border) !important;
@@ -80,20 +64,17 @@
   box-shadow: var(--shadow-sm) !important;
   appearance: auto;
 }
-
 .edit-container .form-control::placeholder {
   color: #9ca3af;
 }
 
-/* Focus */
+/* Focus / invalid */
 .edit-container .form-control:focus,
 .edit-container .form-control-modern:focus,
 .edit-container .form-control.ng-touched.ng-valid {
   border-color: var(--primary) !important;
   box-shadow: 0 0 0 4px var(--ring) !important;
 }
-
-/* Invalid */
 .edit-container .form-control.ng-invalid.ng-touched,
 .edit-container .form-control-modern.ng-invalid.ng-touched {
   border-color: var(--error) !important;
@@ -105,7 +86,7 @@
   font-size: 0.85rem;
 }
 
-/* Pretty native select (custom caret) */
+/* Pretty native select caret */
 .edit-container .form-control-modern {
   appearance: none;
   -webkit-appearance: none;
@@ -135,40 +116,11 @@
   color: #9ca3af;
 }
 
-input[type='number'].small {
-  width: 96px;
-  text-align: center;
-}
-
-/* Direction row */
+/* Direction row spacing */
 .dir-row {
-  display: grid;
-  grid-template-columns: 1.2fr 110px 1fr auto;
-  gap: 0.6rem;
-  align-items: center;
-  padding: 0.6rem;
   background: rgba(255, 255, 255, 0.7);
   border: 1px dashed var(--border);
   border-radius: 0.9rem;
-  margin-bottom: 0.6rem;
-}
-@media (max-width: 880px) {
-  .dir-row {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-/* Section label */
-.form-section {
-  display: grid;
-  gap: 0.25rem;
-}
-.section-label {
-  display: inline-flex;
-  gap: 0.4rem;
-  align-items: center;
-  font-size: 0.9rem;
-  color: var(--muted);
 }
 
 /* Buttons */
@@ -187,70 +139,6 @@ input[type='number'].small {
 }
 .btn:active {
   transform: translateY(1px);
-}
-.btn.btn-success {
-  background: var(--primary);
-  color: #fff;
-}
-.btn.btn-success:hover {
-  background: var(--primary-600);
-}
-.btn.btn-danger {
-  background: var(--danger);
-  color: #fff;
-}
-.btn.btn-danger:hover {
-  filter: brightness(0.95);
-}
-.apply-button {
-  background: var(--primary);
-  color: #fff;
-  border: 0;
-  border-radius: 0.9rem;
-  padding: 0.7rem 1.1rem;
-  min-width: 130px;
-  font-weight: 700;
-}
-.apply-button:hover {
-  background: var(--primary-600);
-}
-.cancel-button {
-  background: #e5e7eb;
-  color: #111827;
-  border: 0;
-  border-radius: 0.9rem;
-  padding: 0.7rem 1.1rem;
-}
-.cancel-button:hover {
-  filter: brightness(0.97);
-}
-/* Actions container */
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 1rem;
-  flex-wrap: wrap;
-}
-
-.actions-end {
-  display: flex;
-  gap: 0.6rem;
-  margin-inline-start: auto;
-}
-
-.add-direction-button {
-  background-color: #38bdf8;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 18px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
-}
-.add-direction-button:hover {
-  background-color: #0ea5e9;
 }
 
 .apply-button {
@@ -279,6 +167,34 @@ input[type='number'].small {
 }
 .cancel-button:hover {
   background-color: #d1d5db;
+}
+
+.add-direction-button {
+  background-color: #38bdf8;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.add-direction-button:hover {
+  background-color: #0ea5e9;
+}
+
+/* Actions container */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+.actions-end {
+  display: flex;
+  gap: 0.6rem;
+  margin-inline-start: auto;
 }
 
 /* Toasts */

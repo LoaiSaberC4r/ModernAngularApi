@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, ElementRef, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -30,6 +30,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   private readonly signalr = inject(ISignalrService);
   private readonly signBoxControlService = inject(ISignBoxControlService);
   public langService = inject(LanguageService);
+  @ViewChild('popupRef') popupRef?: ElementRef<HTMLDivElement>;
 
   get isAr() {
     return this.langService.current === 'ar';
@@ -190,15 +191,48 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   }
 
   private updatePopupPosition(event: MouseEvent) {
-    const offset = 5,
-      pw = 280,
-      ph = 210;
-    let x = event.clientX + offset,
-      y = event.clientY - ph - offset;
-    if (x + pw > window.innerWidth) x = event.clientX - pw - offset;
-    if (y < 0) y = event.clientY + offset;
-    this.popupX = x + window.scrollX;
-    this.popupY = y + window.scrollY;
+    const offset = 10;
+
+    let x = event.clientX + offset;
+    let y = event.clientY + offset;
+
+    this.popupX = x;
+    this.popupY = y;
+
+    requestAnimationFrame(() => {
+      const el = this.popupRef?.nativeElement;
+      if (!el) return;
+
+      const rect = el.getBoundingClientRect();
+      let nx = x;
+      let ny = y;
+
+      const preferLeft = this.isAr;
+
+      const rightOverflow = rect.right > window.innerWidth;
+      const leftOverflow = rect.left < 0;
+      const bottomOverflow = rect.bottom > window.innerHeight;
+      const topOverflow = rect.top < 0;
+
+      if (preferLeft || rightOverflow) {
+        nx = event.clientX - rect.width - offset;
+      }
+      if (nx < offset) nx = offset;
+      if (nx + rect.width > window.innerWidth - offset) {
+        nx = window.innerWidth - rect.width - offset;
+      }
+
+      if (bottomOverflow) {
+        ny = event.clientY - rect.height - offset;
+      }
+      if (ny < offset) ny = offset;
+      if (ny + rect.height > window.innerHeight - offset) {
+        ny = window.innerHeight - rect.height - offset;
+      }
+
+      this.popupX = nx;
+      this.popupY = ny;
+    });
   }
 
   // يبني الـpopup من بيانات الصف + آخر بث متاح
