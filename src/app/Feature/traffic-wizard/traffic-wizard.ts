@@ -298,7 +298,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
   }
 
   /**
-   * selectedIndexOrLane: هنا هنستقبل رقم المسار 
+   * selectedIndexOrLane: هنا هنستقبل رقم المسار
    */
   onConflictSelected(currentIndex: number, selectedLane: number | null) {
     const current = this.getDir(currentIndex);
@@ -471,10 +471,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
       return;
     }
 
-    // (اختياري) لو لازم lightPatternId > 0، خليه من أول صف في rows للـ template
-    // const firstRowLp = Number(this.rows.at(0)?.get('lightPatternId')?.value || 0);
-    // directions.forEach(d => { if (d.lightPatternId === 0) d.lightPatternId = firstRowLp; });
-
     const payload: AddSignBoxCommandDto = {
       ...v,
       name: (v.name || '').trim(),
@@ -498,26 +494,22 @@ export class TrafficWizard implements OnInit, OnDestroy {
         this.addDirection();
       },
       error: (err) => {
-        const msgs: string[] = err?.error?.errorMessages ?? [];
-        const props: string[] = err?.error?.propertyNames ?? [];
+        const { messages, fieldMap } = this.extractApiErrors(err);
 
-        if (props.includes('IpAddress')) {
-          this.trafficForm.get('ipAddress')?.setErrors({ exists: true });
-        }
-        if (props.includes('CabinetId')) {
-          this.trafficForm.get('cabinetId')?.setErrors({ exists: true });
-        }
+        this.applyServerFieldErrors(fieldMap);
 
-        const arMap: Record<string, string> = {
-          'IpAddress Already Exists': 'عنوان الـ IP مستخدم من قبل',
-          'Cabinet is Already Exists': 'رقم الكبينة مستخدم من قبل',
-        };
-        const enMsg = msgs.length ? msgs.join(' • ') : 'Validation error';
-        const arMsg = msgs.map((m) => arMap[m] ?? m).join(' • ');
-        this.showPopup(this.isAr ? `❌ ${arMsg}` : `❌ ${enMsg}`, 'error');
+        const bullet = this.isAr ? '• ' : '• ';
+        const header = this.isAr ? '❌ حدث خطأ أثناء الحفظ:\n' : '❌ Failed to save:\n';
+        const body = messages.length
+          ? messages.map((m) => `${bullet}${m}`).join('\n')
+          : this.isAr
+          ? 'خطأ غير معروف'
+          : 'Unknown error';
 
-        console.error(' Save failed', err);
-        console.log('Server error body:', JSON.stringify(err?.error, null, 2));
+        this.showPopup(header + body, 'error');
+
+        console.error('Save failed', err);
+        console.log('Server error body:', JSON.stringify(err?.error ?? err, null, 2));
       },
     });
   }
@@ -687,5 +679,93 @@ export class TrafficWizard implements OnInit, OnDestroy {
         input.setSelectionRange(caret, caret);
       } catch {}
     });
+  }
+  private extractApiErrors(err: any): { messages: string[]; fieldMap: Record<string, string[]> } {
+    const messages: string[] = [];
+    const fieldMap: Record<string, string[]> = {};
+
+    const e = err?.error ?? err;
+
+    if (e?.errors && typeof e.errors === 'object') {
+      for (const [field, arr] of Object.entries(e.errors)) {
+        const list = Array.isArray(arr) ? arr : [String(arr)];
+        fieldMap[field] = list.map(String);
+        list.forEach((m) => messages.push(m));
+      }
+    }
+
+    if (Array.isArray(e?.errorMessages) && e.errorMessages.length) {
+      if (Array.isArray(e?.propertyNames) && e.propertyNames.length === e.errorMessages.length) {
+        for (let i = 0; i < e.propertyNames.length; i++) {
+          const field = String(e.propertyNames[i] || 'General');
+          const msg = String(e.errorMessages[i] || '');
+          fieldMap[field] = [...(fieldMap[field] || []), msg];
+          messages.push(msg);
+        }
+      } else {
+        e.errorMessages.forEach((m: any) => messages.push(String(m)));
+      }
+    }
+
+    if (e?.title && !messages.length) messages.push(String(e.title));
+    if (e?.detail) messages.push(String(e.detail));
+
+    if (!messages.length && typeof e === 'string') messages.push(e);
+    if (!messages.length && err?.message) messages.push(String(err.message));
+
+    const uniq = Array.from(new Set(messages.filter(Boolean).map(String)));
+
+    return { messages: uniq, fieldMap };
+  }
+
+  private mapApiFieldToControlName(apiField: string): string | null {
+    const f = apiField?.toLowerCase();
+
+    if (f.includes('ip')) return 'ipAddress';
+    if (f.includes('cabinet')) return 'cabinetId';
+    if (f.includes('name')) return 'name';
+    if (f.includes('latitude') || f.includes('lat')) return 'latitude';
+    if (f.includes('longitude') || f.includes('lng') || f.includes('long')) return 'longitude';
+    if (f.includes('governorate') || f.includes('governate')) return 'governorate';
+    if (f.includes('area')) return 'area';
+
+    if (f.startsWith('directions[')) {
+      const m = f.match(/directions\[(\d+)\]\.(.+)/i);
+      if (m) {
+        const idx = Number(m[1]);
+        const field = m[2];
+        const ctrl = this.directions.at(idx) as FormGroup;
+        if (ctrl?.get(field)) return `__dir__${idx}__${field}`;
+      }
+    }
+
+    return null;
+  }
+
+  private applyServerFieldErrors(fieldMap: Record<string, string[]>) {
+    for (const [apiField, msgs] of Object.entries(fieldMap)) {
+      const ctrlName = this.mapApiFieldToControlName(apiField);
+      if (!ctrlName) continue;
+
+      if (ctrlName.startsWith('__dir__')) {
+        // directions
+        const [, idxStr, field] = ctrlName.split('__');
+        const idx = Number(idxStr);
+        const g = this.directions.at(idx) as FormGroup;
+        const c = g?.get(field);
+        if (c) {
+          const prev = c.errors || {};
+          c.setErrors({ ...prev, server: true });
+          c.markAsTouched();
+        }
+      } else {
+        const c = this.trafficForm.get(ctrlName);
+        if (c) {
+          const prev = c.errors || {};
+          c.setErrors({ ...prev, server: true });
+          c.markAsTouched();
+        }
+      }
+    }
   }
 }

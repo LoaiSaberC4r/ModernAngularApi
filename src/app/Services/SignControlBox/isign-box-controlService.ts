@@ -106,7 +106,6 @@ export class ISignBoxControlService {
           if (!resp.isSuccess) {
             throw new Error(resp.error?.description ?? 'Unknown error');
           }
-          // نفس النمط: نرجّع الـ Result كما هو بعد التحقق
           const mapped: Result = resp;
           return mapped;
         }),
@@ -134,7 +133,7 @@ export class ISignBoxControlService {
         }),
         shareReplay(1)
       );
-  } 
+  }
   //Withord Error PopUp Show
 
   AddSignBox(payload: AddSignBoxCommandDto): Observable<Result> {
@@ -163,6 +162,7 @@ export class ISignBoxControlService {
         shareReplay(1)
       );
   }
+
   getAllLocatopn(): Observable<ResultV<GetAllSignBoxLocation>> {
     const query = new HttpParams();
 

@@ -743,3 +743,7 @@ input[dir='ltr'] {
     display: none;
   }
 }
+.popup-msg {
+  color: var(--text);
+  white-space: pre-line;
+}

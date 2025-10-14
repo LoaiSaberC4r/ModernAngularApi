@@ -5,7 +5,7 @@
 }
 
 .map-container {
-  height: 70vh;
+  height: 100vh;
 }
 
 .nav-side {
@@ -13,12 +13,11 @@
 }
 
 .point-select {
-  /* width: 22vw; */
   padding: 1rem;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   overflow-y: auto;
-  height: 70vh;
+  height: 100vh;
   font-size: 0.875rem;
   display: flex;
   flex-direction: column;
@@ -30,7 +29,7 @@
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   position: relative;
-  height: 70vh;
+  height: 100vh;
 }
 
 #map {

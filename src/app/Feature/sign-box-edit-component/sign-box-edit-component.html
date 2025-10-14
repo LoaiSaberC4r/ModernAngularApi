@@ -20,7 +20,7 @@
   <form [formGroup]="form" (ngSubmit)="apply()">
     <div class="row g-3">
 
-      <!-- ====== Basic info (col-8) ====== -->
+      <!-- ====== Basic info ===== -->
       <div class="col-12 col-lg-6">
         <!-- Name -->
         <div class="mb-3">
@@ -68,7 +68,9 @@
             <label for="gov" class="form-label">{{ isAr ? 'المحافظة' : 'Governorate' }}</label>
             <select id="gov" class="form-select form-control-modern" formControlName="governateId"
               (change)="onGovernorateChange()" [attr.dir]="isAr ? 'rtl' : 'ltr'">
-              <option [ngValue]="null" disabled>{{ isAr ? 'اختر المحافظة' : 'Select governorate' }}</option>
+              <option [ngValue]="null" disabled>
+                {{ isAr ? 'اختر المحافظة' : 'Select governorate' }}
+              </option>
               <option *ngFor="let g of governates" [ngValue]="g.id">{{ g.name }}</option>
             </select>
             <div *ngIf="form.controls['governateId'].invalid && form.controls['governateId'].touched"
@@ -81,7 +83,9 @@
             <label for="area" class="form-label">{{ isAr ? 'الحي' : 'Area' }}</label>
             <select id="area" class="form-select form-control-modern" formControlName="areaId"
               [attr.dir]="isAr ? 'rtl' : 'ltr'">
-              <option [ngValue]="null" disabled>{{ isAr ? 'اختر الحي' : 'Select area' }}</option>
+              <option [ngValue]="null" disabled>
+                {{ isAr ? 'اختر الحي' : 'Select area' }}
+              </option>
               <option *ngFor="let a of areas" [ngValue]="a.id">{{ a.name }}</option>
             </select>
             <div *ngIf="form.controls['areaId'].invalid && form.controls['areaId'].touched"
@@ -92,7 +96,7 @@
         </div>
       </div>
 
-      <!-- ====== Directions (col-4) ====== -->
+      <!-- ====== Directions ====== -->
       <div class="col-12 col-lg-6">
         <div class="directions border rounded-3 p-3">
           <label class="form-label fw-semibold d-block mb-2">
@@ -102,6 +106,7 @@
           <div formArrayName="directions" class="vstack gap-3">
             <div class="dir-row border rounded-3 p-2" *ngFor="let dir of directions.controls; let i = index"
               [formGroupName]="i">
+
               <div class="mb-2">
                 <label class="form-label section-label" [attr.dir]="isAr ? 'rtl' : 'ltr'">
                   {{ isAr ? 'اسم الاتجاه' : 'Direction Name' }}
@@ -131,34 +136,45 @@
                     <option *ngFor="let t of templates" [ngValue]="t.id">{{ t.name }}</option>
                   </select>
                 </div>
+
+                <div class="col-12 d-flex justify-content-between gap-2 mt-2">
+                  <button type="button" class="add-direction-button btn" (click)="addDirection()">
+                    {{ isAr ? 'إضافة اتجاه' : 'Add Direction' }}
+                  </button>
+
+                  <button type="button"
+                    class="btn btn-outline-danger d-inline-flex align-items-center justify-content-center"
+                    style="width:42px;height:42px;border-radius:8px;" (click)="removeDirection(i)"
+                    [attr.aria-label]="isAr ? 'حذف الاتجاه' : 'Remove direction'" title="{{ isAr ? 'حذف' : 'Remove' }}">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
               </div>
 
-              <div class="text-danger small mt-1"
-                *ngIf="(directions.at(i).get('order')?.touched || directions.at(i).get('order')?.dirty) && directions.at(i).get('order')?.errors as e">
-                <span *ngIf="e['required']">{{ isAr ? 'طريق مطلوب.' : 'Lane is required.' }}</span>
-                <span *ngIf="e['min'] || e['max']">{{ isAr ? 'يجب أن يكون الطريقة بين 1 و 4.' : 'Lane must be between 1
-                  and 4.' }}</span>
-                <span *ngIf="e['duplicateOrder']">{{ isAr ? 'رقم الطريقة مستخدم بالفعل.' : 'This lane number is already
-                  used.' }}</span>
+              <!-- رسائل الأخطاء -->
+              <div class="text-danger small mt-1" *ngIf="(directions.at(i).get('order')?.touched || directions.at(i).get('order')?.dirty)
+                     && directions.at(i).get('order')?.errors as e">
+                <span *ngIf="e['required']">
+                  {{ isAr ? 'طريق مطلوب.' : 'Lane is required.' }}
+                </span>
+                <span *ngIf="e['min'] || e['max']">
+                  {{ isAr ? 'يجب أن يكون الطريقة بين 1 و 4.' : 'Lane must be between 1 و 4.' }}
+                </span>
+                <span *ngIf="e['duplicateOrder']">
+                  {{ isAr ? 'رقم الطريقة مستخدم بالفعل.' : 'This lane number is already used.' }}
+                </span>
               </div>
 
-              <div class="mt-2">
-                <button type="button" class="btn btn-danger text-white w-100" (click)="removeDirection(i)">
-                  {{ isAr ? 'حذف' : 'Remove' }}
-                </button>
-              </div>
             </div>
           </div>
-
         </div>
       </div>
 
-      <!-- ====== Actions (full width) ====== -->
+
+      <!-- ====== Actions ====== -->
       <div class="col-12">
         <div class="actions d-flex align-items-center gap-2 mt-3">
-          <button type="button" class="add-direction-button btn" (click)="addDirection()">
-            {{ isAr ? 'إضافة اتجاه' : 'Add Direction' }}
-          </button>
+
 
           <div class="actions-end ms-auto d-flex gap-2">
             <button type="submit" class="apply-button btn">
