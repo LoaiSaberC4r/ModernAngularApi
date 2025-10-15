@@ -104,8 +104,8 @@
             <div class="form-group">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ isAr ? 'معرّف الكبينة' : 'Cabinet ID' }}</mat-label>
-                <input matInput type="number" formControlName="cabinetId" min="1001" max="4294967296" step="1" dir="ltr"
-                  [placeholder]="isAr ? 'من 1001 إلى 4294967296' : 'From 1001 to 4294967296'" />
+                <input matInput type="number" formControlName="cabinetId" min="1001" max="32700" step="1" dir="ltr"
+                  [placeholder]="isAr ? 'من 1001 إلى 32700' : 'From 1001 to 32700'" />
                 <mat-error *ngIf="trafficForm.get('cabinetId')?.hasError('required')">
                   {{ isAr ? 'المعرّف مطلوب.' : 'ID is required.' }}
                 </mat-error>
@@ -113,7 +113,7 @@
                   {{ isAr ? 'أقل قيمة 1001.' : 'Minimum is 1001.' }}
                 </mat-error>
                 <mat-error *ngIf="trafficForm.get('cabinetId')?.hasError('max')">
-                  {{ isAr ? 'أقصى قيمة 4294967296.' : 'Maximum is 4294967296.' }}
+                  {{ isAr ? 'أقصى قيمة 32700.' : 'Maximum is 32700.' }}
                 </mat-error>
                 <mat-error *ngIf="trafficForm.get('cabinetId')?.hasError('pattern')">
                   {{ isAr ? 'يجب أن يكون رقمًا صحيحًا.' : 'Must be an integer.' }}

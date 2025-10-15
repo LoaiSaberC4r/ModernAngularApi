@@ -13,6 +13,10 @@ import { PopUpSignBox, TrafficColor } from '../../Domain/PopUpSignBox/PopUpSignB
 import { ApplySignBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
 import { LanguageService } from '../../Services/Language/language-service';
 import { debounceTime, Subject, Subscription, timer } from 'rxjs';
+import { IAreaService } from '../../Services/Area/iarea-service';
+import { IGovernateService } from '../../Services/Governate/igovernate-service';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
+import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
 
 export interface ReceiveMessage {
   L1: 'R' | 'Y' | 'G';
@@ -38,6 +42,9 @@ export class SignBoxController {
   private readonly signBoxControlService = inject(ISignBoxControlService);
   private readonly router = inject(Router);
   public langService = inject(LanguageService);
+  private readonly areaService = inject(IAreaService);
+  private readonly governateService = inject(IGovernateService);
+
   get isAr() {
     return this.langService.current === 'ar';
   }
@@ -59,6 +66,11 @@ export class SignBoxController {
   hasPreviousPage = false;
   hasNextPage = false;
 
+  selectedGovernorateId: number | null = null;
+  selectedAreaId: number | null = null;
+
+  governates: GetAllGovernate[] = [];
+  areas: GetAllArea[] = [];
   private _reqSeq = 0;
 
   signBoxEntity: Pagination<GetAllSignControlBox> = {
@@ -118,6 +130,7 @@ export class SignBoxController {
   ngOnInit(): void {
     this.signalr.connect().catch(console.error);
     this.loadData();
+    this.loadGovernates();
 
     this.sweepSub = timer(SignBoxController.SWEEP_MS, SignBoxController.SWEEP_MS)
       .pipe(takeUntilDestroyed())
@@ -220,5 +233,39 @@ export class SignBoxController {
   }
   onSearchEnter(): void {
     this.searchChanged$.next();
+  }
+  getGovernorateName(id: number | null): string {
+    if (!id) return '';
+    return this.governates.find((g) => g.id === id)?.name ?? '';
+  }
+
+  getAreaName(id: number | null): string {
+    if (!id) return '';
+    return this.areas.find((a) => a.id === id)?.name ?? '';
+  }
+  private loadGovernates(): void {
+    this.governateService.getAll({}).subscribe((res) => {
+      this.governates = Array.isArray(res?.value) ? res.value : [];
+    });
+  }
+
+  private loadAreasByGovernorate(governorateId: number): void {
+    this.areaService.getAll(governorateId).subscribe((res) => {
+      this.areas = Array.isArray(res?.value) ? res.value : [];
+    });
+  }
+
+  onGovernorateChangeValue(id: number | null): void {
+    this.selectedGovernorateId = id;
+    this.selectedAreaId = null;
+    if (id != null && Number.isFinite(id)) {
+      this.loadAreasByGovernorate(id);
+    } else {
+      this.areas = [];
+    }
+  }
+
+  onAreaChangeValue(id: number | null): void {
+    this.selectedAreaId = id;
   }
 }

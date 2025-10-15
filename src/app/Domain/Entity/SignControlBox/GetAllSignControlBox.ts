@@ -7,6 +7,8 @@ export interface GetAllSignControlBox {
   active?: boolean;
   isApplied?: boolean;
   cabinetId?: number;
+  governorateId?: number;
+  areaId?: number;
   directions?: DirectionDto[];
 }
 

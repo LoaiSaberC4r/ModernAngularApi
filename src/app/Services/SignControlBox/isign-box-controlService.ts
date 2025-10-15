@@ -72,7 +72,6 @@ export class ISignBoxControlService {
 
     return this.http
       .get<Pagination<GetAllSignControlBoxWithLightPattern>>(
-        // ملاحظة: المسار كما هو عندك (GetAllWithLightPatter)
         `${environment.baseUrl}/SignControlBox/GetAllWithLightPatter`,
         { params: query, headers: this.noCacheHeaders }
       )

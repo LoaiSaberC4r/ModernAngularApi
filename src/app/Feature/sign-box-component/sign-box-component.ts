@@ -20,6 +20,11 @@ import { TrafficBroadcast } from '../../Domain/SignalR/TrafficBroadcast';
 import { HubConnectionStatus } from '../../Domain/SignalR/HubConnectionStatus';
 import { ActivatedRoute, Router } from '@angular/router';
 
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
+import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
+import { IAreaService } from '../../Services/Area/iarea-service';
+import { IGovernateService } from '../../Services/Governate/igovernate-service';
+
 type TrafficColorText = 'Green' | 'Yellow' | 'Red' | 'Off' | string;
 
 @Component({
@@ -38,6 +43,9 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   public langService = inject(LanguageService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+
+  private readonly areaService = inject(IAreaService);
+  private readonly governateService = inject(IGovernateService);
 
   @ViewChild('popupRef') popupRef?: ElementRef<HTMLDivElement>;
 
@@ -63,6 +71,12 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
   hasPreviousPage = false;
   hasNextPage = false;
+
+  selectedGovernorateId: number | null = null;
+  selectedAreaId: number | null = null;
+
+  governates: GetAllGovernate[] = [];
+  areas: GetAllArea[] = [];
 
   signBoxEntity: Pagination<GetAllSignControlBox> = {
     value: {
@@ -144,7 +158,10 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.signalr.connect().catch(console.error);
+
     this.loadData();
+
+    this.loadGovernates();
 
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       const cabId = Number(params.get('cabinetId') || 0);
@@ -172,8 +189,35 @@ export class SignBoxComponent implements OnInit, OnDestroy {
       this.signBoxEntity = { ...data, value: { ...data.value, data: [...data.value.data] } };
       this.hasPreviousPage = data.value.hasPreviousPage;
       this.hasNextPage = data.value.hasNextPage;
+
       after?.();
     });
+  }
+
+  private loadGovernates(): void {
+    this.governateService.getAll({}).subscribe((res) => {
+      this.governates = Array.isArray(res?.value) ? res.value : [];
+    });
+  }
+
+  private loadAreasByGovernorate(governorateId: number): void {
+    this.areaService.getAll(governorateId).subscribe((res) => {
+      this.areas = Array.isArray(res?.value) ? res.value : [];
+    });
+  }
+
+  onGovernorateChangeValue(id: number | null): void {
+    this.selectedGovernorateId = id;
+    this.selectedAreaId = null;
+    if (id != null && Number.isFinite(id)) {
+      this.loadAreasByGovernorate(id);
+    } else {
+      this.areas = [];
+    }
+  }
+
+  onAreaChangeValue(id: number | null): void {
+    this.selectedAreaId = id;
   }
 
   onSearchEnter(): void {
@@ -204,7 +248,16 @@ export class SignBoxComponent implements OnInit, OnDestroy {
       return true;
     };
 
-    const base = this.signBoxEntity.value.data.filter(byActivity);
+    let base = this.signBoxEntity.value.data.filter(byActivity);
+
+    if (this.selectedGovernorateId !== null) {
+      base = base.filter((x) => x.governorateId === this.selectedGovernorateId);
+    }
+
+    if (this.selectedAreaId !== null) {
+      base = base.filter((x) => x.areaId === this.selectedAreaId);
+    }
+
     if (!q) return base;
 
     return base.filter((item) => {
@@ -341,5 +394,15 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     }, 0);
 
     setTimeout(() => (this.highlightCabinetId = undefined), 3000);
+  }
+
+  getGovernorateName(id: number | null): string {
+    if (!id) return '';
+    return this.governates.find((g) => g.id === id)?.name ?? '';
+  }
+
+  getAreaName(id: number | null): string {
+    if (!id) return '';
+    return this.areas.find((a) => a.id === id)?.name ?? '';
   }
 }

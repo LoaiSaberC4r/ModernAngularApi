@@ -5,41 +5,55 @@
     </h1>
 
     <div class="search-container">
-      <div class="search-box">
-        <i class="fas fa-search search-icon"></i>
-        <input type="text" class="search-input"
-          [placeholder]="isAr ? 'ابحث بالاسم / ID / CabinetId...' : 'Search by name / ID / CabinetId...'"
-          [(ngModel)]="searchParameter.searchText" (ngModelChange)="onSearchEnter()
-          " [attr.dir]="isAr ? 'rtl' : 'ltr'" aria-label="search" />
+      <div class="filter-dropdown search-box">
+        <label class="filter-label">
+          {{ isAr ? 'البحث' : 'Search' }}
+        </label>
+        <div style="position: relative; width: 100%;">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" class="search-input"
+            [placeholder]="isAr ? 'ابحث بالاسم / ID / CabinetId...' : 'Search by name / ID / CabinetId...'"
+            [(ngModel)]="searchParameter.searchText" (ngModelChange)="onSearchEnter()" [attr.dir]="isAr ? 'rtl' : 'ltr'"
+            aria-label="search" />
+        </div>
       </div>
 
+
       <!-- Active Filter -->
-      <div class="filter-dropdown active-filter-dropdown">
-        <button class="filter-button" type="button" (click)="showActiveFilter = !showActiveFilter">
-          <i class="fas fa-power-off"></i>
-          {{ activeFilterLabel }}
-          <i class="fas fa-chevron-down"></i>
-        </button>
-        <div class="filter-menu" [class.show]="showActiveFilter">
-          <div class="filter-option" (click)="setActiveFilter('ALL')">
-            <span>{{ isAr ? 'تصفية الكل' : 'Filter All' }}</span>
-            <span class="checkmark">{{ activeFilter === 'ALL' ? '✓' : '' }}</span>
-          </div>
-          <div class="filter-option" (click)="setActiveFilter('ACTIVE')">
-            <span>{{ isAr ? 'نشِط فقط' : 'Active Only' }}</span>
-            <span class="checkmark">{{ activeFilter === 'ACTIVE' ? '✓' : '' }}</span>
-          </div>
-          <div class="filter-option" (click)="setActiveFilter('INACTIVE')">
-            <span>{{ isAr ? 'غير نشِط فقط' : 'Inactive Only' }}</span>
-            <span class="checkmark">{{ activeFilter === 'INACTIVE' ? '✓' : '' }}</span>
-          </div>
-        </div>
+      <div class="filter-dropdown">
+        <label class="filter-label">
+          {{ isAr ? 'الحالة' : 'Active Filter' }}
+        </label>
+        <select class="filter-select" [(ngModel)]="activeFilter" (ngModelChange)="setActiveFilter($event)">
+          <option value="ALL">{{ isAr ? 'الكل' : 'All' }}</option>
+          <option value="ACTIVE">{{ isAr ? 'نشِط فقط' : 'Active Only' }}</option>
+          <option value="INACTIVE">{{ isAr ? 'غير نشِط فقط' : 'Inactive Only' }}</option>
+        </select>
+      </div>
+
+      <!-- Governorate Filter -->
+      <div class="filter-dropdown">
+        <label class="filter-label">{{ isAr ? 'المحافظة' : 'Governorate' }}</label>
+        <select class="filter-select" [(ngModel)]="selectedGovernorateId"
+          (ngModelChange)="onGovernorateChangeValue($event)">
+          <option [ngValue]="null">{{ isAr ? 'الكل' : 'All' }}</option>
+          <option *ngFor="let g of governates" [ngValue]="g.id">{{ g.name }}</option>
+        </select>
+      </div>
+
+      <!-- Area Filter -->
+      <div class="filter-dropdown">
+        <label class="filter-label">{{ isAr ? 'الحي / المنطقة' : 'Area' }}</label>
+        <select class="filter-select" [(ngModel)]="selectedAreaId" (ngModelChange)="onAreaChangeValue($event)">
+          <option [ngValue]="null">{{ isAr ? 'الكل' : 'All' }}</option>
+          <option *ngFor="let a of areas" [ngValue]="a.id">{{ a.name }}</option>
+        </select>
       </div>
     </div>
   </div>
 
   <!-- Table -->
-  <table class="traffic-table" role="table" aria-label="sign-boxes">
+  <table class="traffic-table">
     <thead>
       <tr>
         <th>{{ isAr ? 'ID الكابينة' : 'Cabinet ID' }}</th>
@@ -49,61 +63,23 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let item of filteredData; trackBy: trackById" (mouseenter)="showPopup(item, $event)"
-        (mousemove)="movePopup($event)" (mouseleave)="hidePopup()" [class.active-row]="isActive(item)"
-        [class.row-highlight]="toKey(item.cabinetId) === highlightCabinetId"
-        [attr.id]="'row-cab-' + toKey(item.cabinetId)">
+      <tr *ngFor="let item of filteredData" (mouseenter)="showPopup(item, $event)" (mousemove)="movePopup($event)"
+        (mouseleave)="hidePopup()" [class.active-row]="isActive(item)">
         <td>{{ item.cabinetId }}</td>
         <td dir="ltr">{{ item.ipAddress }}</td>
         <td>{{ item.name }}</td>
-
-        <td class="actions-cell justify-content-center">
+        <td class="actions-cell">
           <span class="chip" [ngClass]="isActive(item) ? 'chip-active' : 'chip-inactive'">
             {{ isActive(item) ? (isAr ? 'نشِط' : 'Active') : (isAr ? 'غير نشِط' : 'Inactive') }}
           </span>
-          <span class="chip chip-warning" *ngIf="item.isApplied === false" (click)="onEdit(item)">
+          <span class="chip chip-warning" *ngIf="!item.isApplied" (click)="onEdit(item)">
             {{ isAr ? 'مطلوب تحديث' : 'Required Update' }}
           </span>
         </td>
       </tr>
-
       <tr *ngIf="filteredData.length === 0">
-        <td colspan="4" class="no-results">
-          {{ isAr ? 'لا توجد إشارات مطابقة' : 'No traffic signals found' }}
-        </td>
+        <td colspan="4" class="no-results">{{ isAr ? 'لا توجد إشارات مطابقة' : 'No traffic signals found' }}</td>
       </tr>
     </tbody>
   </table>
-
-  <!-- Popup -->
-  <div #popupRef class="traffic-popup" *ngIf="popupVisible" [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }">
-    <div class="tp-header">
-      <div class="tp-title">
-        <span class="tp-dot connected"></span>
-        <span class="tp-name">{{ popupData?.name || '—' }}</span>
-      </div>
-      <span class="tp-chip">{{ isAr ? 'مباشر' : 'Live' }}</span>
-    </div>
-
-    <div class="tp-grid">
-      <div class="tp-col" *ngFor="let dir of popupData?.directions; let i = index">
-        <div class="tp-col__head w-50">
-          <span class="tp-col__label me-2">
-            {{ isAr ? 'اتجاه' : 'Direction' }}: {{ dir.name }}
-          </span>
-          <span class="tp-timer">
-            {{ !isDisconnected ? dir.time + (isAr ? ' ث' : 's') : '--' }}
-          </span>
-        </div>
-        <div class="traffic-light">
-          <div class="tp-lamp"
-            [ngClass]="{ 'is-red': true, disconnected: isDisconnected, active: dir.lightCode === 'R' }">🔴</div>
-          <div class="tp-lamp"
-            [ngClass]="{ 'is-yellow': true, disconnected: isDisconnected, active: dir.lightCode === 'Y' }">🟡</div>
-          <div class="tp-lamp"
-            [ngClass]="{ 'is-green': true, disconnected: isDisconnected, active: dir.lightCode === 'G' }">🟢</div>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>

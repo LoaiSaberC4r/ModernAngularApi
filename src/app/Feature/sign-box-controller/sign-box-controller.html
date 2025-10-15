@@ -5,34 +5,46 @@
     </h1>
 
     <div class="search-container">
-      <div class="search-box">
-        <i class="fas fa-search search-icon"></i>
-        <input type="text" class="search-input"
-          [placeholder]="isAr ? 'ابحث بالاسم / ID / CabinetId...' : 'Search by name / ID / CabinetId...'"
-          [(ngModel)]="searchParameter.searchText" (ngModelChange)="onSearchEnter()" [attr.dir]="isAr ? 'rtl' : 'ltr'"
-          aria-label="search" />
+      <div class="filter-dropdown search-box">
+        <label class="filter-label">
+          {{ isAr ? 'البحث' : 'Search' }}
+        </label>
+        <div style="position: relative; width: 100%;">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" class="search-input"
+            [placeholder]="isAr ? 'ابحث بالاسم / ID / CabinetId...' : 'Search by name / ID / CabinetId...'"
+            [(ngModel)]="searchParameter.searchText" (ngModelChange)="onSearchEnter()" [attr.dir]="isAr ? 'rtl' : 'ltr'"
+            aria-label="search" />
+        </div>
       </div>
 
-      <div class="filter-dropdown active-filter-dropdown">
-        <button class="filter-button" (click)="showActiveFilter = !showActiveFilter">
-          <i class="fas fa-power-off"></i>
-          {{ activeFilterLabel }}
-          <i class="fas fa-chevron-down"></i>
-        </button>
-        <div class="filter-menu" [class.show]="showActiveFilter">
-          <div class="filter-option" (click)="setActiveFilter('ALL')">
-            <span>{{ isAr ? 'الكل' : 'All' }}</span>
-            <span class="checkmark">{{ activeFilter === 'ALL' ? '✓' : '' }}</span>
-          </div>
-          <div class="filter-option" (click)="setActiveFilter('ACTIVE')">
-            <span>{{ isAr ? 'نشِط فقط' : 'Active Only' }}</span>
-            <span class="checkmark">{{ activeFilter === 'ACTIVE' ? '✓' : '' }}</span>
-          </div>
-          <div class="filter-option" (click)="setActiveFilter('INACTIVE')">
-            <span>{{ isAr ? 'غير نشِط فقط' : 'Inactive Only' }}</span>
-            <span class="checkmark">{{ activeFilter === 'INACTIVE' ? '✓' : '' }}</span>
-          </div>
-        </div>
+
+      <div class="filter-dropdown">
+        <label class="filter-label">
+          {{ isAr ? 'الحالة' : 'Active Filter' }}
+        </label>
+        <select class="filter-select" [(ngModel)]="activeFilter" (ngModelChange)="setActiveFilter($event)">
+          <option value="ALL">{{ isAr ? 'الكل' : 'All' }}</option>
+          <option value="ACTIVE">{{ isAr ? 'نشِط فقط' : 'Active Only' }}</option>
+          <option value="INACTIVE">{{ isAr ? 'غير نشِط فقط' : 'Inactive Only' }}</option>
+        </select>
+      </div>
+
+      <div class="filter-dropdown">
+        <label class="filter-label">{{ isAr ? 'المحافظة' : 'Governorate' }}</label>
+        <select class="filter-select" [(ngModel)]="selectedGovernorateId"
+          (ngModelChange)="onGovernorateChangeValue($event)">
+          <option [ngValue]="null">{{ isAr ? 'الكل' : 'All' }}</option>
+          <option *ngFor="let g of governates" [ngValue]="g.id">{{ g.name }}</option>
+        </select>
+      </div>
+
+      <div class="filter-dropdown">
+        <label class="filter-label">{{ isAr ? 'الحي / المنطقة' : 'Area' }}</label>
+        <select class="filter-select" [(ngModel)]="selectedAreaId" (ngModelChange)="onAreaChangeValue($event)">
+          <option [ngValue]="null">{{ isAr ? 'الكل' : 'All' }}</option>
+          <option *ngFor="let a of areas" [ngValue]="a.id">{{ a.name }}</option>
+        </select>
       </div>
     </div>
   </div>

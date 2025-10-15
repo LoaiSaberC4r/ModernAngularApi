@@ -332,9 +332,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
     this.patternSyncSubs.clear();
   }
 
-  /**
-   * تحويل ConflictWith من رقم مسار إلى index + ربط القوالب (templateId فقط)
-   */
   private reconcileConflicts() {
     this.clearAllPatternSyncSubs();
 
@@ -369,13 +366,11 @@ export class TrafficWizard implements OnInit, OnDestroy {
 
       const conflict = this.getDir(j);
 
-      // copy + lock (templateId only)
       this.copyValue(primary.get('templateId'), conflict.get('templateId'));
 
       conflict.get('isConflict')?.setValue(true, { emitEvent: false });
       this.disableCtrl(conflict.get('templateId'));
 
-      // live sync subscriptions
       const sub2 = primary.get('templateId')?.valueChanges.subscribe(() => {
         this.copyValue(primary.get('templateId'), conflict.get('templateId'));
       });
