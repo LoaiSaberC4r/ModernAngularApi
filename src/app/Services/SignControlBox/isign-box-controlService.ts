@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Pagination } from '../../Domain/ResultPattern/Pagination';
 import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBox';
 import { SearchParameters } from '../../Domain/ResultPattern/SearchParameters';
-import { catchError, map, Observable, of, shareReplay, throwError } from 'rxjs';
+import { catchError, map, Observable, of, throwError } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
 import {
   ApplySignBox,
@@ -15,213 +15,177 @@ import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { GetAllSignBoxLocation } from '../../Domain/Entity/SignControlBox/GetAllSignBoxLocation';
 import { AddSignBoxCommandDto } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
 import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox';
-import { ErrorType, ValidationError } from '../../Domain/ResultPattern/ValidationError';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ISignBoxControlService {
   private readonly http = inject(HttpClient);
-  private cache = new Map<string, Pagination<GetAllSignControlBox>>();
-  private cacheLocation = new Map<string, ResultV<GetAllSignBoxLocation>>();
-  private cahceWithLightPattern = new Map<
-    string,
-    Pagination<GetAllSignControlBoxWithLightPattern>
-  >();
 
-  getAll(params: SearchParameters) {
-    const query = new HttpParams()
+  private readonly noCacheHeaders = new HttpHeaders({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
+  });
+
+  private withNoCache(params?: HttpParams): HttpParams {
+    const base = params ?? new HttpParams();
+    return base.set('__ts', Date.now().toString());
+  }
+
+  getAll(params: SearchParameters): Observable<Pagination<GetAllSignControlBox>> {
+    let query = new HttpParams()
       .set('SearchText', params.searchText ?? '')
       .set('SortOrder', params.sortOrder ?? 'Newest')
       .set('Page', params.page?.toString() ?? '1')
       .set('PageSize', (params.pageSize ?? 1000).toString());
 
-    const cacheKey = query.toString();
-    if (this.cache.has(cacheKey)) {
-      return of(this.cache.get(cacheKey)!);
-    }
+    query = this.withNoCache(query);
 
     return this.http
       .get<Pagination<GetAllSignControlBox>>(`${environment.baseUrl}/SignControlBox/GetAll`, {
         params: query,
+        headers: this.noCacheHeaders,
       })
       .pipe(
         map((resp) => {
-          if (!resp.isSuccess) {
-            throw new Error(resp.error?.description ?? 'Unknown error');
-          }
-          const mapped: Pagination<GetAllSignControlBox> = resp;
-          this.cache.set(cacheKey, mapped);
-          return mapped;
+          if (!resp.isSuccess) throw new Error(resp.error?.description ?? 'Unknown error');
+          return resp;
         }),
         catchError((err) => {
           console.error('Failed to load control boxes', err);
           return of({} as Pagination<GetAllSignControlBox>);
-        }),
-        shareReplay(1)
+        })
       );
   }
 
   getAllWithLightPattern(
     params: SearchParameters
   ): Observable<Pagination<GetAllSignControlBoxWithLightPattern>> {
-    const query = new HttpParams()
+    let query = new HttpParams()
       .set('SearchText', params.searchText ?? '')
       .set('SortOrder', params.sortOrder ?? 'Newest')
       .set('Page', params.page?.toString() ?? '1')
       .set('PageSize', params.pageSize?.toString() ?? '10');
 
-    const cacheKey = query.toString();
-    if (this.cahceWithLightPattern.has(cacheKey)) {
-      return of(this.cahceWithLightPattern.get(cacheKey)!);
-    }
+    query = this.withNoCache(query);
 
     return this.http
       .get<Pagination<GetAllSignControlBoxWithLightPattern>>(
+        // ملاحظة: المسار كما هو عندك (GetAllWithLightPatter)
         `${environment.baseUrl}/SignControlBox/GetAllWithLightPatter`,
-        { params: query }
+        { params: query, headers: this.noCacheHeaders }
       )
       .pipe(
         map((resp) => {
-          if (!resp.isSuccess) {
-            throw new Error(resp.error?.description ?? 'Unknown error');
-          }
-          const mapped: Pagination<GetAllSignControlBoxWithLightPattern> = resp;
-          this.cahceWithLightPattern.set(cacheKey, mapped);
-          return mapped;
+          if (!resp.isSuccess) throw new Error(resp.error?.description ?? 'Unknown error');
+          return resp;
         }),
         catchError((err) => {
-          console.error('Failed to load control boxes', err);
+          console.error('Failed to load control boxes with light pattern', err);
           return of({} as Pagination<GetAllSignControlBoxWithLightPattern>);
-        }),
-        shareReplay(1)
+        })
       );
   }
 
   applySignBox(payload: ApplySignBox): Observable<Result> {
     return this.http
-      .post<Result>(`${environment.baseUrl}/SignControlBox/ApplySignBox`, payload)
+      .post<Result>(`${environment.baseUrl}/SignControlBox/ApplySignBox`, payload, {
+        headers: this.noCacheHeaders,
+      })
       .pipe(
         map((resp) => {
-          if (!resp.isSuccess) {
-            throw new Error(resp.error?.description ?? 'Unknown error');
-          }
-          const mapped: Result = resp;
-          return mapped;
+          if (!resp.isSuccess) throw new Error(resp.error?.description ?? 'Unknown error');
+          return resp;
         }),
         catchError((err) => {
           console.error('Failed to apply sign box', err);
           return of({} as Result);
-        }),
-        shareReplay(1)
+        })
       );
   }
 
   AddWithUpdateLightPattern(payload: AddSignBoxWithUpdateLightPattern): Observable<Result> {
     return this.http
-      .post<Result>(`${environment.baseUrl}/SignControlBox/AddWithUpdateLightPattern`, payload)
+      .post<Result>(`${environment.baseUrl}/SignControlBox/AddWithUpdateLightPattern`, payload, {
+        headers: this.noCacheHeaders,
+      })
       .pipe(
         map((resp) => {
-          if (!resp.isSuccess) {
-            throw new Error(resp.error?.description ?? 'Unknown error');
-          }
+          if (!resp.isSuccess) throw new Error(resp.error?.description ?? 'Unknown error');
           return resp;
         }),
         catchError((err) => {
           console.error('Failed to add-with-update light pattern', err);
           return of({} as Result);
-        }),
-        shareReplay(1)
+        })
       );
   }
-  //Withord Error PopUp Show
 
   AddSignBox(payload: AddSignBoxCommandDto): Observable<Result> {
-    const headers = new HttpHeaders({
-      'Accept-Language': 'ar',
-    });
+    const headers = this.noCacheHeaders.set('Accept-Language', 'ar');
 
     return this.http
       .post<Result>(`${environment.baseUrl}/SignControlBox/Add`, payload, { headers })
       .pipe(
         map((resp) => {
-          if (!resp.isSuccess) {
-            throw new Error(resp.error?.description ?? 'Unknown error');
-          }
+          if (!resp.isSuccess) throw new Error(resp.error?.description ?? 'Unknown error');
           return resp;
         }),
         catchError((err) => {
-          if (err.error.type === 'Validation') {
+          if (err?.error?.type === 'Validation') {
             console.log(err.error.errorMessages);
           } else {
-            console.log(err.error.title);
+            console.log(err?.error?.title ?? 'Request failed');
           }
-
           return throwError(() => err);
-        }),
-        shareReplay(1)
+        })
       );
   }
 
   getAllLocatopn(): Observable<ResultV<GetAllSignBoxLocation>> {
-    const query = new HttpParams();
-
-    const cacheKey = query.toString();
-    if (this.cacheLocation.has(cacheKey)) {
-      return of(this.cacheLocation.get(cacheKey)!);
-    }
+    let query = new HttpParams();
+    query = this.withNoCache(query);
 
     return this.http
       .get<ResultV<GetAllSignBoxLocation>>(
         `${environment.baseUrl}/SignControlBox/GetSignControlBoxLocations`,
-        {
-          params: query,
-        }
+        { params: query, headers: this.noCacheHeaders }
       )
       .pipe(
         map((resp) => {
-          if (!resp.isSuccess) {
-            throw new Error(resp.error?.description ?? 'Unknown error');
-          }
-          const mapped: ResultV<GetAllSignBoxLocation> = resp;
-          this.cacheLocation.set(cacheKey, mapped);
-          return mapped;
+          if (!resp.isSuccess) throw new Error(resp.error?.description ?? 'Unknown error');
+          return resp;
         }),
         catchError((err) => {
-          console.error('Failed to load control boxes', err);
+          console.error('Failed to load control box locations', err);
           return of({} as ResultV<GetAllSignBoxLocation>);
-        }),
-        shareReplay(1)
+        })
       );
   }
 
   Update(payload: UpdateSignControlBox): Observable<Result> {
     return this.http
-      .put<Result>(
-        // لو عايز تستعمل الـ baseUrl بدل الثابت: `${environment.baseUrl}/SignControlBox/ApplySignBox`
-        `${environment.baseUrl}/SignControlBox/Update`,
-        payload
-      )
+      .put<Result>(`${environment.baseUrl}/SignControlBox/Update`, payload, {
+        headers: this.noCacheHeaders,
+      })
       .pipe(
         map((resp) => {
-          if (!resp.isSuccess) {
-            throw new Error(resp.error?.description ?? 'Unknown error');
-          }
-          // نفس النمط: نرجّع الـ Result كما هو بعد التحقق
-          const mapped: Result = resp;
-          return mapped;
+          if (!resp.isSuccess) throw new Error(resp.error?.description ?? 'Unknown error');
+          return resp;
         }),
         catchError((err) => {
-          console.error('Failed to apply sign box', err);
+          console.error('Failed to update sign box', err);
           return of({} as Result);
-        }),
-        shareReplay(1)
+        })
       );
   }
 
   getById(id: number): Observable<GetAllSignControlBoxWithLightPattern> {
+    const params = this.withNoCache();
     return this.http.get<GetAllSignControlBoxWithLightPattern>(
-      `${environment.baseUrl}/SignControlBox/GetById/${id}`
+      `${environment.baseUrl}/SignControlBox/GetById/${id}`,
+      { params, headers: this.noCacheHeaders }
     );
   }
 }

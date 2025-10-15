@@ -9,8 +9,8 @@
         <i class="fas fa-search search-icon"></i>
         <input type="text" class="search-input"
           [placeholder]="isAr ? 'ابحث بالاسم / ID / CabinetId...' : 'Search by name / ID / CabinetId...'"
-          [(ngModel)]="searchParameter.searchText" (ngModelChange)="onSearchEnter()" [attr.dir]="isAr ? 'rtl' : 'ltr'"
-          aria-label="search" />
+          [(ngModel)]="searchParameter.searchText" (ngModelChange)="onSearchEnter()
+          " [attr.dir]="isAr ? 'rtl' : 'ltr'" aria-label="search" />
       </div>
 
       <!-- Active Filter -->
@@ -50,12 +50,13 @@
     </thead>
     <tbody>
       <tr *ngFor="let item of filteredData; trackBy: trackById" (mouseenter)="showPopup(item, $event)"
-        (mousemove)="movePopup($event)" (mouseleave)="hidePopup()" [class.active-row]="isActive(item)">
+        (mousemove)="movePopup($event)" (mouseleave)="hidePopup()" [class.active-row]="isActive(item)"
+        [class.row-highlight]="toKey(item.cabinetId) === highlightCabinetId"
+        [attr.id]="'row-cab-' + toKey(item.cabinetId)">
         <td>{{ item.cabinetId }}</td>
         <td dir="ltr">{{ item.ipAddress }}</td>
         <td>{{ item.name }}</td>
 
-        <!-- One line chips (state + optional Required Update) -->
         <td class="actions-cell justify-content-center">
           <span class="chip" [ngClass]="isActive(item) ? 'chip-active' : 'chip-inactive'">
             {{ isActive(item) ? (isAr ? 'نشِط' : 'Active') : (isAr ? 'غير نشِط' : 'Inactive') }}

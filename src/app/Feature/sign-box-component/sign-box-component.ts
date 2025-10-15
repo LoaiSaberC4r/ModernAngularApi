@@ -18,7 +18,7 @@ import { LanguageService } from '../../Services/Language/language-service';
 
 import { TrafficBroadcast } from '../../Domain/SignalR/TrafficBroadcast';
 import { HubConnectionStatus } from '../../Domain/SignalR/HubConnectionStatus';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 type TrafficColorText = 'Green' | 'Yellow' | 'Red' | 'Off' | string;
 
@@ -37,6 +37,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   private readonly signBoxControlService = inject(ISignBoxControlService);
   public langService = inject(LanguageService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   @ViewChild('popupRef') popupRef?: ElementRef<HTMLDivElement>;
 
@@ -51,13 +52,10 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   isDisconnected = false;
   private disconnectTimerSub?: Subscription;
 
-  // “Tick” خفيف عشان يحرّك التغيير كل ثانية
   private sweepSub?: Subscription;
   private _tick = 0;
 
-  // آخر وقت شوهد لكل CabinetId (ms)
   private lastSeen: Record<number, number> = {};
-  // آخر بث محفوظ لكل CabinetId للـ Popup
   latestByCabinetId: Record<number, TrafficBroadcast> = {};
 
   searchParameter: SearchParameters = {};
@@ -97,20 +95,19 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   popupData: (PopUpSignBox & { cabinetId?: number }) | null = null;
   popupLive: TrafficBroadcast | null = null;
 
+  highlightCabinetId?: number;
+
   constructor() {
-    // SignalR
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
         if (!message) return;
-
         const key = this.toKey((message as any).ID);
         if (key === null) return;
 
         this.latestByCabinetId[key] = message;
-        this.lastSeen[key] = Date.now(); // آخر مشاهدة
+        this.lastSeen[key] = Date.now();
 
-        // لو البوب-أب على نفس الكابينة حدّثه
         if (this.popupData?.cabinetId === key) {
           const row = this.signBoxEntity.value.data.find((x) => this.toKey(x.cabinetId) === key);
           if (row) this.popupData = this.toPopup(row, message);
@@ -118,7 +115,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
         }
       });
 
-    // حالة الاتصال
     toObservable(this.signalr.status)
       .pipe(takeUntilDestroyed())
       .subscribe((s: HubConnectionStatus) => {
@@ -150,12 +146,19 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     this.signalr.connect().catch(console.error);
     this.loadData();
 
-    // “Tick” كل ثانية لإعادة تقييم isActive() في التمبلِت
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      const cabId = Number(params.get('cabinetId') || 0);
+      const refreshMark = params.get('refresh');
+      if (cabId || refreshMark !== null) {
+        this.loadData(() => {
+          if (cabId) this.highlightRow(cabId);
+        });
+      }
+    });
+
     this.sweepSub = timer(SignBoxComponent.SWEEP_MS, SignBoxComponent.SWEEP_MS)
       .pipe(takeUntilDestroyed())
-      .subscribe(() => {
-        this._tick++;
-      });
+      .subscribe(() => this._tick++);
   }
 
   ngOnDestroy(): void {
@@ -164,13 +167,12 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     this.sweepSub?.unsubscribe();
   }
 
-  // ========= بيانات =========
-  loadData(): void {
+  loadData(after?: () => void): void {
     this.signBoxControlService.getAll(this.searchParameter).subscribe((data) => {
-      // مفيش set لـ active نهائيًا — النشاط يُحسب لحظيًا من lastSeen
       this.signBoxEntity = { ...data, value: { ...data.value, data: [...data.value.data] } };
       this.hasPreviousPage = data.value.hasPreviousPage;
       this.hasNextPage = data.value.hasNextPage;
+      after?.();
     });
   }
 
@@ -185,7 +187,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
   trackById = (_: number, item: GetAllSignControlBox) => item?.id;
 
-  // ===== حساب “نشِط” لحظيًا =====
   private isActiveByCabinetId(cabinetId: unknown): boolean {
     const k = this.toKey(cabinetId);
     if (k === null) return false;
@@ -193,18 +194,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     return !!seen && Date.now() - seen <= SignBoxComponent.INACTIVITY_MS;
   }
 
-  /**
-   * Get filtered data according to search query and active filter.
-   *
-   * This function will first filter the data by the active filter (if any),
-   * then filter the result by the search query (if any).
-   *
-   * The search query will be matched against the name, id, and cabinet id of each item.
-   * The active filter will filter items by their activity status (active/inactive).
-   *
-   * @returns {GetAllSignControlBox[]} The filtered data.
-   */
-  /*******  6608a014-18bb-4f87-b0fb-bfb71e3e7e2c  *******/
   get filteredData(): GetAllSignControlBox[] {
     const q = (this.searchParameter.searchText ?? '').trim().toLowerCase();
 
@@ -268,17 +257,13 @@ export class SignBoxComponent implements OnInit, OnDestroy {
       const rightOverflow = rect.right > window.innerWidth;
       const bottomOverflow = rect.bottom > window.innerHeight;
 
-      if (preferLeft || rightOverflow) {
-        nx = event.clientX - rect.width - offset;
-      }
+      if (preferLeft || rightOverflow) nx = event.clientX - rect.width - offset;
       if (nx < offset) nx = offset;
       if (nx + rect.width > window.innerWidth - offset) {
         nx = window.innerWidth - rect.width - offset;
       }
 
-      if (bottomOverflow) {
-        ny = event.clientY - rect.height - offset;
-      }
+      if (bottomOverflow) ny = event.clientY - rect.height - offset;
       if (ny < offset) ny = offset;
       if (ny + rect.height > window.innerHeight - offset) {
         ny = window.innerHeight - rect.height - offset;
@@ -290,7 +275,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   }
 
   // ===== Helpers =====
-  private toKey(n: unknown): number | null {
+  toKey(n: unknown): number | null {
     const k = Number(n);
     return Number.isFinite(k) ? k : null;
   }
@@ -337,13 +322,24 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     };
   }
 
-  // ====== واجهة (يستخدمها التمبلِت) ======
   isActive(item: GetAllSignControlBox): boolean {
     return this.isActiveByCabinetId(item.cabinetId);
   }
+
   onEdit(item: GetAllSignControlBox) {
     this.router.navigate(['/trafficController/edit-sign-box', item.id], {
       state: { signbox: item },
     });
+  }
+
+  private highlightRow(cabinetId: number) {
+    this.highlightCabinetId = cabinetId;
+
+    setTimeout(() => {
+      const el = document.getElementById(`row-cab-${cabinetId}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 0);
+
+    setTimeout(() => (this.highlightCabinetId = undefined), 3000);
   }
 }
