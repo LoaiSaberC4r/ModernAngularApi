@@ -47,6 +47,18 @@
             </span>
           </div>
         </div>
+        <!-- Cabinet ID  -->
+        <div class="mb-3">
+          <label for="cabinetId" class="form-label">
+            {{ isAr ? 'رقم الكبينة' : 'Cabinet ID' }}
+          </label>
+          <input id="cabinetId" formControlName="cabinetId" class="form-control border bg-light" dir="ltr"
+            [attr.aria-readonly]="true" />
+          <div class="form-text text-muted">
+            {{ isAr ? 'يتم جلبه من الخادم ولا يمكن تعديله' : 'Loaded from server and cannot be edited' }}
+          </div>
+        </div>
+
 
         <!-- Coordinates -->
         <div class="row g-3">

@@ -88,6 +88,7 @@ export class SignBoxEditComponent implements OnInit {
     areaId: [null, Validators.required],
     latitude: [''],
     longitude: [''],
+    cabinetId: [{ value: null, disabled: true }],
     directions: this.fb.array<FormGroup>([]),
   });
 
@@ -190,16 +191,8 @@ export class SignBoxEditComponent implements OnInit {
   private hydrateForm(data: GetAllSignControlBoxWithLightPattern): void {
     while (this.directions.length) this.directions.removeAt(0);
 
-    this.form.patchValue({
-      id: data.id,
-      name: data.name ?? '',
-      ipAddress: data.ipAddress ?? '',
-      latitude: data.latitude ?? '',
-      longitude: data.longitude ?? '',
-    });
-
-    // Get governorate/area from any shape. (في GetAll قد يكون معانا areaId بس)
     const anyData = data as any;
+
     const govId = this.toNumber(
       anyData.governateId ??
         anyData.governorateId ??
@@ -208,26 +201,36 @@ export class SignBoxEditComponent implements OnInit {
         anyData.governate?.id ??
         anyData.governorate?.id
     );
+
     const areaId = this.toNumber(anyData.areaId ?? anyData.area?.id);
+
+    const cabinetId = this.toNumber(anyData.cabinetId ?? anyData.CabinetId ?? anyData.cabinet?.id);
+
+    this.form.patchValue({
+      id: data.id,
+      name: data.name ?? '',
+      ipAddress: data.ipAddress ?? '',
+      latitude: data.latitude ?? '',
+      longitude: data.longitude ?? '',
+      cabinetId: cabinetId ?? null,
+    });
 
     this.pendingGovId = govId ?? null;
     this.pendingAreaId = areaId ?? null;
 
-    // لو المحافظات اتحمّلت
     if (this.governatesLoaded) {
       if (this.pendingGovId != null) {
         this.form.get('governateId')?.setValue(this.pendingGovId, { emitEvent: false });
         this.getAreas(this.pendingGovId, this.pendingAreaId);
       } else if (this.pendingAreaId != null) {
-        // مفيش govId في الداتا، نستنتجه من الـ area
         this.resolveGovernorateFromArea(this.pendingAreaId);
       }
     }
 
-    // directions
     const dirs = this.normalizeDirections(data);
-    if (dirs.length === 0) this.addDirection();
-    else {
+    if (dirs.length === 0) {
+      this.addDirection();
+    } else {
       dirs.forEach((d) =>
         this.directions.push(
           this.fb.group({
@@ -240,6 +243,7 @@ export class SignBoxEditComponent implements OnInit {
         )
       );
     }
+
     this.directions.updateValueAndValidity({ onlySelf: true });
   }
 
@@ -264,7 +268,6 @@ export class SignBoxEditComponent implements OnInit {
           const hit = list.find((a) => a.id === areaId);
           if (hit) {
             found = true;
-            // عيّن المحافظة والليست بتاعة مناطقها والـ area
             this.form.get('governateId')?.setValue(g.id, { emitEvent: false });
             this.areas = list;
             this.form.get('areaId')?.setValue(areaId, { emitEvent: false });
