@@ -341,7 +341,6 @@ export class SignBoxEditComponent implements OnInit {
     grp.get('lightPatternName')?.setValue(lp?.name ?? '');
   }
 
-  // ====== APPLY: Update -> (await toast) -> Apply -> (await toast) ======
   apply(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -380,7 +379,6 @@ export class SignBoxEditComponent implements OnInit {
           this.isApplying = false;
           return EMPTY;
         }),
-        // 2) Show "Updated" toast and wait until it disappears
         concatMap(() =>
           from(
             this.showPopupAsync(
@@ -397,7 +395,6 @@ export class SignBoxEditComponent implements OnInit {
             catchError((err) => of({ ok: false as const, err }))
           )
         ),
-        // 4) Show "Apply" result toast and wait until it disappears
         concatMap((res) =>
           from(
             this.showPopupAsync(
@@ -416,10 +413,8 @@ export class SignBoxEditComponent implements OnInit {
       )
       .subscribe({
         next: () => {
-          // هنا خلّصنا الرسالتين بالكامل
           this.isApplying = false;
-          // مفيش تنقّل قبل الرسائل — لو حابب تنقل بعد النجاح كله، فعّل السطر ده:
-          // this.router.navigate(['/trafficController']);
+          this.router.navigateByUrl('/trafficSignal');
         },
         error: () => {
           this.isApplying = false;

@@ -40,6 +40,7 @@ import {
   AddSignBoxCommandDto,
   DirectionWithPatternDto,
 } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
+import { Router } from '@angular/router';
 
 type RoundDirection = {
   name?: string;
@@ -80,6 +81,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
   public langService = inject(LanguageService);
   private readonly templateService = inject(ITemplateService);
   private readonly templatePatternService = inject(ITemplatePatternService);
+  private readonly router = inject(Router);
 
   get isAr() {
     return this.langService.current === 'ar';
@@ -243,7 +245,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
     return this.areas.find((a) => a.id === id)?.name ?? '';
   }
 
-  // ==== Helpers for template (بدل find(...) داخل التمبلت) ====
   templateName(id: number | null | undefined): string {
     const notSet = this.isAr ? 'غير محدد' : 'Not set';
     const n = Number(id || 0);
@@ -297,15 +298,11 @@ export class TrafficWizard implements OnInit, OnDestroy {
     this.reconcileConflicts();
   }
 
-  /**
-   * selectedIndexOrLane: هنا هنستقبل رقم المسار
-   */
   onConflictSelected(currentIndex: number, selectedLane: number | null) {
     const current = this.getDir(currentIndex);
     const oldLane = current.get('conflictWith')?.value as number | null;
 
     if (oldLane != null) {
-      // فكّ قفل المسار القديم لو موجود
       const oldIdx = this.findIndexByLane(oldLane);
       if (oldIdx !== null) this.releaseConflict(oldIdx);
     }
@@ -422,12 +419,11 @@ export class TrafficWizard implements OnInit, OnDestroy {
       return;
     }
 
-    // اجمع اتجاهات المستخدم
     const directions: DirectionWithPatternDto[] = (v.directions as any[]).map(
       (d: any, idx: number) => ({
         name: (d.name || '').trim(),
         order: Number(d.order || idx + 1),
-        lightPatternId: 0, // لو الـ API بيطلبه إجباري؛ حدثه لاحقًا لو لازم
+        lightPatternId: 0,
         left: !!d.left,
         right: !!d.right,
         isConflict: !!d.isConflict,
@@ -435,7 +431,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
       })
     );
 
-    // تأكد أن كل اتجاه له TemplateId صالح
     const badDir = directions.findIndex(
       (x) => !(Number.isFinite(x.templateId) && x.templateId! > 0)
     );
@@ -449,8 +444,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
       return;
     }
 
-    // حدّد الـ templateId الرئيسي للـ payload:
-    // أولًا جرّب الـ template العام (لو المستخدم حدده)، وإلا fallback لأول اتجاه
     const formTpl = Number(this.templateForm.get('templateId')?.value || 0);
     const payloadTemplateId = formTpl > 0 ? formTpl : directions[0]?.templateId ?? 0;
 
