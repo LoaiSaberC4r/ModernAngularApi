@@ -31,6 +31,8 @@ import { ITemplatePatternService } from '../../Services/TemplatePattern/itemplat
 import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
 import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
 
+import { EMPTY, catchError, concatMap, from, map, of, tap } from 'rxjs';
+
 const IPV4_REGEX = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
 
 type DirectionView = {
@@ -80,6 +82,9 @@ export class SignBoxEditComponent implements OnInit {
 
   lightPatterns: LightPatternItem[] = [];
 
+  // applying state
+  isApplying = false;
+
   form: FormGroup = this.fb.group({
     id: [0],
     name: ['', Validators.required],
@@ -102,6 +107,8 @@ export class SignBoxEditComponent implements OnInit {
   }> = [];
   private toastSeq = 0;
   private toastTimers = new Map<number, any>();
+  // NEW: promise resolvers to await toast dismissal
+  private toastResolvers = new Map<number, () => void>();
 
   get directions(): FormArray<FormGroup> {
     return this.form.get('directions') as FormArray<FormGroup>;
@@ -334,6 +341,7 @@ export class SignBoxEditComponent implements OnInit {
     grp.get('lightPatternName')?.setValue(lp?.name ?? '');
   }
 
+  // ====== APPLY: Update -> (await toast) -> Apply -> (await toast) ======
   apply(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -343,6 +351,8 @@ export class SignBoxEditComponent implements OnInit {
       );
       return;
     }
+
+    this.isApplying = true;
 
     const v = this.form.getRawValue();
 
@@ -361,30 +371,60 @@ export class SignBoxEditComponent implements OnInit {
       })) as unknown as SignDirection[],
     };
 
-    this.service.Update(payload).subscribe({
-      next: () => {
-        this.showPopup(this.isAr ? '✅ تم التحديث بنجاح' : '✅ Updated successfully!', 'success', {
-          duration: 2000,
-          onClose: () => this.router.navigate(['/trafficController']),
-        });
-      },
-      error: (err) => {
-        console.error('update failed', err);
-        const ipTyped = this.form?.value?.ipAddress ?? '';
-        const msgs: string[] = Array.isArray(err?.error?.errorMessages)
-          ? (err.error.errorMessages as string[]).map((m: string, i: number) => {
-              const rawProp: string = err.error.propertyNames?.[i] || '';
-              const prop = this.prettifyField(rawProp);
-              let text = String(m || '').replace(/ip\s*address|ipaddress/gi, 'IP Address');
-              if (prop) text += `: ${prop}`;
-              const isIpError = rawProp.toLowerCase() === 'ipaddress' || /ip\s*address/i.test(text);
-              if (isIpError && ipTyped) text += `: ${ipTyped}`;
-              return text;
-            })
-          : [this.isAr ? 'حدث خطأ أثناء التحديث' : 'Update failed'];
-        this.showPopup(msgs.join('\n'), 'error');
-      },
-    });
+    // 1) Update
+    this.service
+      .Update(payload)
+      .pipe(
+        catchError((err) => {
+          this.handleUpdateError(err);
+          this.isApplying = false;
+          return EMPTY;
+        }),
+        // 2) Show "Updated" toast and wait until it disappears
+        concatMap(() =>
+          from(
+            this.showPopupAsync(
+              this.isAr ? '✅ تم التحديث بنجاح' : '✅ Updated successfully!',
+              'success',
+              { duration: 1800 }
+            )
+          )
+        ),
+        // 3) Apply
+        concatMap(() =>
+          this.service.applySignBox({ id: this.id }).pipe(
+            map(() => ({ ok: true as const })),
+            catchError((err) => of({ ok: false as const, err }))
+          )
+        ),
+        // 4) Show "Apply" result toast and wait until it disappears
+        concatMap((res) =>
+          from(
+            this.showPopupAsync(
+              res.ok
+                ? this.isAr
+                  ? '✅ تم التطبيق بنجاح'
+                  : '✅ Applied successfully!'
+                : this.isAr
+                ? '❌ فشل تطبيق الإعدادات على الكابينة'
+                : '❌ Failed to apply settings to the cabinet',
+              res.ok ? 'success' : 'error',
+              { duration: 2200 }
+            )
+          ).pipe(map(() => res))
+        )
+      )
+      .subscribe({
+        next: () => {
+          // هنا خلّصنا الرسالتين بالكامل
+          this.isApplying = false;
+          // مفيش تنقّل قبل الرسائل — لو حابب تنقل بعد النجاح كله، فعّل السطر ده:
+          // this.router.navigate(['/trafficController']);
+        },
+        error: () => {
+          this.isApplying = false;
+        },
+      });
   }
 
   cancel(): void {
@@ -437,6 +477,7 @@ export class SignBoxEditComponent implements OnInit {
       .replace(/^(\w)/, (c) => c.toUpperCase());
   }
 
+  // ====== Toasts ======
   private showPopup(
     message: string,
     type: 'success' | 'error' | 'warn',
@@ -448,11 +489,25 @@ export class SignBoxEditComponent implements OnInit {
       ...this.toasts,
       { id, message, type, active: false, duration, onClose: opts?.onClose },
     ];
+    // animate in
     setTimeout(() => {
       this.toasts = this.toasts.map((t) => (t.id === id ? { ...t, active: true } : t));
     }, 0);
     const timer = setTimeout(() => this.dismissToast(id), duration);
     this.toastTimers.set(id, timer);
+    return id;
+  }
+
+  // NEW: awaitable popup
+  private showPopupAsync(
+    message: string,
+    type: 'success' | 'error' | 'warn',
+    opts?: { duration?: number; onClose?: () => void }
+  ): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const id = this.showPopup(message, type, opts);
+      this.toastResolvers.set(id, resolve);
+    });
   }
 
   dismissToast(id: number) {
@@ -471,6 +526,14 @@ export class SignBoxEditComponent implements OnInit {
       try {
         onClose && onClose();
       } catch {}
+      // resolve awaiting promise (if any)
+      const resolver = this.toastResolvers.get(id);
+      if (resolver) {
+        this.toastResolvers.delete(id);
+        try {
+          resolver();
+        } catch {}
+      }
     }, 500);
   }
 
@@ -496,6 +559,7 @@ export class SignBoxEditComponent implements OnInit {
     const [h = '00', m = '00'] = s.split(':');
     return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
   }
+
   onTemplateChange(index: number, event: any): void {
     const direction = this.directions.at(index) as FormGroup;
     const templateId = Number(event.target.value);
@@ -503,6 +567,7 @@ export class SignBoxEditComponent implements OnInit {
     direction.get('lightPatternId')?.setValue(template?.id ?? null);
     direction.get('lightPatternName')?.setValue(template?.name ?? '');
   }
+
   private loadTemplates(): void {
     this.templateService.GetAll().subscribe({
       next: (resp) => {
@@ -514,4 +579,30 @@ export class SignBoxEditComponent implements OnInit {
       },
     });
   }
+
+  // ====== Error helpers ======
+  private handleUpdateError = (err: any) => {
+    console.error('update failed', err);
+    const ipTyped = this.form?.value?.ipAddress ?? '';
+    const msgs: string[] = Array.isArray(err?.error?.errorMessages)
+      ? (err.error.errorMessages as string[]).map((m: string, i: number) => {
+          const rawProp: string = err.error?.propertyNames?.[i] || '';
+          const prop = this.prettifyField(rawProp);
+          let text = String(m || '').replace(/ip\s*address|ipaddress/gi, 'IP Address');
+          if (prop) text += `: ${prop}`;
+          const isIpError = rawProp?.toLowerCase() === 'ipaddress' || /ip\s*address/i.test(text);
+          if (isIpError && ipTyped) text += `: ${ipTyped}`;
+          return text;
+        })
+      : [this.isAr ? 'حدث خطأ أثناء التحديث' : 'Update failed'];
+    this.showPopup(msgs.join('\n'), 'error');
+  };
+
+  private handleApplyError = (err: any) => {
+    console.error('apply sign box failed', err);
+    const msg = this.isAr
+      ? 'تم الحفظ، لكن فشل تطبيق الإعدادات على الكابينة'
+      : 'Saved, but failed to apply settings to the cabinet';
+    this.showPopup(msg, 'error');
+  };
 }
