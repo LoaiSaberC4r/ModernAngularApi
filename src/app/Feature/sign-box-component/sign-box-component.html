@@ -7,15 +7,20 @@
     <div class="search-container">
       <div class="search-box">
         <i class="fas fa-search search-icon"></i>
-        <input type="text" class="search-input"
-          [placeholder]="isAr ? 'ابحث بالاسم أو المعرّف...' : 'Search by name or ID...'"
-          [(ngModel)]="searchParameter.searchText" (ngModelChange)="onSearchEnter()"
-          [attr.dir]="isAr ? 'rtl' : 'ltr'" />
+        <input
+          type="text"
+          class="search-input"
+          [placeholder]="isAr ? 'ابحث بالاسم / ID / CabinetId...' : 'Search by name / ID / CabinetId...'"
+          [(ngModel)]="searchParameter.searchText"
+          (ngModelChange)="onSearchEnter()"
+          [attr.dir]="isAr ? 'rtl' : 'ltr'"
+          aria-label="search"
+        />
       </div>
 
       <!-- Active Filter -->
       <div class="filter-dropdown active-filter-dropdown">
-        <button class="filter-button" (click)="showActiveFilter = !showActiveFilter">
+        <button class="filter-button" type="button" (click)="showActiveFilter = !showActiveFilter">
           <i class="fas fa-power-off"></i>
           {{ activeFilterLabel }}
           <i class="fas fa-chevron-down"></i>
@@ -39,26 +44,36 @@
   </div>
 
   <!-- Table -->
-  <table class="traffic-table">
+  <table class="traffic-table" role="table" aria-label="sign-boxes">
     <thead>
       <tr>
         <th>{{ isAr ? 'المعرّف' : 'ID' }}</th>
         <th>{{ isAr ? 'عنوان IP' : 'IP Address' }}</th>
         <th>{{ isAr ? 'الاسم' : 'Name' }}</th>
-        <th>{{ isAr ? 'الحالة' : 'Active' }}</th>
+        <th>{{ isAr ? 'الإجراءات' : 'Actions' }}</th>
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let item of filteredData" (mouseenter)="showPopup(item, $event)" (mousemove)="movePopup($event)"
-        (mouseleave)="hidePopup()">
-        <td>{{ item.id }}</td>
+<tr
+  *ngFor="let item of filteredData; trackBy: trackById"
+  (mouseenter)="showPopup(item, $event)"
+  (mousemove)="movePopup($event)"
+  (mouseleave)="hidePopup()"
+  [class.active-row]="isActive(item)"  
+>
+        <td>{{ item.cabinetId }}</td>
         <td dir="ltr">{{ item.ipAddress }}</td>
         <td>{{ item.name }}</td>
-        <td>
-          <span [ngClass]="item.active ? 'active' : 'inactive'">
-            {{ item.active ? (isAr ? 'نشِط' : 'active') : isAr ? 'غير نشِط' : 'inactive' }}
-          </span>
-        </td>
+
+        <!-- One line chips (state + optional Required Update) -->
+       <td class="actions-cell">
+    <span class="chip" [ngClass]="isActive(item) ? 'chip-active' : 'chip-inactive'">
+      {{ isActive(item) ? (isAr ? 'نشِط' : 'Active') : (isAr ? 'غير نشِط' : 'Inactive') }}
+    </span>
+    <span class="chip chip-warning" *ngIf="item.isApplied === false">
+      {{ isAr ? 'مطلوب تحديث' : 'Required Update' }}
+    </span>
+  </td>
       </tr>
 
       <tr *ngIf="filteredData.length === 0">
@@ -70,7 +85,12 @@
   </table>
 
   <!-- Popup -->
-  <div #popupRef class="traffic-popup" *ngIf="popupVisible" [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }">
+  <div
+    #popupRef
+    class="traffic-popup"
+    *ngIf="popupVisible"
+    [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }"
+  >
     <div class="tp-header">
       <div class="tp-title">
         <span class="tp-dot connected"></span>
@@ -90,21 +110,9 @@
           </span>
         </div>
         <div class="traffic-light">
-          <div class="tp-lamp"
-            [ngClass]="{ 'is-red': true, disconnected: isDisconnected, active: dir.lightCode === 'R' }">
-            🔴
-          </div>
-          <div class="tp-lamp" [ngClass]="{
-              'is-yellow': true,
-              disconnected: isDisconnected,
-              active: dir.lightCode === 'Y'
-            }">
-            🟡
-          </div>
-          <div class="tp-lamp"
-            [ngClass]="{ 'is-green': true, disconnected: isDisconnected, active: dir.lightCode === 'G' }">
-            🟢
-          </div>
+          <div class="tp-lamp" [ngClass]="{ 'is-red': true, disconnected: isDisconnected, active: dir.lightCode === 'R' }">🔴</div>
+          <div class="tp-lamp" [ngClass]="{ 'is-yellow': true, disconnected: isDisconnected, active: dir.lightCode === 'Y' }">🟡</div>
+          <div class="tp-lamp" [ngClass]="{ 'is-green': true, disconnected: isDisconnected, active: dir.lightCode === 'G' }">🟢</div>
         </div>
       </div>
     </div>

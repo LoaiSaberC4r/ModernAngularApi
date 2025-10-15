@@ -5,4 +5,5 @@ export interface SearchParameters {
   sortOrder?: SortOrder;
   page?: number;
   pageSize?: number;
+  cabinetId?: number;
 }

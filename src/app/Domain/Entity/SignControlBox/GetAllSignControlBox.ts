@@ -5,6 +5,8 @@ export interface GetAllSignControlBox {
   longitude: string;
   ipAddress: string;
   active?: boolean;
+  isApplied?: boolean;
+  cabinetId?: number;
   directions?: DirectionDto[];
 }
 
@@ -12,5 +14,10 @@ export interface DirectionDto {
   id?: number;
   name: string;
   order: number;
-  lightPatternId: number;
+  templateId: number;
+  templateName: string;
+  isConflict: boolean;
+  left: boolean;
+  right: boolean;
+  conflictWith: string;
 }
