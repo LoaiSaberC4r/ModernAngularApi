@@ -7,14 +7,10 @@
     <div class="search-container">
       <div class="search-box">
         <i class="fas fa-search search-icon"></i>
-        <input
-          type="text"
-          class="search-input"
-          [placeholder]="isAr ? 'ابحث بالاسم أو المعرّف...' : 'Search by name or ID...'"
-          [(ngModel)]="searchParameter.searchText"
-          (ngModelChange)="onSearchEnter()"
-          [attr.dir]="isAr ? 'rtl' : 'ltr'"
-        />
+        <input type="text" class="search-input"
+          [placeholder]="isAr ? 'ابحث بالاسم / ID / CabinetId...' : 'Search by name / ID / CabinetId...'"
+          [(ngModel)]="searchParameter.searchText" (ngModelChange)="onSearchEnter()" [attr.dir]="isAr ? 'rtl' : 'ltr'"
+          aria-label="search" />
       </div>
 
       <div class="filter-dropdown active-filter-dropdown">
@@ -46,7 +42,7 @@
     <table class="traffic-table">
       <thead>
         <tr>
-          <th>{{ isAr ? 'المعرّف' : 'ID' }}</th>
+          <th>{{ isAr ? 'ID الكابينة' : 'Cabinet ID' }}</th>
           <th>{{ isAr ? 'عنوان IP' : 'IP Address' }}</th>
           <th>{{ isAr ? 'الاسم' : 'Name' }}</th>
           <th class="actions-col">{{ isAr ? 'إجراءات' : 'Actions' }}</th>
@@ -54,13 +50,10 @@
       </thead>
       <tbody>
         <tr *ngFor="let item of filteredData">
-          <td>{{ item.id }}</td>
+          <td>{{ item.cabinetId }}</td>
           <td dir="ltr">{{ item.ipAddress }}</td>
           <td>{{ item.name }}</td>
           <td class="actions-cell">
-            <!-- <button class="btn btn--apply" (click)="applyPattern(item)">
-              <i class="fas fa-check"></i> {{ isAr ? 'تطبيق' : 'Apply' }}
-            </button> -->
             <button class="btn btn--edit" (click)="onEdit(item)">
               <i class="fas fa-edit"></i>{{ isAr ? 'تعديل و تطبيق' : 'Edit & Apply' }}
             </button>

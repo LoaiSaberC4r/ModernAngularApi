@@ -18,6 +18,7 @@ import { LanguageService } from '../../Services/Language/language-service';
 
 import { TrafficBroadcast } from '../../Domain/SignalR/TrafficBroadcast';
 import { HubConnectionStatus } from '../../Domain/SignalR/HubConnectionStatus';
+import { Router } from '@angular/router';
 
 type TrafficColorText = 'Green' | 'Yellow' | 'Red' | 'Off' | string;
 
@@ -29,12 +30,13 @@ type TrafficColorText = 'Green' | 'Yellow' | 'Red' | 'Off' | string;
   styleUrls: ['./sign-box-component.css'],
 })
 export class SignBoxComponent implements OnInit, OnDestroy {
-  private static readonly INACTIVITY_MS = 10000; // 5s
-  private static readonly SWEEP_MS = 1000;      // 1s “tick” لإجبار إعادة التقييم
+  private static readonly INACTIVITY_MS = 10000;
+  private static readonly SWEEP_MS = 1000;
 
   private readonly signalr = inject(ISignalrService);
   private readonly signBoxControlService = inject(ISignBoxControlService);
   public langService = inject(LanguageService);
+  private readonly router = inject(Router);
 
   @ViewChild('popupRef') popupRef?: ElementRef<HTMLDivElement>;
 
@@ -96,7 +98,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   popupLive: TrafficBroadcast | null = null;
 
   constructor() {
-    // بث SignalR
+    // SignalR
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
@@ -110,7 +112,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
         // لو البوب-أب على نفس الكابينة حدّثه
         if (this.popupData?.cabinetId === key) {
-          const row = this.signBoxEntity.value.data.find(x => this.toKey(x.cabinetId) === key);
+          const row = this.signBoxEntity.value.data.find((x) => this.toKey(x.cabinetId) === key);
           if (row) this.popupData = this.toPopup(row, message);
           this.popupLive = message;
         }
@@ -139,7 +141,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Debounce للبحث
     this.searchChanged$
       .pipe(debounceTime(200), takeUntilDestroyed())
       .subscribe(() => this.loadData());
@@ -152,7 +153,9 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     // “Tick” كل ثانية لإعادة تقييم isActive() في التمبلِت
     this.sweepSub = timer(SignBoxComponent.SWEEP_MS, SignBoxComponent.SWEEP_MS)
       .pipe(takeUntilDestroyed())
-      .subscribe(() => { this._tick++; });
+      .subscribe(() => {
+        this._tick++;
+      });
   }
 
   ngOnDestroy(): void {
@@ -187,10 +190,9 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     const k = this.toKey(cabinetId);
     if (k === null) return false;
     const seen = this.lastSeen[k] ?? 0;
-    return !!seen && (Date.now() - seen) <= SignBoxComponent.INACTIVITY_MS;
+    return !!seen && Date.now() - seen <= SignBoxComponent.INACTIVITY_MS;
   }
 
-/*************  ✨ Windsurf Command ⭐  *************/
   /**
    * Get filtered data according to search query and active filter.
    *
@@ -202,7 +204,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
    *
    * @returns {GetAllSignControlBox[]} The filtered data.
    */
-/*******  6608a014-18bb-4f87-b0fb-bfb71e3e7e2c  *******/
+  /*******  6608a014-18bb-4f87-b0fb-bfb71e3e7e2c  *******/
   get filteredData(): GetAllSignControlBox[] {
     const q = (this.searchParameter.searchText ?? '').trim().toLowerCase();
 
@@ -311,7 +313,10 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     }
   }
 
-  private toPopup(row: GetAllSignControlBox, live?: TrafficBroadcast): PopUpSignBox & { cabinetId?: number } {
+  private toPopup(
+    row: GetAllSignControlBox,
+    live?: TrafficBroadcast
+  ): PopUpSignBox & { cabinetId?: number } {
     const directions: PopUpDirection[] = (row.directions ?? []).slice(0, 4).map((d, idx) => {
       const ln = `L${idx + 1}` as keyof TrafficBroadcast;
       const tn = `T${idx + 1}` as keyof TrafficBroadcast;
@@ -335,5 +340,10 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   // ====== واجهة (يستخدمها التمبلِت) ======
   isActive(item: GetAllSignControlBox): boolean {
     return this.isActiveByCabinetId(item.cabinetId);
+  }
+  onEdit(item: GetAllSignControlBox) {
+    this.router.navigate(['/trafficController/edit-sign-box', item.id], {
+      state: { signbox: item },
+    });
   }
 }

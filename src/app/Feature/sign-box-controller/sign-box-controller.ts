@@ -12,6 +12,7 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { PopUpSignBox, TrafficColor } from '../../Domain/PopUpSignBox/PopUpSignBox';
 import { ApplySignBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
 import { LanguageService } from '../../Services/Language/language-service';
+import { debounceTime, Subject, Subscription, timer } from 'rxjs';
 
 export interface ReceiveMessage {
   L1: 'R' | 'Y' | 'G';
@@ -41,13 +42,24 @@ export class SignBoxController {
     return this.langService.current === 'ar';
   }
 
+  private static readonly INACTIVITY_MS = 10000;
+  private static readonly SWEEP_MS = 1000;
+
+  private sweepSub?: Subscription;
+  private _tick = 0;
+
   readonly status = this.signalr.status;
   readonly lastError = this.signalr.lastError;
   readonly messages = this.signalr.messages;
 
   searchParameter: SearchParameters = {};
+  private searchChanged$ = new Subject<void>();
+  private disconnectTimerSub?: Subscription;
+
   hasPreviousPage = false;
   hasNextPage = false;
+
+  private _reqSeq = 0;
 
   signBoxEntity: Pagination<GetAllSignControlBox> = {
     value: {
@@ -98,26 +110,36 @@ export class SignBoxController {
           value: { ...cur.value, data: cur.value.data.map((x) => ({ ...x, active: x.id === id })) },
         };
       });
+    this.searchChanged$
+      .pipe(debounceTime(200), takeUntilDestroyed())
+      .subscribe(() => this.loadData());
   }
 
   ngOnInit(): void {
     this.signalr.connect().catch(console.error);
     this.loadData();
+
+    this.sweepSub = timer(SignBoxController.SWEEP_MS, SignBoxController.SWEEP_MS)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this._tick++;
+      });
   }
   ngOnDestroy(): void {
     this.signalr.disconnect().catch(() => {});
+    this.disconnectTimerSub?.unsubscribe();
+    this.sweepSub?.unsubscribe();
   }
 
   loadData(): void {
+    const seq = ++this._reqSeq;
     this.signBoxControlService.getAll(this.searchParameter).subscribe((data) => {
+      if (seq !== this._reqSeq) return;
+
       this.signBoxEntity = data;
       this.hasPreviousPage = data.value.hasPreviousPage;
       this.hasNextPage = data.value.hasNextPage;
     });
-  }
-
-  onSearchEnter(): void {
-    this.loadData();
   }
 
   setActiveFilter(filter: 'ALL' | 'ACTIVE' | 'INACTIVE') {
@@ -126,25 +148,59 @@ export class SignBoxController {
   }
 
   get filteredData(): GetAllSignControlBox[] {
-    return this.signBoxEntity.value.data.filter((item) => {
+    let base = this.signBoxEntity.value.data.filter((item) => {
       if (this.activeFilter === 'ACTIVE') return item.active;
       if (this.activeFilter === 'INACTIVE') return !item.active;
       return true;
     });
+
+    const rawSearch = (this.searchParameter.searchText ?? '').trim();
+    if (!rawSearch) return base;
+
+    const search = this.normalizeDigits(rawSearch).toLowerCase();
+
+    const byText = (v?: string | number) => (v ?? '').toString().toLowerCase().includes(search);
+
+    return base.filter((item) => {
+      const matchByCabinet = byText(item.cabinetId);
+      const matchById = byText(item.id);
+      const matchByName = byText(item.name);
+      const matchByIp = byText(item.ipAddress);
+
+      return matchByCabinet || matchById || matchByName || matchByIp;
+    });
   }
 
-  showPopup(row: GetAllSignControlBox, event: MouseEvent) {
-    /* لا تغيير وظيفي */
+  private normalizeDigits(input: string): string {
+    const map: Record<string, string> = {
+      '٠': '0',
+      '١': '1',
+      '٢': '2',
+      '٣': '3',
+      '٤': '4',
+      '٥': '5',
+      '٦': '6',
+      '٧': '7',
+      '٨': '8',
+      '٩': '9',
+      '۰': '0',
+      '۱': '1',
+      '۲': '2',
+      '۳': '3',
+      '۴': '4',
+      '۵': '5',
+      '۶': '6',
+      '۷': '7',
+      '۸': '8',
+      '۹': '9',
+    };
+    return input.replace(/[٠-٩۰-۹]/g, (d) => map[d] ?? d);
   }
-  movePopup(event: MouseEvent) {
-    /* لا تغيير */
-  }
-  hidePopup() {
-    /* لا تغيير */
-  }
-  private updatePopupPosition(event: MouseEvent) {
-    /* لا تغيير */
-  }
+
+  showPopup(row: GetAllSignControlBox, event: MouseEvent) {}
+  movePopup(event: MouseEvent) {}
+  hidePopup() {}
+  private updatePopupPosition(event: MouseEvent) {}
   mapCodeToClass(code?: 'R' | 'Y' | 'G') {
     return code === 'G' ? 'is-green' : code === 'Y' ? 'is-yellow' : 'is-red';
   }
@@ -161,5 +217,8 @@ export class SignBoxController {
     this.router.navigate(['/trafficController/edit-sign-box', item.id], {
       state: { signbox: item },
     });
+  }
+  onSearchEnter(): void {
+    this.searchChanged$.next();
   }
 }
