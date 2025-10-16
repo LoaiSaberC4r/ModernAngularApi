@@ -416,12 +416,4 @@
   <div>{{ isAr ? 'جارِ التحميل...' : 'Loading...' }}</div>
 </ng-template>
 
-<!-- Toasts -->
-<div class="popup-stack" aria-live="polite" aria-atomic="true">
-  <div *ngFor="let t of toasts" class="custom-popup" [ngClass]="[t.active ? 'show' : '', 'popup-' + t.type]"
-    role="status">
-    <span class="popup-msg">{{ t.message }}</span>
-    <button type="button" class="popup-close" (click)="dismissToast(t.id)"
-      [attr.aria-label]="isAr ? 'إغلاق الإشعار' : 'Close notification'">×</button>
-  </div>
-</div>
+ 

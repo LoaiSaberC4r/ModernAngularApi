@@ -239,6 +239,7 @@ export class SignBoxController {
   }
   onSearchEnter(): void {
     this.searchChanged$.next();
+    this.loadData();
   }
   getGovernorateName(id: number | null): string {
     if (!id) return '';

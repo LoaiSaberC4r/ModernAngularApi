@@ -18,3 +18,15 @@ export interface ErrorType {
   url: string;
   type: string;
 }
+export interface ProblemDetails {
+  type: string;
+  title: string;
+  status: number;
+  detail: string;
+  traceId: string;
+}
+export interface ErrorProblemDetails
+{
+error: ProblemDetails;
+
+}

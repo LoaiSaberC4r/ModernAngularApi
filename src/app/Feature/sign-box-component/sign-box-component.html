@@ -1,57 +1,64 @@
 <div class="container-fluid" [class.rtl]="isAr">
   <div class="header">
-    <h1 class="title">
-      {{ isAr ? 'إدارة إشارات المرور' : 'Traffic Signal Management' }}
-    </h1>
-
+    <h1 class="title">{{ isAr ? 'إدارة إشارات المرور' : 'Traffic Signal Management' }}</h1>
     <div class="search-container">
       <!-- Search -->
       <div class="filter-dropdown search-box">
-        <label class="filter-label">
-          {{ isAr ? 'البحث' : 'Search' }}
-        </label>
+        <label class="filter-label"> {{ isAr ? 'البحث' : 'Search' }} </label>
         <div class="search-wrapper">
           <i class="fa-solid fa-magnifying-glass search-icon"></i>
-          <input type="text" class="search-input"
-            [placeholder]="isAr ? 'ابحث بالاسم / IP / CabinetId...' : 'Search by name / IP / CabinetId...'"
-            [(ngModel)]="searchParameter.searchText" (ngModelChange)="onSearchEnter()" [attr.dir]="isAr ? 'rtl' : 'ltr'"
-            aria-label="search" />
+          <input
+            type="text"
+            class="search-input"
+            [placeholder]="
+              isAr ? 'ابحث بالاسم / IP / CabinetId...' : 'Search by name / IP / CabinetId...'
+            "
+            [(ngModel)]="searchParameter.searchText"
+            (ngModelChange)="onSearchEnter()"
+            [attr.dir]="isAr ? 'rtl' : 'ltr'"
+            aria-label="search"
+          />
         </div>
       </div>
-
       <!-- Active Filter -->
       <div class="filter-dropdown">
-        <label class="filter-label">
-          {{ isAr ? 'الحالة' : 'Active Filter' }}
-        </label>
-        <select class="filter-select" [(ngModel)]="activeFilter" (ngModelChange)="setActiveFilter($event)">
+        <label class="filter-label"> {{ isAr ? 'الحالة' : 'Active Filter' }} </label>
+        <select
+          class="filter-select"
+          [(ngModel)]="activeFilter"
+          (ngModelChange)="setActiveFilter($event)"
+        >
           <option value="ALL">{{ isAr ? 'الكل' : 'All' }}</option>
           <option value="ACTIVE">{{ isAr ? 'نشِط فقط' : 'Active Only' }}</option>
           <option value="INACTIVE">{{ isAr ? 'غير نشِط فقط' : 'Inactive Only' }}</option>
         </select>
       </div>
-
       <!-- Governorate -->
       <div class="filter-dropdown">
         <label class="filter-label">{{ isAr ? 'المحافظة' : 'Governorate' }}</label>
-        <select class="filter-select" [(ngModel)]="selectedGovernorateId"
-          (ngModelChange)="onGovernorateChangeValue($event)">
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedGovernorateId"
+          (ngModelChange)="onGovernorateChangeValue($event)"
+        >
           <option [ngValue]="null">{{ isAr ? 'الكل' : 'All' }}</option>
           <option *ngFor="let g of governates" [ngValue]="g.id">{{ g.name }}</option>
         </select>
       </div>
-
       <!-- Area -->
       <div class="filter-dropdown">
         <label class="filter-label">{{ isAr ? 'الحي / المنطقة' : 'Area' }}</label>
-        <select class="filter-select" [(ngModel)]="selectedAreaId" (ngModelChange)="onAreaChangeValue($event)">
+        <select
+          class="filter-select"
+          [(ngModel)]="selectedAreaId"
+          (ngModelChange)="onAreaChangeValue($event)"
+        >
           <option [ngValue]="null">{{ isAr ? 'الكل' : 'All' }}</option>
           <option *ngFor="let a of areas" [ngValue]="a.id">{{ a.name }}</option>
         </select>
       </div>
     </div>
   </div>
-
   <!-- Table -->
   <table class="traffic-table">
     <thead>
@@ -61,39 +68,57 @@
         <th>{{ isAr ? 'عنوان IP' : 'IP Address' }}</th>
         <th>{{ isAr ? 'الاسم' : 'Name' }}</th>
         <th class="col-status">{{ isAr ? 'الحالة' : 'Status' }}</th>
+        <th class="col-updated">{{ isAr ? 'التحديث المطلوب' : 'Requeried Update' }}</th>
         <th>{{ isAr ? 'الإجراءات' : 'Actions' }}</th>
       </tr>
     </thead>
     <tbody>
-      <ng-container *ngFor="let item of filteredData; trackBy: trackById">
+      <ng-container *ngFor="let item of signBoxEntity.value.data; trackBy: trackById">
         <!-- Main row -->
-        <tr id="row-cab-{{ item.cabinetId }}" (mouseenter)="showPopup(item, $event)" (mousemove)="movePopup($event)"
-          (mouseleave)="hidePopup()" [class.active-row]="isActive(item)">
+        <tr
+          id="row-cab-{{ item.cabinetId }}"
+          (mouseenter)="showPopup(item, $event)"
+          (mousemove)="movePopup($event)"
+          (mouseleave)="hidePopup()"
+          [class.active-row]="isActive(item)"
+        >
           <td class="expand-td">
-            <button class="expand-btn" type="button" (click)="toggleExpand(item); $event.stopPropagation()"
-              [attr.aria-expanded]="isExpanded(item)">
-              <i class="fa-solid" [ngClass]="isExpanded(item) ? 'fa-chevron-up' : 'fa-chevron-right'"></i>
+            <button
+              class="expand-btn"
+              type="button"
+              (click)="toggleExpand(item); $event.stopPropagation()"
+              [attr.aria-expanded]="isExpanded(item)"
+            >
+              <i
+                class="fa-solid"
+                [ngClass]="isExpanded(item) ? 'fa-chevron-up' : 'fa-chevron-right'"
+              ></i>
             </button>
           </td>
-
           <td>{{ item.cabinetId }}</td>
           <td dir="ltr">{{ item.ipAddress }}</td>
           <td class="name-cell">{{ item.name }}</td>
-
           <!-- Quick status indicator -->
           <td class="status-cell">
-            <span class="status-indicator" [ngClass]="{
+            <span
+              class="status-indicator"
+              [ngClass]="{
                 'st-crit': rowSeverity(item) === 'CRITICAL',
                 'st-warn': rowSeverity(item) === 'WARN',
                 'st-info': rowSeverity(item) === 'INFO',
-                'st-ok'  : rowSeverity(item) === 'OK'
-              }" [attr.title]="statusBadgeTitle(item)">
-              <i class="fa-solid" [ngClass]="{
-                  'fa-circle-xmark'        : rowSeverity(item) === 'CRITICAL',
+                'st-ok': rowSeverity(item) === 'OK'
+              }"
+              [attr.title]="statusBadgeTitle(item)"
+            >
+              <i
+                class="fa-solid"
+                [ngClass]="{
+                  'fa-circle-xmark': rowSeverity(item) === 'CRITICAL',
                   'fa-triangle-exclamation': rowSeverity(item) === 'WARN',
-                  'fa-circle-info'         : rowSeverity(item) === 'INFO',
-                  'fa-circle-check'        : rowSeverity(item) === 'OK'
-                }"></i>
+                  'fa-circle-info': rowSeverity(item) === 'INFO',
+                  'fa-circle-check': rowSeverity(item) === 'OK'
+                }"
+              ></i>
               <span class="st-label">
                 {{ isAr ? rowSeverityLabelAr(rowSeverity(item)) : rowSeverity(item) }}
               </span>
@@ -102,20 +127,23 @@
               </span>
             </span>
           </td>
-
           <td class="actions-cell">
-            <span class="chip" [ngClass]="isActive(item) ? 'chip-active' : 'chip-inactive'">
-              <i class="fa-solid" [ngClass]="isActive(item) ? 'fa-circle-check' : 'fa-circle-xmark'"></i>
-              {{ isActive(item) ? (isAr ? 'نشِط' : 'Active') : (isAr ? 'غير نشِط' : 'Inactive') }}
-            </span>
             <span class="chip chip-warning" *ngIf="!item.isApplied" (click)="onEdit(item)">
               <i class="fa-solid fa-triangle-exclamation"></i>
               {{ isAr ? 'مطلوب تحديث' : 'Required Update' }}
             </span>
           </td>
+          <td>
+            <span class="chip" [ngClass]="isActive(item) ? 'chip-active' : 'chip-inactive'">
+              <i
+                class="fa-solid"
+                [ngClass]="isActive(item) ? 'fa-circle-check' : 'fa-circle-xmark'"
+              ></i>
+              {{ isActive(item) ? (isAr ? 'نشِط' : 'Active') : isAr ? 'غير نشِط' : 'Inactive' }}
+            </span>
+          </td>
         </tr>
-
-        <!-- Expand row  -->
+        <!-- Expand row -->
         <tr class="expand-row" *ngIf="isExpanded(item)">
           <td></td>
           <td colspan="5">
@@ -123,28 +151,27 @@
               <div class="status-header">
                 <div class="status-title">
                   <i class="fa-solid fa-traffic-light text-primary"></i>
-                  {{ isAr ? 'حالة الكابينة' : 'Cabinet Status' }} — {{ item.name || (isAr ? 'بدون اسم' : 'Unnamed') }}
+                  {{ isAr ? 'حالة الكابينة' : 'Cabinet Status' }} —
+                  {{ item.name || (isAr ? 'بدون اسم' : 'Unnamed') }}
                 </div>
                 <div class="status-chips">
                   <span class="s-chip s-crit">
-                    <i class="fa-solid fa-circle-xmark"></i>
-                    {{ isAr ? 'حرج' : 'Critical' }}: {{ statusSummary(item).critical }}
+                    <i class="fa-solid fa-circle-xmark"></i> {{ isAr ? 'حرج' : 'Critical' }}:
+                    {{ statusSummary(item).critical }}
                   </span>
                   <span class="s-chip s-warn">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                     {{ isAr ? 'تحذير' : 'Warning' }}: {{ statusSummary(item).warn }}
                   </span>
                   <span class="s-chip s-info">
-                    <i class="fa-solid fa-circle-info"></i>
-                    {{ isAr ? 'معلومة' : 'Info' }}: {{ statusSummary(item).info }}
+                    <i class="fa-solid fa-circle-info"></i> {{ isAr ? 'معلومة' : 'Info' }}:
+                    {{ statusSummary(item).info }}
                   </span>
-                  <span class="s-chip s-ok" *ngIf="statusSummary(item).total===0">
-                    <i class="fa-solid fa-circle-check"></i>
-                    {{ isAr ? 'لا مشاكل' : 'No issues' }}
+                  <span class="s-chip s-ok" *ngIf="statusSummary(item).total === 0">
+                    <i class="fa-solid fa-circle-check"></i> {{ isAr ? 'لا مشاكل' : 'No issues' }}
                   </span>
                 </div>
               </div>
-
               <div class="status-body" *ngIf="getStatus(item).length > 0; else noIssuesTpl">
                 <table class="status-table">
                   <thead>
@@ -159,13 +186,20 @@
                     <tr *ngFor="let s of getStatus(item)">
                       <td>{{ s.component }}</td>
                       <td>
-                        <span class="lvl" [class.lvl-crit]="s.severity==='CRITICAL'"
-                          [class.lvl-warn]="s.severity==='WARN'" [class.lvl-info]="s.severity==='INFO'">
-                          <i class="fa-solid" [ngClass]="{
-                              'fa-circle-xmark'        : s.severity==='CRITICAL',
-                              'fa-triangle-exclamation': s.severity==='WARN',
-                              'fa-circle-info'         : s.severity==='INFO'
-                            }"></i>
+                        <span
+                          class="lvl"
+                          [class.lvl-crit]="s.severity === 'CRITICAL'"
+                          [class.lvl-warn]="s.severity === 'WARN'"
+                          [class.lvl-info]="s.severity === 'INFO'"
+                        >
+                          <i
+                            class="fa-solid"
+                            [ngClass]="{
+                              'fa-circle-xmark': s.severity === 'CRITICAL',
+                              'fa-triangle-exclamation': s.severity === 'WARN',
+                              'fa-circle-info': s.severity === 'INFO'
+                            }"
+                          ></i>
                           {{ isAr ? severityLabelAr[s.severity] : s.severity }}
                         </span>
                       </td>
@@ -175,59 +209,95 @@
                   </tbody>
                 </table>
               </div>
-
               <ng-template #noIssuesTpl>
                 <div class="no-issues">
                   <i class="fa-solid fa-circle-check"></i>
-                  {{ isAr ? 'لا توجد مشاكل مُسجّلة لهذه الكابينة.' : 'No recorded issues for this cabinet.' }}
+                  {{
+                    isAr
+                      ? 'لا توجد مشاكل مُسجّلة لهذه الكابينة.'
+                      : 'No recorded issues for this cabinet.'
+                  }}
                 </div>
               </ng-template>
             </div>
           </td>
         </tr>
       </ng-container>
-
       <tr *ngIf="filteredData.length === 0">
-        <td colspan="6" class="no-results">{{ isAr ? 'لا توجد إشارات مطابقة' : 'No traffic signals found' }}</td>
+        <td colspan="6" class="no-results">
+          {{ isAr ? 'لا توجد إشارات مطابقة' : 'No traffic signals found' }}
+        </td>
       </tr>
     </tbody>
   </table>
-
   <!-- Popup -->
-  <div #popupRef class="traffic-popup" *ngIf="popupVisible" [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }">
+  <div
+    #popupRef
+    class="traffic-popup"
+    *ngIf="popupVisible"
+    [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }"
+  >
     <div class="tp-header">
       <div class="tp-title">
-        <span class="tp-dot" [class.connected]="popupIsLive" [class.disconnected]="!popupIsLive"></span>
+        <span
+          class="tp-dot"
+          [class.connected]="popupIsLive"
+          [class.disconnected]="!popupIsLive"
+        ></span>
         <span class="tp-name">{{ popupData?.name || '—' }}</span>
       </div>
       <span class="tp-chip" [class.connected]="popupIsLive" [class.disconnected]="!popupIsLive">
-        {{ popupIsLive ? (isAr ? 'مباشر' : 'Live') : (isAr ? 'غير مباشر' : 'Not Live') }}
+        {{ popupIsLive ? (isAr ? 'مباشر' : 'Live') : isAr ? 'غير مباشر' : 'Not Live' }}
       </span>
     </div>
-
     <div class="tp-grid">
       <div class="tp-col" *ngFor="let dir of popupData?.directions; let i = index">
         <div class="tp-col__head w-50">
           <span class="tp-col__label me-2">
             {{ isAr ? 'اتجاه' : 'Direction' }}:
-            {{ (dir?.name && dir.name.trim()) ? dir.name : (isAr ? ('اتجاه ' + (i + 1)) : ('Direction ' + (i + 1))) }}
+            {{
+              dir?.name && dir.name.trim()
+                ? dir.name
+                : isAr
+                ? 'اتجاه ' + (i + 1)
+                : 'Direction ' + (i + 1)
+            }}
           </span>
-
           <span class="tp-timer">
             {{ popupIsLive && dir.time != null ? dir.time + (isAr ? ' ث' : 's') : '--' }}
           </span>
         </div>
-
         <div class="traffic-light">
-          <div class="tp-lamp"
-            [ngClass]="{ 'is-red': true, disconnected: !popupIsLive || isDisconnected, active: popupIsLive && dir.lightCode === 'R' }">
-            🔴</div>
-          <div class="tp-lamp"
-            [ngClass]="{ 'is-yellow': true, disconnected: !popupIsLive || isDisconnected, active: popupIsLive && dir.lightCode === 'Y' }">
-            🟡</div>
-          <div class="tp-lamp"
-            [ngClass]="{ 'is-green': true, disconnected: !popupIsLive || isDisconnected, active: popupIsLive && dir.lightCode === 'G' }">
-            🟢</div>
+          <div
+            class="tp-lamp"
+            [ngClass]="{
+              'is-red': true,
+              disconnected: !popupIsLive || isDisconnected,
+              active: popupIsLive && dir.lightCode === 'R'
+            }"
+          >
+            🔴
+          </div>
+          <div
+            class="tp-lamp"
+            [ngClass]="{
+              'is-yellow': true,
+              disconnected: !popupIsLive || isDisconnected,
+              active: popupIsLive && dir.lightCode === 'Y'
+            }"
+          >
+            🟡
+          </div>
+          <div
+            class="tp-lamp"
+            [ngClass]="{
+              'is-green': true,
+              disconnected: !popupIsLive || isDisconnected,
+              active: popupIsLive && dir.lightCode === 'G'
+            }"
+          >
+            🟢
+          </div>
         </div>
       </div>
     </div>

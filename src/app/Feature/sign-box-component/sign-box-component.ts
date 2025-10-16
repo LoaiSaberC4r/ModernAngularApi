@@ -119,7 +119,8 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
-        if (!message) return;
+        if (!message) return; 
+        console.log(message);
 
         const key = this.toKey((message as any).ID);
         if (key === null) return;
@@ -205,7 +206,8 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     this.sweepSub?.unsubscribe();
   }
 
-  loadData(after?: () => void): void {
+  loadData(after?: () => void): void { 
+    console.log(this.searchParameter);
     this.signBoxControlService.getAll(this.searchParameter).subscribe((data) => {
       this.signBoxEntity = { ...data, value: { ...data.value, data: [...data.value.data] } };
       this.hasPreviousPage = data.value.hasPreviousPage;
@@ -242,6 +244,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
   onSearchEnter(): void {
     this.searchChanged$.next();
+    this.loadData(); 
   }
 
   setActiveFilter(filter: 'ALL' | 'ACTIVE' | 'INACTIVE') {

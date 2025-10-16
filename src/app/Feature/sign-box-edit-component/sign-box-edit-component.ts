@@ -93,7 +93,7 @@ export class SignBoxEditComponent implements OnInit {
     areaId: [null, Validators.required],
     latitude: [''],
     longitude: [''],
-    cabinetId: [{ value: null, disabled: true }],
+    cabinetId: [{ value: null, disabled: false }],
     directions: this.fb.array<FormGroup>([]),
   });
 
@@ -414,7 +414,6 @@ export class SignBoxEditComponent implements OnInit {
       .subscribe({
         next: () => {
           this.isApplying = false;
-          this.router.navigateByUrl('/trafficSignal');
         },
         error: () => {
           this.isApplying = false;

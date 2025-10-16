@@ -165,7 +165,7 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
   onApply() {
     if (this.trafficForm.invalid || !this.selectedLightPatternId) {
       this.trafficForm.markAllAsTouched();
-      alert(this.isAr ? 'املأ النموذج واختر نمط الإشارة' : 'Fill the form and select a pattern');
+      // alert(this.isAr ? 'املأ النموذج واختر نمط الإشارة' : 'Fill the form and select a pattern');
       return;
     }
 

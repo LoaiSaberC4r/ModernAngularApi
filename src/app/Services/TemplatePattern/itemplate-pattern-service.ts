@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { catchError, map, Observable, of, shareReplay } from 'rxjs';
+import { catchError, map, Observable, of, shareReplay, tap } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import {
@@ -8,43 +8,71 @@ import {
   TemplatePattern,
 } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
 import { Result } from '../../Domain/ResultPattern/Result';
+import { ToasterService } from '../Toster/toaster-service';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class ITemplatePatternService {
   private readonly http = inject(HttpClient);
-  private cache = new Map<string, ResultV<LightPatternForTemplatePattern>>();
+  private readonly toast = inject(ToasterService);
 
   private cacheGetAllByTemplateId = new Map<string, ResultV<LightPatternForTemplatePattern>>();
+
+  /** استخراج رسالة مفهومة من أخطاء الـ API (Validation/ProblemDetails/Result/Network) */
+  private extractErrorMessage(err: any, op: string): string {
+    const validationList: string[] =
+      err?.error?.errorMessages ?? err?.error?.errors ?? err?.error?.ErrorMessages ?? [];
+
+    if (Array.isArray(validationList) && validationList.length > 0) {
+      return `Validation (${op}): ${validationList.join(' | ')}`;
+    }
+
+    const problemTitle = err?.error?.title || err?.error?.Title;
+    const problemDetail = err?.error?.detail || err?.error?.Detail;
+    if (problemTitle || problemDetail) {
+      return `${problemTitle ?? 'Request failed'}${problemDetail ? `: ${problemDetail}` : ''}`;
+    }
+
+    const resultErrorDesc =
+      err?.error?.error?.description ||
+      err?.error?.Error?.Description ||
+      err?.error?.message ||
+      err?.message;
+
+    return resultErrorDesc || `Operation "${op}" failed`;
+  }
+
+  /** إضافة أو تحديث TemplatePattern */
   AddOrUpdateLightPattern(payload: TemplatePattern): Observable<ResultV<TemplatePattern>> {
     return this.http
       .post<ResultV<TemplatePattern>>(
-        // لو عايز تستعمل الـ baseUrl بدل الثابت: `${environment.baseUrl}/SignControlBox/ApplySignBox`
         `${environment.baseUrl}/TemplatePattern/AddOrUpdateTemplatePattern`,
         payload
       )
       .pipe(
         map((resp) => {
-          if (!resp.isSuccess) {
-            throw new Error(resp.error?.description ?? 'Unknown error');
-          }
-          // نفس النمط: نرجّع الـ Result كما هو بعد التحقق
-          const mapped: ResultV<TemplatePattern> = resp;
-          return mapped;
+          if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
+          // بما إن البيانات تغيّرت: امسح الكاش
+          this.cacheGetAllByTemplateId.clear();
+          return resp;
         }),
+        tap(() => this.toast.success('Success')), // ← توستر نجاح
         catchError((err) => {
-          console.error('Failed to apply sign box', err);
+          const msg = this.extractErrorMessage(err, 'TemplatePattern:AddOrUpdate');
+          console.error('[TemplatePattern:AddOrUpdate] failed:', err);
+          this.toast.error(msg);
           return of({} as ResultV<TemplatePattern>);
         }),
         shareReplay(1)
       );
   }
 
-  GetAllTemplatePatternByTemplateId(Id: number): Observable<ResultV<LightPatternForTemplatePattern>> {
-    const query = new HttpParams().set('templateId', Id ?? '');
-
+  /** جلب LightPatterns الخاصة بـ Template محدد (بدون توستر نجاح) */
+  GetAllTemplatePatternByTemplateId(
+    Id: number
+  ): Observable<ResultV<LightPatternForTemplatePattern>> {
+    const query = new HttpParams().set('templateId', String(Id));
     const cacheKey = query.toString();
+
     if (this.cacheGetAllByTemplateId.has(cacheKey)) {
       return of(this.cacheGetAllByTemplateId.get(cacheKey)!);
     }
@@ -56,34 +84,43 @@ export class ITemplatePatternService {
       )
       .pipe(
         map((resp) => {
-          if (!resp.isSuccess) {
-            throw new Error(resp.error?.description ?? 'Unknown error');
-          }
-          const mapped: ResultV<LightPatternForTemplatePattern> = resp;
-          this.cacheGetAllByTemplateId.set(cacheKey, mapped);
-          return mapped;
+          if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
+          this.cacheGetAllByTemplateId.set(cacheKey, resp);
+          return resp;
         }),
         catchError((err) => {
-          console.error('Failed to load control boxes', err);
+          const msg = this.extractErrorMessage(err, 'TemplatePattern:GetAllByTemplateId');
+          console.error('[TemplatePattern:GetAllByTemplateId] failed:', err);
+          this.toast.error(msg);
           return of({} as ResultV<LightPatternForTemplatePattern>);
         }),
         shareReplay(1)
       );
-  } 
-deleteTemplate(templateId: number): Observable<Result> {
+  }
+
+  /** حذف Template */
+  deleteTemplate(templateId: number): Observable<Result> {
     const params = new HttpParams().set('templateId', String(templateId));
+
     return this.http
       .delete<Result>(`${environment.baseUrl}/TemplatePattern/DeleteTemplate`, { params })
       .pipe(
         map((resp) => {
-          if (!resp.isSuccess) throw new Error(resp.error?.description ?? 'Unknown error');
+          if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
+          // الحذف يغيّر البيانات → نعمل invalidation للـ cache
+          this.cacheGetAllByTemplateId.clear();
           return resp;
         }),
+        tap(() => this.toast.success('Success')), // ← توستر نجاح
         catchError((err) => {
-          console.error('Delete Template failed', err);
-          return of({ isSuccess: false, error: { description: 'Delete failed' } } as Result);
+          const msg = this.extractErrorMessage(err, 'TemplatePattern:DeleteTemplate');
+          console.error('[TemplatePattern:DeleteTemplate] failed:', err);
+          this.toast.error(msg);
+          return of({
+            isSuccess: false,
+            error: { description: 'Delete failed' },
+          } as Result);
         })
       );
   }
-  
 }

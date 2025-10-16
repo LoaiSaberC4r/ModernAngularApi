@@ -310,7 +310,7 @@ export class Templatecomponent implements OnInit {
     this.templatePatternService.AddOrUpdateLightPattern(payload).subscribe((resp) => {
       this.submitting = false;
       if (resp?.isSuccess) {
-        alert(this.isAr ? 'تم حفظ القالب بنجاح ✅' : 'Template saved successfully ✅');
+        // alert(this.isAr ? 'تم حفظ القالب بنجاح ✅' : 'Template saved successfully ✅');
 
         const currentId = payload.templateId || 0;
         if (currentId > 0) {
@@ -321,7 +321,7 @@ export class Templatecomponent implements OnInit {
           this.rows.clear();
         }
       } else {
-        alert(resp?.error?.description ?? (this.isAr ? 'فشل الحفظ' : 'Save failed'));
+        // alert(resp?.error?.description ?? (this.isAr ? 'فشل الحفظ' : 'Save failed'));
       }
     });
   }
@@ -329,7 +329,7 @@ export class Templatecomponent implements OnInit {
   deleteTemplate() {
     const id = (this.templateForm.value.templateId as number) || 0;
     if (id <= 0) {
-      alert(this.isAr ? 'من فضلك اختر قالبًا للحذف.' : 'Please select a template to delete.');
+      // alert(this.isAr ? 'من فضلك اختر قالبًا للحذف.' : 'Please select a template to delete.');
       return;
     }
     if (
@@ -345,12 +345,12 @@ export class Templatecomponent implements OnInit {
     this.templatePatternService.deleteTemplate(id).subscribe((resp) => {
       this.submitting = false;
       if (resp?.isSuccess) {
-        alert(this.isAr ? 'تم حذف القالب 🗑️' : 'Template deleted successfully 🗑️');
+        // alert(this.isAr ? 'تم حذف القالب 🗑️' : 'Template deleted successfully 🗑️');
         this.templateForm.reset({ templateId: 0, templateName: '' });
         this.rows.clear();
         this.loadTemplates();
       } else {
-        alert(resp?.error?.description ?? (this.isAr ? 'فشل الحذف' : 'Delete failed'));
+        // alert(resp?.error?.description ?? (this.isAr ? 'فشل الحذف' : 'Delete failed'));
       }
     });
   }
@@ -393,7 +393,7 @@ export class Templatecomponent implements OnInit {
     this.lightPatternService.add(payload).subscribe((resp) => {
       this.submitting = false;
       if (resp?.isSuccess) {
-        alert(this.isAr ? 'تم حفظ النمط!' : 'Pattern saved successfully!');
+        // alert(this.isAr ? 'تم حفظ النمط!' : 'Pattern saved successfully!');
         this.patternForm.reset({
           name: '',
           selectedPattern: null,
@@ -407,7 +407,7 @@ export class Templatecomponent implements OnInit {
         });
         this.loadLightPatterns();
       } else {
-        alert(resp?.error?.description ?? (this.isAr ? 'فشل حفظ النمط' : 'Failed to save pattern'));
+        // alert(resp?.error?.description ?? (this.isAr ? 'فشل حفظ النمط' : 'Failed to save pattern'));
       }
     });
   }
@@ -415,14 +415,14 @@ export class Templatecomponent implements OnInit {
   deletePattern(): void {
     const selected: GetAllLightPattern | null = this.patternForm.value.selectedPattern;
     if (!selected) {
-      alert(this.isAr ? 'من فضلك اختر نمطًا للحذف.' : 'Please select a pattern to delete.');
+      // alert(this.isAr ? 'من فضلك اختر نمطًا للحذف.' : 'Please select a pattern to delete.');
       return;
     }
     if (!confirm(this.isAr ? `حذف "${selected.name}"؟` : `Delete "${selected.name}"?`)) return;
 
     this.lightPatternService.delete(selected.id).subscribe((resp) => {
       if (resp?.isSuccess) {
-        alert(this.isAr ? 'تم حذف النمط!' : 'Pattern deleted successfully!');
+        // alert(this.isAr ? 'تم حذف النمط!' : 'Pattern deleted successfully!');
         this.patternForm.reset({
           name: '',
           selectedPattern: null,
@@ -436,7 +436,7 @@ export class Templatecomponent implements OnInit {
         });
         this.loadLightPatterns();
       } else {
-        alert(resp?.error?.description ?? (this.isAr ? 'فشل الحذف' : 'Delete failed'));
+        // alert(resp?.error?.description ?? (this.isAr ? 'فشل الحذف' : 'Delete failed'));
       }
     });
   }
