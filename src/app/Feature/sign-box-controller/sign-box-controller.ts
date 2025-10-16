@@ -162,16 +162,23 @@ export class SignBoxController {
 
   get filteredData(): GetAllSignControlBox[] {
     let base = this.signBoxEntity.value.data.filter((item) => {
-      if (this.activeFilter === 'ACTIVE') return item.active;
-      if (this.activeFilter === 'INACTIVE') return !item.active;
+      if (this.activeFilter === 'ACTIVE') return item.active === true;
+      if (this.activeFilter === 'INACTIVE') return item.active === false;
       return true;
     });
+
+    if (this.selectedGovernorateId !== null) {
+      base = base.filter((x) => x.governorateId === this.selectedGovernorateId);
+    }
+
+    if (this.selectedAreaId !== null) {
+      base = base.filter((x) => x.areaId === this.selectedAreaId);
+    }
 
     const rawSearch = (this.searchParameter.searchText ?? '').trim();
     if (!rawSearch) return base;
 
     const search = this.normalizeDigits(rawSearch).toLowerCase();
-
     const byText = (v?: string | number) => (v ?? '').toString().toLowerCase().includes(search);
 
     return base.filter((item) => {
@@ -179,7 +186,6 @@ export class SignBoxController {
       const matchById = byText(item.id);
       const matchByName = byText(item.name);
       const matchByIp = byText(item.ipAddress);
-
       return matchByCabinet || matchById || matchByName || matchByIp;
     });
   }

@@ -24,13 +24,14 @@ import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
 import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
 import { IAreaService } from '../../Services/Area/iarea-service';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
+import { OverlayModule, CdkOverlayOrigin, ConnectedPosition } from '@angular/cdk/overlay';
 
 type TrafficColorText = 'Green' | 'Yellow' | 'Red' | 'Off' | string;
 
 @Component({
   selector: 'app-sign-box-component',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, OverlayModule, CommonModule],
   templateUrl: './sign-box-component.html',
   styleUrls: ['./sign-box-component.css'],
 })
@@ -273,10 +274,44 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     const k = this.toKey(row.cabinetId);
     const live = k !== null ? this.latestByCabinetId[k] ?? null : null;
 
-    this.popupData = this.toPopup(row, live ?? undefined);
+    const cached = this.dirNamesCache[row.id];
+
+    const rowDirs = this.normalizeDirectionsArray(row);
+    const missingNames =
+      rowDirs.length === 0 ||
+      rowDirs.every(
+        (d) => !d.name || !d.name.trim() || /^اتجاه\s+\d+|^Direction\s+\d+/.test(d.name)
+      );
+
+    if (cached && cached.length) {
+      const hydrated = {
+        ...row,
+        directions: cached.map((d) => ({ order: d.order, name: d.name })),
+      } as any;
+      this.popupData = this.toPopup(hydrated, live ?? undefined);
+    } else {
+      this.popupData = this.toPopup(row, live ?? undefined);
+    }
+
     this.popupLive = live;
     this.popupVisible = true;
     this.updatePopupPosition(event);
+
+    if (!cached && missingNames) {
+      this.signBoxControlService.getById(row.id).subscribe({
+        next: (full) => {
+          const dirs = this.normalizeDirectionsArray(full);
+          if (dirs.length) {
+            this.dirNamesCache[row.id] = dirs.map((d) => ({ order: d.order, name: d.name }));
+            const hydrated = { ...row, directions: dirs } as any;
+            if (this.popupVisible && this.popupData?.Id === row.id) {
+              this.popupData = this.toPopup(hydrated, live ?? undefined);
+            }
+          }
+        },
+        error: () => {},
+      });
+    }
   }
 
   movePopup(event: MouseEvent) {
@@ -355,14 +390,17 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     row: GetAllSignControlBox,
     live?: TrafficBroadcast
   ): PopUpSignBox & { cabinetId?: number } {
-    const directions: PopUpDirection[] = (row.directions ?? []).slice(0, 4).map((d, idx) => {
+    const directions: PopUpDirection[] = (row.directions ?? []).slice(0, 4).map((d: any, idx) => {
       const ln = `L${idx + 1}` as keyof TrafficBroadcast;
       const tn = `T${idx + 1}` as keyof TrafficBroadcast;
 
       const lightCode = live ? this.normalizeColor((live as any)[ln]) : undefined;
       const time = live ? Number((live as any)[tn] ?? 0) : 0;
 
-      return { name: d.name, lightCode, time } as PopUpDirection;
+      const rawName = (d?.name ?? d?.Name ?? d?.directionName ?? '').toString().trim();
+      const name = rawName || (this.isAr ? `اتجاه ${idx + 1}` : `Direction ${idx + 1}`);
+
+      return { name, lightCode, time } as PopUpDirection;
     });
 
     return {
@@ -404,5 +442,157 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   getAreaName(id: number | null): string {
     if (!id) return '';
     return this.areas.find((a) => a.id === id)?.name ?? '';
+  }
+  get isSignalRConnected(): boolean {
+    const s =
+      typeof this.signalr.status === 'function'
+        ? (this.signalr.status() as any)
+        : (this.signalr.status as any);
+    return s === 'connected';
+  }
+  get popupIsLive(): boolean {
+    const cab = this.popupData?.cabinetId;
+    if (!cab) return false;
+    const seen = this.lastSeen[cab] ?? 0;
+    return this.isSignalRConnected && Date.now() - seen <= SignBoxComponent.INACTIVITY_MS;
+  }
+  private dirNamesCache: Record<number, Array<{ order: number; name: string }>> = {};
+
+  private extractDirectionName(d: any, fallbackIndex: number): { order: number; name: string } {
+    const orderRaw = d?.order ?? d?.Order ?? fallbackIndex + 1;
+    const order = Number(orderRaw ?? fallbackIndex + 1);
+
+    const rawName = (
+      d?.name ??
+      d?.Name ??
+      d?.directionName ??
+      d?.DirectionName ??
+      d?.title ??
+      d?.Title ??
+      ''
+    )
+      .toString()
+      .trim();
+
+    const name =
+      rawName ||
+      (this.isAr
+        ? `اتجاه ${order || fallbackIndex + 1}`
+        : `Direction ${order || fallbackIndex + 1}`);
+    return { order, name };
+  }
+
+  private normalizeDirectionsArray(
+    src: any
+  ): Array<{ order: number; name: string; templateId?: number | null }> {
+    const raw = src?.directions ?? src?.Directions ?? [];
+    if (!Array.isArray(raw)) return [];
+    const list = raw.map((d: any, i: number) => {
+      const { order, name } = this.extractDirectionName(d, i);
+      const templateId = Number(d?.templateId ?? d?.TemplateId ?? 0) || null;
+      return { order, name, templateId };
+    });
+    return list.sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+
+  severityLabelAr: Record<'CRITICAL' | 'WARN' | 'INFO', string> = {
+    CRITICAL: 'حرج',
+    WARN: 'تحذير',
+    INFO: 'معلومة',
+  };
+
+  expandedId: number | null = null;
+
+  toggleExpand(item: any) {
+    this.expandedId = this.expandedId === item.cabinetId ? null : item.cabinetId;
+  }
+  isExpanded(item: any) {
+    return this.expandedId === item.cabinetId;
+  }
+
+  statusMap: Record<
+    number,
+    Array<{
+      component: string;
+      severity: 'CRITICAL' | 'WARN' | 'INFO';
+      message: string;
+      messageAr: string;
+      lastUpdate: string;
+    }>
+  > = {
+    15478: [
+      {
+        component: 'Controller',
+        severity: 'CRITICAL',
+        message: 'Controller offline – no heartbeat in 5m',
+        messageAr: 'وحدة التحكم غير متصلة — لا نبض خلال 5 دقائق',
+        lastUpdate: '2025-10-16 11:48',
+      },
+      {
+        component: 'Power',
+        severity: 'WARN',
+        message: 'Battery voltage low (11.3V)',
+        messageAr: 'جهد البطارية منخفض (11.3V)',
+        lastUpdate: '2025-10-16 11:46',
+      },
+      {
+        component: 'Loop-Sensor L2',
+        severity: 'INFO',
+        message: 'High occupancy detected',
+        messageAr: 'ارتفاع الإشغال على الحلقة الثانية',
+        lastUpdate: '2025-10-16 11:45',
+      },
+    ],
+    10001: [],
+    10002: [
+      {
+        component: 'Pedestrian',
+        severity: 'WARN',
+        message: 'Push button stuck (north crossing)',
+        messageAr: 'زر المشاة عالق (المعبر الشمالي)',
+        lastUpdate: '2025-10-16 10:12',
+      },
+    ],
+  };
+
+  getStatus(item: any) {
+    return this.statusMap[item.cabinetId] ?? [];
+  }
+
+  statusSummary(item: any) {
+    const arr = this.getStatus(item);
+    const critical = arr.filter((s) => s.severity === 'CRITICAL').length;
+    const warn = arr.filter((s) => s.severity === 'WARN').length;
+    const info = arr.filter((s) => s.severity === 'INFO').length;
+    return { critical, warn, info, total: arr.length };
+  }
+
+  rowSeverity(item: any): 'CRITICAL' | 'WARN' | 'INFO' | 'OK' {
+    const s = this.statusSummary(item);
+    if (s.critical > 0) return 'CRITICAL';
+    if (s.warn > 0) return 'WARN';
+    if (s.info > 0) return 'INFO';
+    return 'OK';
+  }
+
+  rowSeverityLabelAr(sev: 'CRITICAL' | 'WARN' | 'INFO' | 'OK'): string {
+    switch (sev) {
+      case 'CRITICAL':
+        return 'حرج';
+      case 'WARN':
+        return 'تحذير';
+      case 'INFO':
+        return 'معلومة';
+      default:
+        return 'سليم';
+    }
+  }
+
+  statusBadgeTitle(item: any): string {
+    const s = this.statusSummary(item);
+    if (s.total === 0) return this.isAr ? 'لا مشاكل' : 'No issues';
+    return this.isAr
+      ? `حرج: ${s.critical} • تحذير: ${s.warn} • معلومة: ${s.info}`
+      : `Critical: ${s.critical} • Warning: ${s.warn} • Info: ${s.info}`;
   }
 }

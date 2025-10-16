@@ -32,6 +32,7 @@
               "src/custom-theme.scss",
               "node_modules/bootstrap/dist/css/bootstrap.min.css",
               "node_modules/bootstrap-icons/font/bootstrap-icons.css",
+              "node_modules/@fortawesome/fontawesome-free/css/all.min.css",
               "node_modules/leaflet/dist/leaflet.css",
               "src/styles.css"
             ],
@@ -41,21 +42,21 @@
             ]
           },
           "configurations": {
-"production": {
-  "budgets": [
-    {
-      "type": "initial",
-      "maximumWarning": "500kB",
-      "maximumError": "10MB"
-    },
-    {
-      "type": "anyComponentStyle",
-      "maximumWarning": "40kB",
-      "maximumError": "80kB"
-    }
-  ],
-  "outputHashing": "all"
-},
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "10MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "40kB",
+                  "maximumError": "80kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
             "development": {
               "optimization": false,
               "extractLicenses": false,
