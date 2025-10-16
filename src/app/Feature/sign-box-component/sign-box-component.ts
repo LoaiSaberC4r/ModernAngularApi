@@ -24,7 +24,7 @@ import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
 import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
 import { IAreaService } from '../../Services/Area/iarea-service';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
-import { OverlayModule, CdkOverlayOrigin, ConnectedPosition } from '@angular/cdk/overlay';
+import { OverlayModule } from '@angular/cdk/overlay';
 
 type TrafficColorText = 'Green' | 'Yellow' | 'Red' | 'Off' | string;
 
@@ -36,12 +36,12 @@ type TrafficColorText = 'Green' | 'Yellow' | 'Red' | 'Off' | string;
   styleUrls: ['./sign-box-component.css'],
 })
 export class SignBoxComponent implements OnInit, OnDestroy {
-  private static readonly INACTIVITY_MS = 10000;
-  private static readonly SWEEP_MS = 1000;
+  private static readonly INACTIVITY_MS = 10000; // 10s threshold
+  private static readonly SWEEP_MS = 1000; // 1s sweep
 
   private readonly signalr = inject(ISignalrService);
   private readonly signBoxControlService = inject(ISignBoxControlService);
-  public langService = inject(LanguageService);
+  public readonly langService = inject(LanguageService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -62,9 +62,10 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   private disconnectTimerSub?: Subscription;
 
   private sweepSub?: Subscription;
-  private _tick = 0;
 
+  /** آخر وقت استلام لكل CabinetId (ms) */
   private lastSeen: Record<number, number> = {};
+  /** آخر رسالة Live لكل CabinetId */
   latestByCabinetId: Record<number, TrafficBroadcast> = {};
 
   searchParameter: SearchParameters = {};
@@ -108,21 +109,25 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   popupX = 0;
   popupY = 0;
   popupData: (PopUpSignBox & { cabinetId?: number }) | null = null;
+  /** آخر بث تم استخدامه داخل البوب-أب */
   popupLive: TrafficBroadcast | null = null;
 
   highlightCabinetId?: number;
 
   constructor() {
+    // رسائل SignalR
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
         if (!message) return;
+
         const key = this.toKey((message as any).ID);
         if (key === null) return;
 
         this.latestByCabinetId[key] = message;
         this.lastSeen[key] = Date.now();
 
+        // تحديث البوب-أب لو مفتوح على نفس الكابينة
         if (this.popupData?.cabinetId === key) {
           const row = this.signBoxEntity.value.data.find((x) => this.toKey(x.cabinetId) === key);
           if (row) this.popupData = this.toPopup(row, message);
@@ -130,6 +135,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
         }
       });
 
+    // حالة الاتصال
     toObservable(this.signalr.status)
       .pipe(takeUntilDestroyed())
       .subscribe((s: HubConnectionStatus) => {
@@ -152,6 +158,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
         }
       });
 
+    // بحث
     this.searchChanged$
       .pipe(debounceTime(200), takeUntilDestroyed())
       .subscribe(() => this.loadData());
@@ -161,7 +168,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     this.signalr.connect().catch(console.error);
 
     this.loadData();
-
     this.loadGovernates();
 
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
@@ -174,9 +180,23 @@ export class SignBoxComponent implements OnInit, OnDestroy {
       }
     });
 
+    // Sweep: كل ثانية نتحقق من الخمول ونفعل إنعكاسه على البوب-أب
     this.sweepSub = timer(SignBoxComponent.SWEEP_MS, SignBoxComponent.SWEEP_MS)
       .pipe(takeUntilDestroyed())
-      .subscribe(() => this._tick++);
+      .subscribe(() => {
+        // لو البوب-أب مفتوح وإنتهت مهلة الـ 10 ثواني، نوقف الحالة Live فيه
+        if (this.popupData?.cabinetId != null) {
+          const cab = this.popupData.cabinetId!;
+          const seen = this.lastSeen[cab] ?? 0;
+          const isLiveNow =
+            this.isSignalRConnected && Date.now() - seen <= SignBoxComponent.INACTIVITY_MS;
+          if (!isLiveNow && this.popupLive) {
+            // اصفر البث الظاهر في البوب-أب عشان يتحول لشكل Not Live
+            this.popupLive = null;
+          }
+        }
+        // (مجرد تاتش خفيفة لضمان الـ CD حصلت)
+      });
   }
 
   ngOnDestroy(): void {
@@ -190,7 +210,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
       this.signBoxEntity = { ...data, value: { ...data.value, data: [...data.value.data] } };
       this.hasPreviousPage = data.value.hasPreviousPage;
       this.hasNextPage = data.value.hasNextPage;
-
       after?.();
     });
   }
@@ -232,6 +251,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
   trackById = (_: number, item: GetAllSignControlBox) => item?.id;
 
+  /** نشِط بناءً على آخر استقبال خلال 10 ثواني */
   private isActiveByCabinetId(cabinetId: unknown): boolean {
     const k = this.toKey(cabinetId);
     if (k === null) return false;
@@ -413,6 +433,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     };
   }
 
+  /** نشِط للصف */
   isActive(item: GetAllSignControlBox): boolean {
     return this.isActiveByCabinetId(item.cabinetId);
   }
@@ -443,6 +464,8 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     if (!id) return '';
     return this.areas.find((a) => a.id === id)?.name ?? '';
   }
+
+  /** متصل فعليًا (SignalR) */
   get isSignalRConnected(): boolean {
     const s =
       typeof this.signalr.status === 'function'
@@ -450,12 +473,15 @@ export class SignBoxComponent implements OnInit, OnDestroy {
         : (this.signalr.status as any);
     return s === 'connected';
   }
+
+  /** حالة الـ Live الظاهرة في البوب-أب (مرتبطة بآخر استقبال خلال 10 ثواني + الاتصال) */
   get popupIsLive(): boolean {
     const cab = this.popupData?.cabinetId;
     if (!cab) return false;
     const seen = this.lastSeen[cab] ?? 0;
     return this.isSignalRConnected && Date.now() - seen <= SignBoxComponent.INACTIVITY_MS;
   }
+
   private dirNamesCache: Record<number, Array<{ order: number; name: string }>> = {};
 
   private extractDirectionName(d: any, fallbackIndex: number): { order: number; name: string } {
@@ -502,7 +528,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   };
 
   expandedId: number | null = null;
-
   toggleExpand(item: any) {
     this.expandedId = this.expandedId === item.cabinetId ? null : item.cabinetId;
   }

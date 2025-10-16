@@ -65,10 +65,10 @@
       </tr>
     </thead>
     <tbody>
-      <ng-container *ngFor="let item of filteredData">
+      <ng-container *ngFor="let item of filteredData; trackBy: trackById">
         <!-- Main row -->
-        <tr (mouseenter)="showPopup(item, $event)" (mousemove)="movePopup($event)" (mouseleave)="hidePopup()"
-          [class.active-row]="isActive(item)">
+        <tr id="row-cab-{{ item.cabinetId }}" (mouseenter)="showPopup(item, $event)" (mousemove)="movePopup($event)"
+          (mouseleave)="hidePopup()" [class.active-row]="isActive(item)">
           <td class="expand-td">
             <button class="expand-btn" type="button" (click)="toggleExpand(item); $event.stopPropagation()"
               [attr.aria-expanded]="isExpanded(item)">
@@ -80,20 +80,20 @@
           <td dir="ltr">{{ item.ipAddress }}</td>
           <td class="name-cell">{{ item.name }}</td>
 
-          <!-- NEW: quick status indicator -->
+          <!-- Quick status indicator -->
           <td class="status-cell">
             <span class="status-indicator" [ngClass]="{
-                  'st-crit': rowSeverity(item) === 'CRITICAL',
-                  'st-warn': rowSeverity(item) === 'WARN',
-                  'st-info': rowSeverity(item) === 'INFO',
-                  'st-ok'  : rowSeverity(item) === 'OK'
-                }" [attr.title]="statusBadgeTitle(item)">
+                'st-crit': rowSeverity(item) === 'CRITICAL',
+                'st-warn': rowSeverity(item) === 'WARN',
+                'st-info': rowSeverity(item) === 'INFO',
+                'st-ok'  : rowSeverity(item) === 'OK'
+              }" [attr.title]="statusBadgeTitle(item)">
               <i class="fa-solid" [ngClass]="{
-                 'fa-circle-xmark'        : rowSeverity(item) === 'CRITICAL',
-                 'fa-triangle-exclamation': rowSeverity(item) === 'WARN',
-                 'fa-circle-info'         : rowSeverity(item) === 'INFO',
-                 'fa-circle-check'        : rowSeverity(item) === 'OK'
-               }"></i>
+                  'fa-circle-xmark'        : rowSeverity(item) === 'CRITICAL',
+                  'fa-triangle-exclamation': rowSeverity(item) === 'WARN',
+                  'fa-circle-info'         : rowSeverity(item) === 'INFO',
+                  'fa-circle-check'        : rowSeverity(item) === 'OK'
+                }"></i>
               <span class="st-label">
                 {{ isAr ? rowSeverityLabelAr(rowSeverity(item)) : rowSeverity(item) }}
               </span>
@@ -115,7 +115,7 @@
           </td>
         </tr>
 
-        <!-- Expand row (كما هو) -->
+        <!-- Expand row  -->
         <tr class="expand-row" *ngIf="isExpanded(item)">
           <td></td>
           <td colspan="5">
@@ -162,10 +162,10 @@
                         <span class="lvl" [class.lvl-crit]="s.severity==='CRITICAL'"
                           [class.lvl-warn]="s.severity==='WARN'" [class.lvl-info]="s.severity==='INFO'">
                           <i class="fa-solid" [ngClass]="{
-                             'fa-circle-xmark'        : s.severity==='CRITICAL',
-                             'fa-triangle-exclamation': s.severity==='WARN',
-                             'fa-circle-info'         : s.severity==='INFO'
-                           }"></i>
+                              'fa-circle-xmark'        : s.severity==='CRITICAL',
+                              'fa-triangle-exclamation': s.severity==='WARN',
+                              'fa-circle-info'         : s.severity==='INFO'
+                            }"></i>
                           {{ isAr ? severityLabelAr[s.severity] : s.severity }}
                         </span>
                       </td>
@@ -193,16 +193,15 @@
     </tbody>
   </table>
 
-
-  <!-- Popup (الموضع ديناميكي عبر ngStyle) -->
+  <!-- Popup -->
   <div #popupRef class="traffic-popup" *ngIf="popupVisible" [ngStyle]="{ top: popupY + 'px', left: popupX + 'px' }">
     <div class="tp-header">
       <div class="tp-title">
-        <span class="tp-dot connected"></span>
+        <span class="tp-dot" [class.connected]="popupIsLive" [class.disconnected]="!popupIsLive"></span>
         <span class="tp-name">{{ popupData?.name || '—' }}</span>
       </div>
-      <span class="tp-chip" [class.connected]="popupLive">
-        {{ popupLive ? (isAr ? 'مباشر' : 'Live') : (isAr ? 'غير مباشر' : 'Not Live') }}
+      <span class="tp-chip" [class.connected]="popupIsLive" [class.disconnected]="!popupIsLive">
+        {{ popupIsLive ? (isAr ? 'مباشر' : 'Live') : (isAr ? 'غير مباشر' : 'Not Live') }}
       </span>
     </div>
 
@@ -215,17 +214,20 @@
           </span>
 
           <span class="tp-timer">
-            {{ popupLive && dir.time != null ? dir.time + (isAr ? ' ث' : 's') : '--' }}
+            {{ popupIsLive && dir.time != null ? dir.time + (isAr ? ' ث' : 's') : '--' }}
           </span>
         </div>
 
         <div class="traffic-light">
           <div class="tp-lamp"
-            [ngClass]="{ 'is-red': true, disconnected: isDisconnected, active: dir.lightCode === 'R' }">🔴</div>
+            [ngClass]="{ 'is-red': true, disconnected: !popupIsLive || isDisconnected, active: popupIsLive && dir.lightCode === 'R' }">
+            🔴</div>
           <div class="tp-lamp"
-            [ngClass]="{ 'is-yellow': true, disconnected: isDisconnected, active: dir.lightCode === 'Y' }">🟡</div>
+            [ngClass]="{ 'is-yellow': true, disconnected: !popupIsLive || isDisconnected, active: popupIsLive && dir.lightCode === 'Y' }">
+            🟡</div>
           <div class="tp-lamp"
-            [ngClass]="{ 'is-green': true, disconnected: isDisconnected, active: dir.lightCode === 'G' }">🟢</div>
+            [ngClass]="{ 'is-green': true, disconnected: !popupIsLive || isDisconnected, active: popupIsLive && dir.lightCode === 'G' }">
+            🟢</div>
         </div>
       </div>
     </div>
