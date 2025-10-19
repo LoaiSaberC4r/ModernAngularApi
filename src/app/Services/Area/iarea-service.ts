@@ -11,15 +11,8 @@ import { environment } from '../../Shared/environment/environment';
 export class IAreaService {
   private readonly http = inject(HttpClient);
 
-  private cache = new Map<string, ResultV<GetAllArea>>();
-
-  getAll(params: number): Observable<ResultV<GetAllArea>> {
-    const query = new HttpParams().set('governateId', params ?? '');
-
-    const cacheKey = query.toString();
-    if (this.cache.has(cacheKey)) {
-      return of(this.cache.get(cacheKey)!);
-    }
+  getAll(governateId: number): Observable<ResultV<GetAllArea>> {
+    const query = new HttpParams().set('governateId', String(governateId ?? ''));
 
     return this.http
       .get<ResultV<GetAllArea>>(`${environment.baseUrl}/Area/GetAreaByGovernateId`, {
@@ -27,15 +20,13 @@ export class IAreaService {
       })
       .pipe(
         map((resp) => {
-          if (!resp.isSuccess) {
-            throw new Error(resp.error?.description ?? 'Unknown error');
+          if (!resp?.isSuccess) {
+            throw new Error(resp?.error?.description ?? 'Unknown error');
           }
-          const mapped: ResultV<GetAllArea> = resp;
-          this.cache.set(cacheKey, mapped);
-          return mapped;
+          return resp as ResultV<GetAllArea>;
         }),
         catchError((err) => {
-          console.error('Failed to load control boxes', err);
+          console.error('[Area:GetAreaByGovernateId] failed:', err);
           return of({} as ResultV<GetAllArea>);
         }),
         shareReplay(1)

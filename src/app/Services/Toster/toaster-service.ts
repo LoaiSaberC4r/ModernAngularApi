@@ -7,7 +7,7 @@ import { ToastOptions, ToastPayload } from '../../Domain/ResultPattern/ToastType
   providedIn: 'root',
 })
 export class ToasterService {
-  private readonly defaultDuration = 3500;
+  private readonly defaultDuration = 5000;
 
   constructor(private snack: MatSnackBar) {}
 

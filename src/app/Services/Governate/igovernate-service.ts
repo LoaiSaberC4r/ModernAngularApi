@@ -11,7 +11,6 @@ import { environment } from '../../Shared/environment/environment';
 })
 export class IGovernateService {
   private readonly http = inject(HttpClient);
-  private cache = new Map<string, ResultV<GetAllGovernate>>();
 
   getAll(params: SearchParameters): Observable<ResultV<GetAllGovernate>> {
     const query = new HttpParams()
@@ -20,26 +19,17 @@ export class IGovernateService {
       .set('Page', params.page?.toString() ?? '1')
       .set('PageSize', params.pageSize?.toString() ?? '10');
 
-    const cacheKey = query.toString();
-    if (this.cache.has(cacheKey)) {
-      return of(this.cache.get(cacheKey)!);
-    }
-
     return this.http
-      .get<ResultV<GetAllGovernate>>(`${environment.baseUrl}/Governor`, {
-        params: query,
-      })
+      .get<ResultV<GetAllGovernate>>(`${environment.baseUrl}/Governor`, { params: query })
       .pipe(
         map((resp) => {
-          if (!resp.isSuccess) {
-            throw new Error(resp.error?.description ?? 'Unknown error');
+          if (!resp?.isSuccess) {
+            throw new Error(resp?.error?.description ?? 'Unknown error');
           }
-          const mapped: ResultV<GetAllGovernate> = resp;
-          this.cache.set(cacheKey, mapped);
-          return mapped;
+          return resp as ResultV<GetAllGovernate>;
         }),
         catchError((err) => {
-          console.error('Failed to load control boxes', err);
+          console.error('[Governor:GetAll] failed:', err);
           return of({} as ResultV<GetAllGovernate>);
         }),
         shareReplay(1)

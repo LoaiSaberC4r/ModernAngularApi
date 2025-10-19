@@ -1,9 +1,5 @@
-<div
-  class="toast"
-  [class.toast-success]="data.type === 'success'"
-  [class.toast-warning]="data.type === 'warning'"
-  [class.toast-error]="data.type === 'error'"
->
+<div class="toast toast--enter" [class.toast-success]="data.type === 'success'"
+  [class.toast-warning]="data.type === 'warning'" [class.toast-error]="data.type === 'error'">
   <mat-icon class="toast__icon" aria-hidden="true">
     {{ data.type === 'success' ? 'check_circle' : data.type === 'warning' ? 'warning' : 'error' }}
   </mat-icon>
@@ -11,4 +7,6 @@
   <div class="toast__content">{{ data.message }}</div>
 
   <button class="toast__close" type="button" (click)="ref.dismiss()" aria-label="Close">✕</button>
+
+  <div class="toast__progress"></div>
 </div>

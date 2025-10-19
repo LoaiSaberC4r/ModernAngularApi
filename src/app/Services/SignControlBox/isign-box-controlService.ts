@@ -1,9 +1,9 @@
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Pagination } from '../../Domain/ResultPattern/Pagination';
 import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBox';
 import { SearchParameters } from '../../Domain/ResultPattern/SearchParameters';
-import { catchError, map, Observable, of, throwError, tap } from 'rxjs'; // ← أضف tap هنا
+import { catchError, map, Observable, of, throwError, tap } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
 import {
   ApplySignBox,
@@ -23,17 +23,7 @@ export class ISignBoxControlService {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToasterService);
 
-  private readonly noCacheHeaders = new HttpHeaders({
-    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    Pragma: 'no-cache',
-    Expires: '0',
-  });
-
-  private withNoCache(params?: HttpParams): HttpParams {
-    const base = params ?? new HttpParams();
-    return base.set('__ts', Date.now().toString());
-  }
-
+  // ===== Error Utilities =====
   private handleError<T>(op: string, fallback?: T, rethrow = false) {
     return (err: any): Observable<T> => {
       const msg = this.extractErrorMessage(err, op);
@@ -68,21 +58,18 @@ export class ISignBoxControlService {
     return resultErrorDesc || `Operation "${op}" failed`;
   }
 
-  // ===== Reads (بدون توست نجاح) =====
+  // ===== Reads =====
 
   getAll(params: SearchParameters): Observable<Pagination<GetAllSignControlBox>> {
-    let query = new HttpParams()
+    const query = new HttpParams()
       .set('SearchText', params.searchText ?? '')
       .set('SortOrder', params.sortOrder ?? 'Newest')
       .set('Page', params.page?.toString() ?? '1')
       .set('PageSize', (params.pageSize ?? 1000).toString());
 
-    query = this.withNoCache(query);
-
     return this.http
       .get<Pagination<GetAllSignControlBox>>(`${environment.baseUrl}/SignControlBox/GetAll`, {
         params: query,
-        headers: this.noCacheHeaders,
       })
       .pipe(
         map((resp) => {
@@ -97,18 +84,16 @@ export class ISignBoxControlService {
   getAllWithLightPattern(
     params: SearchParameters
   ): Observable<Pagination<GetAllSignControlBoxWithLightPattern>> {
-    let query = new HttpParams()
+    const query = new HttpParams()
       .set('SearchText', params.searchText ?? '')
       .set('SortOrder', params.sortOrder ?? 'Newest')
       .set('Page', params.page?.toString() ?? '1')
       .set('PageSize', params.pageSize?.toString() ?? '10');
 
-    query = this.withNoCache(query);
-
     return this.http
       .get<Pagination<GetAllSignControlBoxWithLightPattern>>(
         `${environment.baseUrl}/SignControlBox/GetAllWithLightPatter`,
-        { params: query, headers: this.noCacheHeaders }
+        { params: query }
       )
       .pipe(
         map((resp) => {
@@ -126,13 +111,9 @@ export class ISignBoxControlService {
   }
 
   getAllLocatopn(): Observable<ResultV<GetAllSignBoxLocation>> {
-    let query = new HttpParams();
-    query = this.withNoCache(query);
-
     return this.http
       .get<ResultV<GetAllSignBoxLocation>>(
-        `${environment.baseUrl}/SignControlBox/GetSignControlBoxLocations`,
-        { params: query, headers: this.noCacheHeaders }
+        `${environment.baseUrl}/SignControlBox/GetSignControlBoxLocations`
       )
       .pipe(
         map((resp) => {
@@ -141,92 +122,72 @@ export class ISignBoxControlService {
           return resp;
         }),
         catchError(
-          this.handleError<ResultV<GetAllSignBoxLocation>>(
-            'GetSignControlBoxLocations',
-            {} as any
-          )
+          this.handleError<ResultV<GetAllSignBoxLocation>>('GetSignControlBoxLocations', {} as any)
         )
       );
   }
 
   getById(id: number): Observable<GetAllSignControlBoxWithLightPattern> {
-    const params = this.withNoCache();
     return this.http
       .get<GetAllSignControlBoxWithLightPattern>(
-        `${environment.baseUrl}/SignControlBox/GetById/${id}`,
-        { params, headers: this.noCacheHeaders }
+        `${environment.baseUrl}/SignControlBox/GetById/${id}`
       )
       .pipe(
-        catchError(
-          this.handleError<GetAllSignControlBoxWithLightPattern>('GetById', {} as any)
-        )
+        catchError(this.handleError<GetAllSignControlBoxWithLightPattern>('GetById', {} as any))
       );
   }
 
-  // ===== Writes (توست نجاح "Success") =====
+  // ===== Writes "Success") =====
 
   applySignBox(payload: ApplySignBox): Observable<Result> {
     return this.http
-      .post<Result>(`${environment.baseUrl}/SignControlBox/ApplySignBox`, payload, {
-        headers: this.noCacheHeaders,
-      })
+      .post<Result>(`${environment.baseUrl}/SignControlBox/ApplySignBox`, payload)
       .pipe(
         map((resp) => {
           if (!(resp as any)?.isSuccess)
             throw new Error((resp as any)?.error?.description ?? 'Unknown error');
           return resp;
         }),
-        tap(() => this.toast.success('Success')), // ← هنا
+        tap(() => this.toast.success('Success')),
         catchError(this.handleError<Result>('ApplySignBox', {} as any))
       );
   }
 
   AddWithUpdateLightPattern(payload: AddSignBoxWithUpdateLightPattern): Observable<Result> {
     return this.http
-      .post<Result>(`${environment.baseUrl}/SignControlBox/AddWithUpdateLightPattern`, payload, {
-        headers: this.noCacheHeaders,
-      })
+      .post<Result>(`${environment.baseUrl}/SignControlBox/AddWithUpdateLightPattern`, payload)
       .pipe(
         map((resp) => {
           if (!(resp as any)?.isSuccess)
             throw new Error((resp as any)?.error?.description ?? 'Unknown error');
           return resp;
         }),
-        tap(() => this.toast.success('Success')), // ← هنا
+        tap(() => this.toast.success('Success')),
         catchError(this.handleError<Result>('AddWithUpdateLightPattern', {} as any))
       );
   }
 
   AddSignBox(payload: AddSignBoxCommandDto): Observable<Result> {
-    const headers = this.noCacheHeaders.set('Accept-Language', 'ar');
-
-    return this.http
-      .post<Result>(`${environment.baseUrl}/SignControlBox/Add`, payload, { headers })
-      .pipe(
-        map((resp) => {
-          if (!(resp as any)?.isSuccess)
-            throw new Error((resp as any)?.error?.description ?? 'Unknown error');
-          return resp;
-        }),
-        tap(() => this.toast.success('Success')), // ← هنا
-        // نعيد الرمي علشان الـ Component يقدر يتعامل مع تفاصيل الفاليديشن لو حابب
-        catchError(this.handleError<Result>('AddSignBox', {} as any, /* rethrow */ true))
-      );
+    return this.http.post<Result>(`${environment.baseUrl}/SignControlBox/Add`, payload).pipe(
+      map((resp) => {
+        if (!(resp as any)?.isSuccess)
+          throw new Error((resp as any)?.error?.description ?? 'Unknown error');
+        return resp;
+      }),
+      tap(() => this.toast.success('Success')),
+      catchError(this.handleError<Result>('AddSignBox', {} as any, true))
+    );
   }
 
   Update(payload: UpdateSignControlBox): Observable<Result> {
-    return this.http
-      .put<Result>(`${environment.baseUrl}/SignControlBox/Update`, payload, {
-        headers: this.noCacheHeaders,
-      })
-      .pipe(
-        map((resp) => {
-          if (!(resp as any)?.isSuccess)
-            throw new Error((resp as any)?.error?.description ?? 'Unknown error');
-          return resp;
-        }),
-        tap(() => this.toast.success('Success')), // ← هنا
-        catchError(this.handleError<Result>('Update', {} as any))
-      );
+    return this.http.put<Result>(`${environment.baseUrl}/SignControlBox/Update`, payload).pipe(
+      map((resp) => {
+        if (!(resp as any)?.isSuccess)
+          throw new Error((resp as any)?.error?.description ?? 'Unknown error');
+        return resp;
+      }),
+      tap(() => this.toast.success('Success')),
+      catchError(this.handleError<Result>('Update', {} as any))
+    );
   }
 }

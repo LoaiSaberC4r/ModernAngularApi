@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, of, shareReplay, tap, throwError } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
@@ -14,28 +14,6 @@ export class LightPatternService {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToasterService);
 
-  // توحيد هيدر منع الكاش + بصمة زمنية للاستعلامات
-  private readonly noCacheHeaders = new HttpHeaders({
-    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    Pragma: 'no-cache',
-    Expires: '0',
-  });
-
-  private withNoCache(params?: HttpParams): HttpParams {
-    const base = params ?? new HttpParams();
-    return base.set('__ts', Date.now().toString());
-  }
-
-  // كاش بسيط في الذاكرة
-  private cacheAll = new Map<string, ResultV<GetAllLightPattern>>();
-  private cacheById = new Map<string, ResultV<GetLightPattern>>();
-
-  private invalidateCache(): void {
-    this.cacheAll.clear();
-    this.cacheById.clear();
-  }
-
-  // ===== Error Handling موحّد (نفس نمط الخدمة السابقة) =====
   private handleError<T>(op: string, fallback?: T, rethrow = false) {
     return (err: any): Observable<T> => {
       const msg = this.extractErrorMessage(err, op);
@@ -48,10 +26,7 @@ export class LightPatternService {
 
   private extractErrorMessage(err: any, op: string): string {
     const validationList: string[] =
-      err?.error?.errorMessages ??
-      err?.error?.errors ??
-      err?.error?.ErrorMessages ??
-      [];
+      err?.error?.errorMessages ?? err?.error?.errors ?? err?.error?.ErrorMessages ?? [];
 
     if (Array.isArray(validationList) && validationList.length > 0) {
       return `Validation (${op}): ${validationList.join(' | ')}`;
@@ -72,28 +47,14 @@ export class LightPatternService {
     return resultErrorDesc || `Operation "${op}" failed`;
   }
 
-  // =========================
-  // ======= READ (GET) ======
-  // =========================
-
   getAll(): Observable<ResultV<GetAllLightPattern>> {
-    let query = new HttpParams();
-    query = this.withNoCache(query);
-    const cacheKey = query.toString();
-
-    if (this.cacheAll.has(cacheKey)) {
-      return of(this.cacheAll.get(cacheKey)!);
-    }
+    const params = new HttpParams();
 
     return this.http
-      .get<ResultV<GetAllLightPattern>>(
-        `${environment.baseUrl}/LightPattern/GetAll`,
-        { params: query, headers: this.noCacheHeaders }
-      )
+      .get<ResultV<GetAllLightPattern>>(`${environment.baseUrl}/LightPattern/GetAll`, { params })
       .pipe(
         map((resp) => {
           if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
-          this.cacheAll.set(cacheKey, resp);
           return resp;
         }),
         catchError(this.handleError<ResultV<GetAllLightPattern>>('LightPattern:GetAll', {} as any)),
@@ -102,23 +63,13 @@ export class LightPatternService {
   }
 
   getById(id: number): Observable<ResultV<GetLightPattern>> {
-    let query = new HttpParams().set('id', String(id));
-    query = this.withNoCache(query);
-    const cacheKey = query.toString();
-
-    if (this.cacheById.has(cacheKey)) {
-      return of(this.cacheById.get(cacheKey)!);
-    }
+    const params = new HttpParams().set('id', String(id));
 
     return this.http
-      .get<ResultV<GetLightPattern>>(
-        `${environment.baseUrl}/LightPattern/GetById`,
-        { params: query, headers: this.noCacheHeaders }
-      )
+      .get<ResultV<GetLightPattern>>(`${environment.baseUrl}/LightPattern/GetById`, { params })
       .pipe(
         map((resp) => {
           if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
-          this.cacheById.set(cacheKey, resp);
           return resp;
         }),
         catchError(this.handleError<ResultV<GetLightPattern>>('LightPattern:GetById', {} as any)),
@@ -126,48 +77,27 @@ export class LightPatternService {
       );
   }
 
-  // =========================
-  // ====== WRITE (CUD) ======
-  // ===== Success Toast =====
-  // =========================
-
   add(command: AddLightPatternCommand): Observable<Result> {
-    return this.http
-      .post<Result>(`${environment.baseUrl}/LightPattern/Add`, command, {
-        headers: this.noCacheHeaders
-      })
-      .pipe(
-        map((resp) => {
-          if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
-          return resp;
-        }),
-        tap(() => {
-          this.invalidateCache();
-          this.toast.success('Success'); // نفس النمط
-        }),
-        catchError(this.handleError<Result>('LightPattern:Add', {} as any))
-      );
+    return this.http.post<Result>(`${environment.baseUrl}/LightPattern/Add`, command).pipe(
+      map((resp) => {
+        if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
+        return resp;
+      }),
+      tap(() => this.toast.success('Success')),
+      catchError(this.handleError<Result>('LightPattern:Add', {} as any))
+    );
   }
 
   delete(lightPatternId: number): Observable<Result> {
-    let params = new HttpParams().set('LightPatternId', String(lightPatternId));
-    params = this.withNoCache(params);
+    const params = new HttpParams().set('LightPatternId', String(lightPatternId));
 
-    return this.http
-      .delete<Result>(`${environment.baseUrl}/LightPattern/Delete`, {
-        params,
-        headers: this.noCacheHeaders
-      })
-      .pipe(
-        map((resp) => {
-          if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
-          return resp;
-        }),
-        tap(() => {
-          this.invalidateCache();
-          this.toast.success('Success'); // نفس النمط
-        }),
-        catchError(this.handleError<Result>('LightPattern:Delete', {} as any))
-      );
+    return this.http.delete<Result>(`${environment.baseUrl}/LightPattern/Delete`, { params }).pipe(
+      map((resp) => {
+        if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
+        return resp;
+      }),
+      tap(() => this.toast.success('Success')),
+      catchError(this.handleError<Result>('LightPattern:Delete', {} as any))
+    );
   }
 }

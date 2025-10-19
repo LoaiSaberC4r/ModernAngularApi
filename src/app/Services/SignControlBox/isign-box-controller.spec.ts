@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { ISignBoxController } from './isign-box-controller';
+import { ISignBoxControlService } from './isign-box-controlService';
 
 describe('ISignBoxController', () => {
-  let service: ISignBoxController;
+  let service: ISignBoxControlService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(ISignBoxController);
+    service = TestBed.inject(ISignBoxControlService);
   });
 
   it('should be created', () => {

@@ -28,10 +28,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 
 import { RoundaboutComponent } from '../roundabout-component/roundabout-component';
-import { ResultError } from '../../Domain/ResultPattern/Error';
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { LanguageService } from '../../Services/Language/language-service';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject, fromEvent, interval } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, takeUntil } from 'rxjs/operators';
 import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
 import { ITemplateService } from '../../Services/Template/itemplate-service';
 import { ITemplatePatternService } from '../../Services/TemplatePattern/itemplate-pattern-service';
@@ -86,6 +86,11 @@ export class TrafficWizard implements OnInit, OnDestroy {
   get isAr() {
     return this.langService.current === 'ar';
   }
+
+  // ===== NEW: إدارة التحديث التلقائي والاشتراكات =====
+  private readonly destroy$ = new Subject<void>();
+  private readonly softRefresh$ = interval(30000); // تحديث خفيف كل 30 ثانية
+  private isRefreshing = false;
 
   templates: GetAllTemplate[] = [];
 
@@ -143,40 +148,81 @@ export class TrafficWizard implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadGovernate();
     this.loadTemplates();
-    this.directions.valueChanges.subscribe(() => this.reconcileConflicts());
+    
+
+    this.directions.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.reconcileConflicts());
+
+    fromEvent(document, 'visibilitychange')
+      .pipe(
+        takeUntil(this.destroy$),
+        filter(() => document.visibilityState === 'visible'),
+        debounceTime(150)
+      )
+      .subscribe(() => this.hardRefreshLists());
+
+    this.softRefresh$.pipe(takeUntil(this.destroy$)).subscribe(() => this.softRefreshLists());
+
+    this.trafficForm
+      .get('governorate')!
+      .valueChanges.pipe(takeUntil(this.destroy$), distinctUntilChanged())
+      .subscribe((id) => {
+        this.trafficForm.patchValue({ area: null }, { emitEvent: false });
+        if (id != null && !Number.isNaN(id)) this.getAreas(Number(id));
+      });
+
+    this.templateForm
+      .get('templateId')!
+      .valueChanges.pipe(takeUntil(this.destroy$), distinctUntilChanged())
+      .subscribe((id) => this.onTemplateChange(Number(id || 0)));
   }
 
   ngOnDestroy(): void {
     this.clearAllPatternSyncSubs();
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   // ======= Data loading =======
   private loadTemplates(): void {
-    this.templateService.GetAll().subscribe((res) => {
-      this.templates = res?.value ?? [];
+    if (this.isRefreshing) return;
+    this.isRefreshing = true;
+    this.templateService.GetAll().subscribe({
+      next: (res) => {
+        const incoming = res?.value ?? [];
+        const sameLen = this.templates.length === incoming.length;
+        const sameIds =
+          sameLen && this.templates.every((t, i) => Number(t.id) === Number(incoming[i]?.id));
+        this.templates = sameIds ? this.templates : incoming;
+      },
+      complete: () => (this.isRefreshing = false),
+      error: () => (this.isRefreshing = false),
     });
   }
 
-  loadGovernate() {
+  private loadGovernate() {
     this.governateService.getAll({}).subscribe((data) => {
-      this.governates = data.value;
+      this.governates = data.value ?? [];
     });
   }
 
-  getAreas(id: number) {
+  private getAreas(id: number) {
     this.areaService.getAll(id).subscribe((data) => {
-      this.areas = data.value;
+      this.areas = data.value ?? [];
     });
   }
 
-  onGovernorateChangeValue(id: number | null): void {
-    this.trafficForm.patchValue({ governorate: id, area: null });
-    if (id != null && !Number.isNaN(id)) {
-      this.getAreas(id);
-    }
+  private hardRefreshLists() {
+    this.loadTemplates();
+    this.loadGovernate();
+    const govId = Number(this.trafficForm.get('governorate')?.value || 0);
+    if (govId > 0) this.getAreas(govId);
   }
 
-  // ======= Form getters =======
+  private softRefreshLists() {
+    this.loadTemplates();
+  }
   get directions(): FormArray<FormGroup> {
     return this.trafficForm.get('directions') as FormArray<FormGroup>;
   }
@@ -480,6 +526,9 @@ export class TrafficWizard implements OnInit, OnDestroy {
         this.clearAllPatternSyncSubs();
         this.directions.clear();
         this.addDirection();
+
+        // NEW: بعد الحفظ حدّث القوائم فورًا
+        this.hardRefreshLists();
       },
       error: (err) => {
         const { messages, fieldMap } = this.extractApiErrors(err);
@@ -629,7 +678,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
     if (ctrl && ctrl.enabled) ctrl.disable({ emitEvent: false });
   }
   private copyValue(src: AbstractControl | null, dst: AbstractControl | null) {
-    const wasDisabled = !!dst && dst.disabled;
+    const wasDisabled = !!dst && (dst as any).disabled;
     if (wasDisabled) dst?.enable({ emitEvent: false });
     dst?.setValue(src?.value ?? null, { emitEvent: false });
     if (wasDisabled) dst?.disable({ emitEvent: false });
@@ -668,6 +717,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
       } catch {}
     });
   }
+
   private extractApiErrors(err: any): { messages: string[]; fieldMap: Record<string, string[]> } {
     const messages: string[] = [];
     const fieldMap: Record<string, string[]> = {};
@@ -754,6 +804,12 @@ export class TrafficWizard implements OnInit, OnDestroy {
           c.markAsTouched();
         }
       }
+    }
+  }
+  onGovernorateChangeValue(id: number | null): void {
+    this.trafficForm.patchValue({ governorate: id, area: null });
+    if (id != null && !Number.isNaN(id)) {
+      this.getAreas(Number(id));
     }
   }
 }

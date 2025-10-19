@@ -18,7 +18,7 @@
   </div>
 
   <div class="row g-4">
-    <!-- Left: Template Manager -->
+    <!-- Template Manager -->
     <div class="col-12 col-lg-7">
       <section class="modern-card template-manager">
         <div class="card-header">
@@ -40,23 +40,37 @@
               </svg>
               {{ tr('selectTemplate') }}
             </label>
-            <select id="templateSelect" class="form-control-modern" (change)="onTemplateChange($event)">
-              <option value="">{{ tr('chooseTemplate') }}</option>
-              <option *ngFor="let t of templates" [value]="t.id">{{ t.name }}</option>
-            </select>
+
+            <div style="display:flex; gap:.75rem; align-items:center; flex-wrap:wrap">
+              <select id="templateSelect" class="form-control-modern" (change)="onTemplateChange($event)"
+                style="min-width:260px">
+                <option value="">{{ tr('chooseTemplate') }}</option>
+                <!-- <option [value]="NEW_CODE">{{ tr('addNewTemplate') }}</option> -->
+                <option *ngFor="let t of templates" [value]="t.id">{{ t.name }}</option>
+              </select>
+
+              <button type="button" class="btn-save" (click)="AddNewTemplate()">
+                {{ tr('addNewTemplate') }}
+              </button>
+            </div>
           </div>
 
-          <!-- Template Name -->
-          <div class="form-section">
+          <div class="form-section" *ngIf="showTemplateName">
             <label for="templateName" class="section-label">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
               </svg>
-              {{ tr('templateName') }} <span class="required-mark">*</span>
+              {{
+              templateForm.value.templateId
+              ? tr('editTemplateName')
+              : tr('templateName')
+              }}
+              <span class="required-mark">*</span>
             </label>
-            <input id="templateName" type="text" class="form-control-modern" [placeholder]="tr('templateNamePh')"
-              formControlName="templateName"
+
+            <input id="templateName" #templateNameRef type="text" class="form-control-modern"
+              [placeholder]="tr('templateNamePh')" formControlName="templateName"
               [class.is-invalid]="templateForm.get('templateName')?.invalid && templateForm.get('templateName')?.touched" />
             <div class="error-message"
               *ngIf="templateForm.get('templateName')?.invalid && templateForm.get('templateName')?.touched">
@@ -126,13 +140,15 @@
 
           <!-- Add Pattern -->
           <div class="add-pattern-section">
-            <div class="add-pattern-controls">
-              <select id="lpSel" class="form-control-modern flex-grow-1" #lpSel>
+            <div class="add-pattern-controls" style="display:flex; gap:.75rem; align-items:center; flex-wrap:wrap">
+              <select id="lpSel" class="form-control-modern flex-grow-1" #lpSel
+                (change)="onAddSectionPatternChange($event)">
                 <option value="">{{ tr('chooseLightPattern') }}</option>
                 <option *ngFor="let lp of lightPatterns" [value]="lp.id">
                   {{ lp.name || tr('pattern') + ' #' + lp.id }}
                 </option>
               </select>
+
               <button class="btn-add" type="button" (click)="lpSel.value && addRowFromSelect(+lpSel.value)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="12" y1="5" x2="12" y2="19" />
@@ -140,6 +156,11 @@
                 </svg>
                 {{ tr('addToSchedule') }}
               </button>
+
+              <button type="button" class="btn-save" (click)="startAddNewLightPattern()">
+                {{ tr('addNewLightPattern') }}
+              </button>
+
             </div>
           </div>
         </div>
@@ -157,8 +178,7 @@
         </div>
       </section>
     </div>
-
-    <!-- Right: Light Pattern Editor -->
+    <!--  Light Pattern Editor -->
     <div class="col-12 col-lg-5">
       <section class="modern-card pattern-editor" [formGroup]="patternForm">
         <div class="card-header">
@@ -176,23 +196,6 @@
         </div>
 
         <div class="card-body">
-          <!-- Pattern Name -->
-          <div class="form-section">
-            <label for="lpName" class="section-label">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-              </svg>
-              {{ tr('patternName') }} <span class="required-mark">*</span>
-            </label>
-            <input id="lpName" type="text" class="form-control-modern" [placeholder]="tr('patternNamePh')"
-              formControlName="name"
-              [class.is-invalid]="patternForm.get('name')?.invalid && patternForm.get('name')?.touched" />
-            <div class="error-message" *ngIf="patternForm.get('name')?.invalid && patternForm.get('name')?.touched">
-              {{ tr('patternNameReq') }}
-            </div>
-          </div>
-
-          <!-- Select Existing Pattern -->
           <div class="form-section">
             <label for="patternSelect" class="section-label">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -201,14 +204,44 @@
               </svg>
               {{ tr('loadExisting') }}
             </label>
-            <select id="patternSelect" class="form-control-modern" formControlName="selectedPattern"
-              (change)="onPatternChange()">
-              <option [ngValue]="null">{{ tr('createNewPattern') }}</option>
-              <option *ngFor="let p of lightPatterns" [ngValue]="p">{{ p.name }}</option>
-            </select>
+
+            <div style="display:flex; gap:.75rem; align-items:center; flex-wrap:wrap">
+              <select id="patternSelect" class="form-control-modern" formControlName="selectedPattern"
+                (change)="onPatternChange()" style="min-width:260px">
+                <option [ngValue]="undefined">{{ isAr ? 'اختر نمطًا…' : 'Choose a pattern…' }}</option>
+                <option *ngFor="let p of lightPatterns" [ngValue]="p">{{ p.name }}</option>
+              </select>
+
+              <button type="button" class="btn-save" (click)="startAddNewLightPattern()">
+                {{ tr('addNewLightPattern') }}
+              </button>
+            </div>
+            <small class="text-muted" *ngIf="!showPatternFields">
+              {{ tr('selectPatternHint') }}
+            </small>
           </div>
 
-          <!-- Timing Configuration + Blink -->
+          <div class="form-section" *ngIf="showPatternFields">
+            <label for="lpName" class="section-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              {{
+              patternForm.value.selectedPattern
+              ? tr('editPatternName')
+              : tr('patternName')
+              }}
+              <span class="required-mark">*</span>
+            </label>
+
+            <input #patternNameRef id="lpName" type="text" class="form-control-modern"
+              [placeholder]="tr('patternNamePh')" formControlName="name"
+              [class.is-invalid]="patternForm.get('name')?.invalid && patternForm.get('name')?.touched" />
+            <div class="error-message" *ngIf="patternForm.get('name')?.invalid && patternForm.get('name')?.touched">
+              {{ tr('patternNameReq') }}
+            </div>
+          </div>
+
           <div class="form-section">
             <label class="section-label">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -218,7 +251,7 @@
               {{ tr('lightDurations') }}
             </label>
 
-            <!-- Green Light -->
+            <!-- Green -->
             <div class="light-row green-light">
               <div class="light-visual" [class.blink]="patternForm.value.blinkGreen"
                 [style.--blinkMs.ms]="patternForm.value.blinkInterval || 500">
@@ -236,7 +269,7 @@
               </label>
             </div>
 
-            <!-- Yellow Light -->
+            <!-- Yellow -->
             <div class="light-row yellow-light">
               <div class="light-visual" [class.blink]="patternForm.value.blinkYellow"
                 [style.--blinkMs.ms]="patternForm.value.blinkInterval || 500">
@@ -254,7 +287,7 @@
               </label>
             </div>
 
-            <!-- Red Light -->
+            <!-- Red -->
             <div class="light-row red-light">
               <div class="light-visual" [class.blink]="patternForm.value.blinkRed"
                 [style.--blinkMs.ms]="patternForm.value.blinkInterval || 500">
@@ -304,11 +337,12 @@
             {{ tr('delete') }}
           </button>
           <button class="btn-save" type="button" (click)="createPattern()"
-            [disabled]="patternForm.invalid || submitting">
+            [disabled]="patternForm.invalid || submitting || !showPatternFields">
             {{ submitting ? tr('saving') : tr('createPattern') }}
           </button>
         </div>
       </section>
     </div>
+
   </div>
 </div>

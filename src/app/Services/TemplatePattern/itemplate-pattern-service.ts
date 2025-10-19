@@ -15,9 +15,6 @@ export class ITemplatePatternService {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToasterService);
 
-  private cacheGetAllByTemplateId = new Map<string, ResultV<LightPatternForTemplatePattern>>();
-
-  /** استخراج رسالة مفهومة من أخطاء الـ API (Validation/ProblemDetails/Result/Network) */
   private extractErrorMessage(err: any, op: string): string {
     const validationList: string[] =
       err?.error?.errorMessages ?? err?.error?.errors ?? err?.error?.ErrorMessages ?? [];
@@ -41,7 +38,6 @@ export class ITemplatePatternService {
     return resultErrorDesc || `Operation "${op}" failed`;
   }
 
-  /** إضافة أو تحديث TemplatePattern */
   AddOrUpdateLightPattern(payload: TemplatePattern): Observable<ResultV<TemplatePattern>> {
     return this.http
       .post<ResultV<TemplatePattern>>(
@@ -51,11 +47,9 @@ export class ITemplatePatternService {
       .pipe(
         map((resp) => {
           if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
-          // بما إن البيانات تغيّرت: امسح الكاش
-          this.cacheGetAllByTemplateId.clear();
           return resp;
         }),
-        tap(() => this.toast.success('Success')), // ← توستر نجاح
+        tap(() => this.toast.success('Success')),
         catchError((err) => {
           const msg = this.extractErrorMessage(err, 'TemplatePattern:AddOrUpdate');
           console.error('[TemplatePattern:AddOrUpdate] failed:', err);
@@ -66,16 +60,10 @@ export class ITemplatePatternService {
       );
   }
 
-  /** جلب LightPatterns الخاصة بـ Template محدد (بدون توستر نجاح) */
   GetAllTemplatePatternByTemplateId(
     Id: number
   ): Observable<ResultV<LightPatternForTemplatePattern>> {
     const query = new HttpParams().set('templateId', String(Id));
-    const cacheKey = query.toString();
-
-    if (this.cacheGetAllByTemplateId.has(cacheKey)) {
-      return of(this.cacheGetAllByTemplateId.get(cacheKey)!);
-    }
 
     return this.http
       .get<ResultV<LightPatternForTemplatePattern>>(
@@ -85,7 +73,6 @@ export class ITemplatePatternService {
       .pipe(
         map((resp) => {
           if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
-          this.cacheGetAllByTemplateId.set(cacheKey, resp);
           return resp;
         }),
         catchError((err) => {
@@ -98,7 +85,6 @@ export class ITemplatePatternService {
       );
   }
 
-  /** حذف Template */
   deleteTemplate(templateId: number): Observable<Result> {
     const params = new HttpParams().set('templateId', String(templateId));
 
@@ -107,11 +93,9 @@ export class ITemplatePatternService {
       .pipe(
         map((resp) => {
           if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
-          // الحذف يغيّر البيانات → نعمل invalidation للـ cache
-          this.cacheGetAllByTemplateId.clear();
           return resp;
         }),
-        tap(() => this.toast.success('Success')), // ← توستر نجاح
+        tap(() => this.toast.success('Success')),
         catchError((err) => {
           const msg = this.extractErrorMessage(err, 'TemplatePattern:DeleteTemplate');
           console.error('[TemplatePattern:DeleteTemplate] failed:', err);

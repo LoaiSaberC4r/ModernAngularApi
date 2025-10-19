@@ -5,4 +5,5 @@ export interface GetAllLightPattern {
   green: number;
   yellow: number;
   blinkMs: number;
+  
 }

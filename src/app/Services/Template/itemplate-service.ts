@@ -14,9 +14,6 @@ export class ITemplateService {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToasterService);
 
-  private cache = new Map<string, ResultV<GetAllTemplate>>();
-
-  /** استخراج رسالة مفهومة من أخطاء الـ API (Validation/ProblemDetails/Result/Network) */
   private extractErrorMessage(err: any, op: string): string {
     const validationList: string[] =
       err?.error?.errorMessages ?? err?.error?.errors ?? err?.error?.ErrorMessages ?? [];
@@ -42,14 +39,7 @@ export class ITemplateService {
 
   GetAll(): Observable<ResultV<GetAllTemplate>> {
     const query = new HttpParams();
-    const cacheKey = query.toString();
 
-    // رجّع من الكاش لو موجود
-    if (this.cache.has(cacheKey)) {
-      return of(this.cache.get(cacheKey)!);
-    }
-
-    // نداء الشبكة + حفظ بالكاش + مشاركة النتيجة
     return this.http
       .get<ResultV<GetAllTemplate>>(`${environment.baseUrl}/Template/GetAll`, { params: query })
       .pipe(
@@ -57,14 +47,12 @@ export class ITemplateService {
           if (!resp?.isSuccess) {
             throw new Error(resp?.error?.description ?? 'Unknown error');
           }
-          this.cache.set(cacheKey, resp);
           return resp;
         }),
         catchError((err) => {
           const msg = this.extractErrorMessage(err, 'Template:GetAll');
           console.error('[Template:GetAll] failed:', err);
           this.toast.error(msg);
-          // ارجاع قيمة فاضية آمنة
           return of({} as ResultV<GetAllTemplate>);
         }),
         shareReplay(1)

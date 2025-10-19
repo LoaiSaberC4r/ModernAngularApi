@@ -1,10 +1,12 @@
-<div class="edit-container" *ngIf="!loading; else loadingTpl" [class.rtl]="isAr">
+@if (!loading) {
+<div class="edit-container" [class.rtl]="isAr">
   <h2 class="edit-title text-muted">
     {{ isAr ? 'تعديل صندوق الإشارة' : 'Edit SignBox' }}
-    <span class="sb-name" *ngIf="form.get('name')?.value; else noName">
-      — {{ form.get('name')?.value }}
-    </span>
-    <ng-template #noName>— {{ isAr ? '(بدون اسم)' : '(unnamed)' }}</ng-template>
+    @if (form.get('name')?.value) {
+    <span class="sb-name">— {{ form.get('name')?.value }}</span>
+    } @else {
+    — {{ isAr ? '(بدون اسم)' : '(unnamed)' }}
+    }
   </h2>
 
   <form [formGroup]="form" (ngSubmit)="apply()">
@@ -14,60 +16,48 @@
         <!-- Name -->
         <div class="mb-3">
           <label for="name" class="form-label">{{ isAr ? 'الاسم' : 'Name' }}</label>
-          <input
-            id="name"
-            formControlName="name"
-            class="form-control border"
-            [placeholder]="isAr ? 'اسم وصفي' : 'Descriptive name'"
-            [attr.dir]="isAr ? 'rtl' : 'ltr'"
-          />
-          <div
-            *ngIf="form.controls['name'].invalid && form.controls['name'].touched"
-            class="text-danger small mt-1"
-          >
+          <input id="name" formControlName="name" class="form-control border"
+            [placeholder]="isAr ? 'اسم وصفي' : 'Descriptive name'" [attr.dir]="isAr ? 'rtl' : 'ltr'" />
+          @if (form.controls['name'].invalid && form.controls['name'].touched) {
+          <div class="text-danger small mt-1">
             {{ isAr ? 'الاسم مطلوب' : 'Name is required' }}
           </div>
+          }
         </div>
 
         <!-- IP -->
         <div class="mb-3">
           <label for="ip" class="form-label">{{ isAr ? 'عنوان IP' : 'IP Address' }}</label>
-          <input
-            id="ip"
-            formControlName="ipAddress"
-            class="form-control border"
-            dir="ltr"
-            [placeholder]="isAr ? 'مثال: 192.168.1.50' : 'e.g. 192.168.1.50'"
-          />
-          <div
-            *ngIf="form.controls['ipAddress'].invalid && form.controls['ipAddress'].touched"
-            class="text-danger small mt-1"
-          >
-            <span *ngIf="form.controls['ipAddress'].errors?.['required']">
+          <input id="ip" formControlName="ipAddress" class="form-control border" dir="ltr"
+            [placeholder]="isAr ? 'مثال: 192.168.1.50' : 'e.g. 192.168.1.50'" />
+          @if (form.controls['ipAddress'].invalid && form.controls['ipAddress'].touched) {
+          <div class="text-danger small mt-1">
+            @if (form.controls['ipAddress'].errors?.['required']) {
+            <span>
               {{ isAr ? 'عنوان IP مطلوب' : 'IP Address is required' }}
             </span>
-            <span *ngIf="form.controls['ipAddress'].errors?.['pattern']">
+            }
+            @if (form.controls['ipAddress'].errors?.['pattern']) {
+            <span>
               {{ isAr ? 'صيغة IP غير صحيحة' : 'Invalid IP format' }}
             </span>
+            }
           </div>
+          }
         </div>
+
         <!-- Cabinet ID  -->
         <div class="mb-3">
           <label for="cabinetId" class="form-label">
             {{ isAr ? 'رقم الكبينة' : 'Cabinet ID' }}
           </label>
-          <input
-            id="cabinetId"
-            formControlName="cabinetId"
-            class="form-control border bg-light"
-            dir="ltr"
-            [attr.aria-readonly]="true"
-          />
+          <input id="cabinetId" formControlName="cabinetId" class="form-control border bg-light" dir="ltr"
+            [attr.aria-readonly]="true" />
           <div class="form-text text-muted">
             {{
-              isAr
-                ? 'يتم جلبه من الخادم ولا يمكن تعديله'
-                : 'Loaded from server and cannot be edited'
+            isAr
+            ? 'يتم جلبه من الخادم ولا يمكن تعديله'
+            : 'Loaded from server and cannot be edited'
             }}
           </div>
         </div>
@@ -76,23 +66,13 @@
         <div class="row g-3">
           <div class="col-12 col-md-6">
             <label for="lat" class="form-label">{{ isAr ? 'خط العرض' : 'Latitude' }}</label>
-            <input
-              id="lat"
-              formControlName="latitude"
-              class="form-control border"
-              dir="ltr"
-              [placeholder]="isAr ? 'مثال: 30.0444' : 'e.g. 30.0444'"
-            />
+            <input id="lat" formControlName="latitude" class="form-control border" dir="ltr"
+              [placeholder]="isAr ? 'مثال: 30.0444' : 'e.g. 30.0444'" />
           </div>
           <div class="col-12 col-md-6">
             <label for="lng" class="form-label">{{ isAr ? 'خط الطول' : 'Longitude' }}</label>
-            <input
-              id="lng"
-              formControlName="longitude"
-              class="form-control border"
-              dir="ltr"
-              [placeholder]="isAr ? 'مثال: 31.2357' : 'e.g. 31.2357'"
-            />
+            <input id="lng" formControlName="longitude" class="form-control border" dir="ltr"
+              [placeholder]="isAr ? 'مثال: 31.2357' : 'e.g. 31.2357'" />
           </div>
         </div>
 
@@ -100,45 +80,34 @@
         <div class="row g-3 mt-1">
           <div class="col-12 col-md-6">
             <label for="gov" class="form-label">{{ isAr ? 'المحافظة' : 'Governorate' }}</label>
-            <select
-              id="gov"
-              class="form-select form-control-modern"
-              formControlName="governateId"
-              (change)="onGovernorateChange()"
-              [attr.dir]="isAr ? 'rtl' : 'ltr'"
-            >
+            <select id="gov" class="form-select form-control-modern" formControlName="governateId"
+              (change)="onGovernorateChange()" [attr.dir]="isAr ? 'rtl' : 'ltr'">
               <option [ngValue]="null" disabled>
                 {{ isAr ? 'اختر المحافظة' : 'Select governorate' }}
               </option>
               <option *ngFor="let g of governates" [ngValue]="g.id">{{ g.name }}</option>
             </select>
-            <div
-              *ngIf="form.controls['governateId'].invalid && form.controls['governateId'].touched"
-              class="text-danger small mt-1"
-            >
+            @if (form.controls['governateId'].invalid && form.controls['governateId'].touched) {
+            <div class="text-danger small mt-1">
               {{ isAr ? 'المحافظة مطلوبة' : 'Governorate is required' }}
             </div>
+            }
           </div>
 
           <div class="col-12 col-md-6">
             <label for="area" class="form-label">{{ isAr ? 'الحي' : 'Area' }}</label>
-            <select
-              id="area"
-              class="form-select form-control-modern"
-              formControlName="areaId"
-              [attr.dir]="isAr ? 'rtl' : 'ltr'"
-            >
+            <select id="area" class="form-select form-control-modern" formControlName="areaId"
+              [attr.dir]="isAr ? 'rtl' : 'ltr'">
               <option [ngValue]="null" disabled>
                 {{ isAr ? 'اختر الحي' : 'Select area' }}
               </option>
               <option *ngFor="let a of areas" [ngValue]="a.id">{{ a.name }}</option>
             </select>
-            <div
-              *ngIf="form.controls['areaId'].invalid && form.controls['areaId'].touched"
-              class="text-danger small mt-1"
-            >
+            @if (form.controls['areaId'].invalid && form.controls['areaId'].touched) {
+            <div class="text-danger small mt-1">
               {{ isAr ? 'الحي مطلوب' : 'Area is required' }}
             </div>
+            }
           </div>
         </div>
       </div>
@@ -151,21 +120,14 @@
           </label>
 
           <div formArrayName="directions" class="vstack gap-3">
-            <div
-              class="dir-row border rounded-3 p-2"
-              *ngFor="let dir of directions.controls; let i = index"
-              [formGroupName]="i"
-            >
+            <div class="dir-row border rounded-3 p-2" *ngFor="let dir of directions.controls; let i = index"
+              [formGroupName]="i">
               <div class="mb-2">
                 <label class="form-label section-label" [attr.dir]="isAr ? 'rtl' : 'ltr'">
                   {{ isAr ? 'اسم الاتجاه' : 'Direction Name' }}
                 </label>
-                <input
-                  formControlName="name"
-                  class="form-control"
-                  [placeholder]="isAr ? 'اسم الاتجاه' : 'Direction name'"
-                  [attr.dir]="isAr ? 'rtl' : 'ltr'"
-                />
+                <input formControlName="name" class="form-control"
+                  [placeholder]="isAr ? 'اسم الاتجاه' : 'Direction name'" [attr.dir]="isAr ? 'rtl' : 'ltr'" />
               </div>
 
               <div class="row g-2 align-items-end">
@@ -173,33 +135,18 @@
                   <label class="form-label section-label" [attr.dir]="isAr ? 'rtl' : 'ltr'">
                     {{ isAr ? 'طريق' : 'Lane' }}
                   </label>
-                  <input
-                    type="number"
-                    formControlName="order"
-                    min="1"
-                    max="4"
-                    step="1"
-                    class="form-control"
-                    dir="ltr"
-                    [placeholder]="isAr ? 'طريق' : 'Lane'"
-                  />
+                  <input type="number" formControlName="order" min="1" max="4" step="1" class="form-control" dir="ltr"
+                    [placeholder]="isAr ? 'طريق' : 'Lane'" />
                 </div>
 
                 <div class="col-7">
-                  <label
-                    [for]="'templateSelect' + i"
-                    class="form-label section-label"
-                    [attr.dir]="isAr ? 'rtl' : 'ltr'"
-                  >
+                  <label [for]="'templateSelect' + i" class="form-label section-label"
+                    [attr.dir]="isAr ? 'rtl' : 'ltr'">
                     {{ isAr ? 'القالب' : 'Template' }}
                   </label>
-                  <select
-                    class="form-select form-control-modern w-100"
-                    [id]="'templateSelect' + i"
-                    formControlName="templateId"
-                    (change)="onTemplateChange(i, $event)"
-                    [attr.dir]="isAr ? 'rtl' : 'ltr'"
-                  >
+                  <select class="form-select form-control-modern w-100" [id]="'templateSelect' + i"
+                    formControlName="templateId" (change)="onTemplateChange(i, $event)"
+                    [attr.dir]="isAr ? 'rtl' : 'ltr'">
                     <option [ngValue]="null">{{ isAr ? 'اختر القالب' : 'Choose template' }}</option>
                     <option *ngFor="let t of templates" [ngValue]="t.id">{{ t.name }}</option>
                   </select>
@@ -210,14 +157,10 @@
                     {{ isAr ? 'إضافة اتجاه' : 'Add Direction' }}
                   </button>
 
-                  <button
-                    type="button"
+                  <button type="button"
                     class="btn btn-outline-danger d-inline-flex align-items-center justify-content-center"
-                    style="width: 42px; height: 42px; border-radius: 8px"
-                    (click)="removeDirection(i)"
-                    [attr.aria-label]="isAr ? 'حذف الاتجاه' : 'Remove direction'"
-                    title="{{ isAr ? 'حذف' : 'Remove' }}"
-                  >
+                    style="width: 42px; height: 42px; border-radius: 8px" (click)="removeDirection(i)"
+                    [attr.aria-label]="isAr ? 'حذف الاتجاه' : 'Remove direction'" title="{{ isAr ? 'حذف' : 'Remove' }}">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -243,6 +186,9 @@
     </div>
   </form>
 </div>
+} @else {
+<ng-container *ngTemplateOutlet="loadingTpl"></ng-container>
+}
 
 <ng-template #loadingTpl>
   <div>{{ isAr ? 'جارِ التحميل...' : 'Loading...' }}</div>

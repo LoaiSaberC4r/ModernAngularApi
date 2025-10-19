@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormArray,
@@ -31,18 +31,22 @@ import { LanguageService } from '../../Services/Language/language-service';
   styleUrl: './templatecomponent.css',
 })
 export class Templatecomponent implements OnInit {
-  // DI
+  readonly NEW_CODE = '__NEW__';
+
   private readonly fb = inject(FormBuilder);
   private readonly templateService = inject(ITemplateService);
   private readonly templatePatternService = inject(ITemplatePatternService);
   private readonly lightPatternService = inject(LightPatternService);
   public readonly lang = inject(LanguageService);
 
-  // langs
+  @ViewChild('templateNameRef') templateNameRef!: ElementRef<HTMLInputElement>;
+  @ViewChild('patternNameRef') patternNameRef!: ElementRef<HTMLInputElement>;
+
   get isAr() {
     return this.lang.current === 'ar';
   }
 
+  // i18n
   private dict = {
     en: {
       templateManager: 'Template Manager',
@@ -50,16 +54,19 @@ export class Templatecomponent implements OnInit {
       templateConfig: 'Template Configuration',
       selectTemplate: 'Select Template',
       chooseTemplate: 'Choose a template...',
-      templateName: 'Template Name',
+      addNewTemplate: '  Add new template…',
+      templateName: ' Add Template Name',
       templateNamePh: 'Enter a descriptive name',
       templateNameReq: 'Template name is required',
       scheduleTimeline: 'Schedule Timeline',
       lightPattern: 'LightPattern',
+      editTemplateName: 'Edit Selected Template Name',
+      editPatternName: 'Edit Selected Pattern Name',
       removeRow: 'Remove row',
       start: 'Start',
       end: 'End',
       noSchedule: 'No schedule entries yet',
-      selectPatternHint: 'Select a pattern below and click "Add to Template"',
+      selectPatternHint: 'Select a pattern or click "Add New Light Pattern".',
       chooseLightPattern: 'Choose a light pattern...',
       pattern: 'Pattern',
       addToSchedule: 'Add to Template',
@@ -67,11 +74,12 @@ export class Templatecomponent implements OnInit {
       saveTemplate: 'Save Template',
       saving: 'Saving…',
       lightPatternEditor: 'Light Pattern Editor',
-      patternName: 'Pattern Name',
+      patternName: 'Add Pattern Name',
       patternNamePh: 'Enter pattern name',
       patternNameReq: 'Pattern name is required',
       loadExisting: 'Load Existing Pattern',
       createNewPattern: 'Create new pattern...',
+      addNewLightPattern: 'Add New Light Pattern',
       lightDurations: 'Light Durations',
       green: 'Green',
       yellow: 'Yellow',
@@ -81,7 +89,7 @@ export class Templatecomponent implements OnInit {
       redSec: 'Red seconds',
       sec: 'sec',
       delete: 'Delete',
-      createPattern: 'Create Pattern',
+      createPattern: 'Create / Update Pattern',
     },
     ar: {
       templateManager: 'إدارة القوالب',
@@ -89,16 +97,19 @@ export class Templatecomponent implements OnInit {
       templateConfig: 'تهيئة القالب',
       selectTemplate: 'اختر القالب',
       chooseTemplate: 'اختر قالبًا...',
-      templateName: 'اسم القالب',
+      addNewTemplate: '  إنشاء قالب جديد…',
+      templateName: 'إضافة اسم القالب',
       templateNamePh: 'اكتب اسمًا وصفيًا',
       templateNameReq: 'اسم القالب مطلوب',
       scheduleTimeline: 'الخط الزمني للجدول',
       lightPattern: 'نمط الإشارة',
       removeRow: 'حذف الصف',
+      editTemplateName: 'تعديل اسم القالب',
+      editPatternName: 'تعديل اسم النمط',
       start: 'البداية',
       end: 'النهاية',
       noSchedule: 'لا توجد إدخالات جدول بعد',
-      selectPatternHint: 'اختر نمطًا بالأسفل ثم اضغط "إضافة إلى الجدول"',
+      selectPatternHint: 'اختر نمطًا أو اضغط "إضافة نمط إشارة جديد".',
       chooseLightPattern: 'اختر نمط الإشارة...',
       pattern: 'النمط',
       addToSchedule: 'إضافة إلى الجدول',
@@ -106,11 +117,12 @@ export class Templatecomponent implements OnInit {
       saveTemplate: 'حفظ القالب',
       saving: 'جارٍ الحفظ…',
       lightPatternEditor: 'محرر نمط الإشارة',
-      patternName: 'اسم النمط',
+      patternName: 'إضافة اسم النمط',
       patternNamePh: 'اكتب اسم النمط',
       patternNameReq: 'اسم النمط مطلوب',
       loadExisting: 'تحميل نمط موجود',
       createNewPattern: 'إنشاء نمط جديد...',
+      addNewLightPattern: 'إضافة نمط إشارة جديد',
       lightDurations: 'مدد الإشارات',
       green: 'أخضر',
       yellow: 'أصفر',
@@ -120,7 +132,7 @@ export class Templatecomponent implements OnInit {
       redSec: 'ثواني الأحمر',
       sec: 'ث',
       delete: 'حذف',
-      createPattern: 'إنشاء النمط',
+      createPattern: 'إنشاء / تعديل النمط',
     },
   } as const;
 
@@ -129,12 +141,12 @@ export class Templatecomponent implements OnInit {
     return this.dict[lang][key] ?? key;
   }
 
-  // Data
   templates: GetAllTemplate[] = [];
   lightPatterns: GetAllLightPattern[] = [];
 
-  // UI state
   submitting = false;
+  showPatternFields = false;
+  showTemplateName = false;
 
   // Forms
   templateForm: FormGroup = this.fb.group({
@@ -146,10 +158,9 @@ export class Templatecomponent implements OnInit {
     rows: this.fb.array<FormGroup>([]),
   });
 
-  // Pattern editor form (right pane)
   patternForm: FormGroup = this.fb.group({
     name: ['', Validators.required],
-    selectedPattern: [null as GetAllLightPattern | null],
+    selectedPattern: [undefined as GetAllLightPattern | undefined],
 
     green: [0, [Validators.required, Validators.min(0)]],
     yellow: [0, [Validators.required, Validators.min(0)]],
@@ -159,7 +170,6 @@ export class Templatecomponent implements OnInit {
     blinkYellow: [false],
     blinkRed: [false],
 
-    // موحّد: blinkInterval (ms)
     blinkInterval: [500, [Validators.required, Validators.min(50), Validators.max(10000)]],
   });
 
@@ -167,15 +177,13 @@ export class Templatecomponent implements OnInit {
     return this.templateForm.get('rows') as FormArray<FormGroup>;
   }
 
-  // Lifecycle
   ngOnInit(): void {
     this.loadTemplates();
     this.loadLightPatterns();
 
-    // sync fields when selecting an existing pattern
     this.patternForm
       .get('selectedPattern')!
-      .valueChanges.subscribe((p: GetAllLightPattern | null) => {
+      .valueChanges.subscribe((p: GetAllLightPattern | undefined) => {
         if (p) {
           this.patternForm.patchValue(
             {
@@ -190,25 +198,14 @@ export class Templatecomponent implements OnInit {
             },
             { emitEvent: false }
           );
+          this.showPatternFields = true;
+          setTimeout(() => this.patternNameRef?.nativeElement?.focus(), 0);
         } else {
-          this.patternForm.patchValue(
-            {
-              name: '',
-              green: 0,
-              yellow: 0,
-              red: 0,
-              blinkInterval: 500,
-              blinkGreen: false,
-              blinkYellow: false,
-              blinkRed: false,
-            },
-            { emitEvent: false }
-          );
+          this.resetPatternEditor(false);
         }
       });
   }
 
-  // Loaders
   private loadTemplates() {
     this.templateService.GetAll().subscribe((resp) => {
       this.templates = resp?.value ?? [];
@@ -219,21 +216,34 @@ export class Templatecomponent implements OnInit {
     this.lightPatternService.getAll().subscribe((resp) => {
       const list = (resp?.value ?? []).map((p: any) => ({
         ...p,
-        // نضمن وجود BlinkInterval من الـ API
         BlinkInterval: typeof p.BlinkInterval === 'number' ? p.BlinkInterval : 500,
       }));
       this.lightPatterns = list;
     });
   }
 
-  // Template selection
+  AddNewTemplate(): void {
+    this.templateForm.reset({ templateId: 0, templateName: '' });
+    this.rows.clear();
+    this.showTemplateName = true;
+    setTimeout(() => this.templateNameRef?.nativeElement?.focus(), 0);
+  }
+
   onTemplateChange(e: Event) {
     const select = e.target as HTMLSelectElement;
-    const id = select.value ? Number(select.value) : 0;
+    const value = select.value;
+
+    if (value === this.NEW_CODE) {
+      this.AddNewTemplate();
+      return;
+    }
+
+    const id = value ? Number(value) : 0;
 
     if (!id) {
       this.templateForm.reset({ templateId: 0, templateName: '' });
       this.rows.clear();
+      this.showTemplateName = false;
       return;
     }
 
@@ -256,10 +266,12 @@ export class Templatecomponent implements OnInit {
 
         this.rows.clear();
         patterns.forEach((p) => this.rows.push(this.createRow(p)));
+
+        this.showTemplateName = true;
+        setTimeout(() => this.templateNameRef?.nativeElement?.focus(), 0);
       });
   }
 
-  // Row helpers
   private createRow(p: LightPatternForTemplatePattern): FormGroup {
     return this.fb.group({
       lightPatternId: new FormControl<number>(p.lightPatternId, { nonNullable: true }),
@@ -288,7 +300,6 @@ export class Templatecomponent implements OnInit {
     this.rows.removeAt(index);
   }
 
-  // Save / Delete (Templates)
   saveTemplatePattern() {
     if (!this.templateForm.valid || this.rows.length === 0) {
       this.templateForm.markAllAsTouched();
@@ -310,8 +321,6 @@ export class Templatecomponent implements OnInit {
     this.templatePatternService.AddOrUpdateLightPattern(payload).subscribe((resp) => {
       this.submitting = false;
       if (resp?.isSuccess) {
-        // alert(this.isAr ? 'تم حفظ القالب بنجاح ✅' : 'Template saved successfully ✅');
-
         const currentId = payload.templateId || 0;
         if (currentId > 0) {
           const fakeEvent = { target: { value: String(currentId) } } as unknown as Event;
@@ -319,19 +328,17 @@ export class Templatecomponent implements OnInit {
         } else {
           this.templateForm.reset({ templateId: 0, templateName: '' });
           this.rows.clear();
+          this.loadTemplates();
+          this.showTemplateName = false;
         }
-      } else {
-        // alert(resp?.error?.description ?? (this.isAr ? 'فشل الحفظ' : 'Save failed'));
       }
     });
   }
 
   deleteTemplate() {
     const id = (this.templateForm.value.templateId as number) || 0;
-    if (id <= 0) {
-      // alert(this.isAr ? 'من فضلك اختر قالبًا للحذف.' : 'Please select a template to delete.');
-      return;
-    }
+    if (id <= 0) return;
+
     if (
       !confirm(
         this.isAr
@@ -345,38 +352,73 @@ export class Templatecomponent implements OnInit {
     this.templatePatternService.deleteTemplate(id).subscribe((resp) => {
       this.submitting = false;
       if (resp?.isSuccess) {
-        // alert(this.isAr ? 'تم حذف القالب 🗑️' : 'Template deleted successfully 🗑️');
         this.templateForm.reset({ templateId: 0, templateName: '' });
         this.rows.clear();
         this.loadTemplates();
-      } else {
-        // alert(resp?.error?.description ?? (this.isAr ? 'فشل الحذف' : 'Delete failed'));
+        this.showTemplateName = false;
       }
     });
   }
 
-  // Light Pattern CRUD
-  onPatternChange(): void {
-    const selected: GetAllLightPattern | null = this.patternForm.value.selectedPattern;
-    if (selected) {
-      this.patternForm.patchValue({
-        red: selected.red,
-        green: selected.green,
-        yellow: selected.yellow,
-        blinkInterval: (selected as any).BlinkInterval ?? 500,
+  startAddNewLightPattern(): void {
+    this.patternForm.patchValue(
+      {
+        selectedPattern: undefined,
+        name: '',
+        green: 0,
+        yellow: 0,
+        red: 0,
+        blinkInterval: 500,
         blinkGreen: false,
         blinkYellow: false,
         blinkRed: false,
-      });
+      },
+      { emitEvent: false }
+    );
+
+    this.showPatternFields = true;
+    setTimeout(() => this.patternNameRef?.nativeElement?.focus(), 0);
+  }
+
+  onAddSectionPatternChange(e: Event): void {
+    const id = Number((e.target as HTMLSelectElement).value || 0);
+    if (!id) return;
+    const lp = this.lightPatterns.find((x) => x.id === id);
+    if (lp) this.patternForm.get('selectedPattern')!.setValue(lp); // triggers valueChanges
+  }
+
+  onPatternChange(): void {
+    const selected: GetAllLightPattern | undefined = this.patternForm.value.selectedPattern;
+    if (selected) {
+      this.patternForm.patchValue(
+        {
+          name: selected.name,
+          red: selected.red,
+          green: selected.green,
+          yellow: selected.yellow,
+          blinkInterval: (selected as any).BlinkInterval ?? 500,
+          blinkGreen: false,
+          blinkYellow: false,
+          blinkRed: false,
+        },
+        { emitEvent: false }
+      );
+      this.showPatternFields = true;
+      setTimeout(() => this.patternNameRef?.nativeElement?.focus(), 0);
+    } else {
+      this.resetPatternEditor(false);
     }
   }
 
   createPattern(): void {
-    if (this.patternForm.invalid) return;
+    if (this.patternForm.invalid) {
+      this.patternForm.markAllAsTouched();
+      return;
+    }
     this.submitting = true;
 
     const raw = this.patternForm.getRawValue();
-    const selected: GetAllLightPattern | null = raw.selectedPattern;
+    const selected: GetAllLightPattern | undefined = raw.selectedPattern;
 
     const payload: AddLightPatternCommand = {
       id: selected ? selected.id : 0,
@@ -384,7 +426,7 @@ export class Templatecomponent implements OnInit {
       greenTime: Number(raw.green) || 0,
       yellowTime: Number(raw.yellow) || 0,
       redTime: Number(raw.red) || 0,
-      BlinkInterval: Number(raw.blinkInterval) || 500, // التحويل لاسم الـ DTO
+      BlinkInterval: Number(raw.blinkInterval) || 500,
       BlinkGreen: !!raw.blinkGreen,
       BlinkYellow: !!raw.blinkYellow,
       BlinkRed: !!raw.blinkRed,
@@ -393,55 +435,40 @@ export class Templatecomponent implements OnInit {
     this.lightPatternService.add(payload).subscribe((resp) => {
       this.submitting = false;
       if (resp?.isSuccess) {
-        // alert(this.isAr ? 'تم حفظ النمط!' : 'Pattern saved successfully!');
-        this.patternForm.reset({
-          name: '',
-          selectedPattern: null,
-          green: 0,
-          yellow: 0,
-          red: 0,
-          blinkInterval: 500,
-          blinkGreen: false,
-          blinkYellow: false,
-          blinkRed: false,
-        });
+        this.resetPatternEditor(true);
         this.loadLightPatterns();
-      } else {
-        // alert(resp?.error?.description ?? (this.isAr ? 'فشل حفظ النمط' : 'Failed to save pattern'));
       }
     });
   }
 
   deletePattern(): void {
-    const selected: GetAllLightPattern | null = this.patternForm.value.selectedPattern;
-    if (!selected) {
-      // alert(this.isAr ? 'من فضلك اختر نمطًا للحذف.' : 'Please select a pattern to delete.');
-      return;
-    }
+    const selected: GetAllLightPattern | undefined = this.patternForm.value.selectedPattern;
+    if (!selected) return;
     if (!confirm(this.isAr ? `حذف "${selected.name}"؟` : `Delete "${selected.name}"?`)) return;
 
     this.lightPatternService.delete(selected.id).subscribe((resp) => {
       if (resp?.isSuccess) {
-        // alert(this.isAr ? 'تم حذف النمط!' : 'Pattern deleted successfully!');
-        this.patternForm.reset({
-          name: '',
-          selectedPattern: null,
-          green: 0,
-          yellow: 0,
-          red: 0,
-          blinkInterval: 500,
-          blinkGreen: false,
-          blinkYellow: false,
-          blinkRed: false,
-        });
+        this.resetPatternEditor(true);
         this.loadLightPatterns();
-      } else {
-        // alert(resp?.error?.description ?? (this.isAr ? 'فشل الحذف' : 'Delete failed'));
       }
     });
   }
 
-  // Time utils
+  private resetPatternEditor(hide: boolean) {
+    this.patternForm.reset({
+      name: '',
+      selectedPattern: undefined,
+      green: 0,
+      yellow: 0,
+      red: 0,
+      blinkInterval: 500,
+      blinkGreen: false,
+      blinkYellow: false,
+      blinkRed: false,
+    });
+    this.showPatternFields = !hide ? this.showPatternFields : false;
+  }
+
   private toHHmm(s?: string | null): string {
     if (!s) return '00:00';
     const [h = '00', m = '00'] = s.split(':');
@@ -454,7 +481,6 @@ export class Templatecomponent implements OnInit {
     return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
   }
 
-  // expose translator in template
   trPublic(key: keyof (typeof this.dict)['en']) {
     return this.tr(key);
   }

@@ -1,9 +1,9 @@
 export type ToastType = 'success' | 'warning' | 'error';
 
 export interface ToastOptions {
-  durationMs?: number; // المدة بالمللي ثانية (افتراضي 3500)
-  actionText?: string; // نص زر إجراء (اختياري)
-  closeOnNavigation?: boolean; // اغلاق عند التنقل (افتراضي true)
+  durationMs?: number;
+  actionText?: string;
+  closeOnNavigation?: boolean;
 }
 
 export interface ToastPayload {
