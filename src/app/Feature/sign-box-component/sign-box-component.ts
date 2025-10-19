@@ -119,7 +119,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
-        if (!message) return; 
+        if (!message) return;
         console.log(message);
 
         const key = this.toKey((message as any).ID);
@@ -206,7 +206,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     this.sweepSub?.unsubscribe();
   }
 
-  loadData(after?: () => void): void { 
+  loadData(after?: () => void): void {
     console.log(this.searchParameter);
     this.signBoxControlService.getAll(this.searchParameter).subscribe((data) => {
       this.signBoxEntity = { ...data, value: { ...data.value, data: [...data.value.data] } };
@@ -244,7 +244,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
   onSearchEnter(): void {
     this.searchChanged$.next();
-    this.loadData(); 
+    this.loadData();
   }
 
   setActiveFilter(filter: 'ALL' | 'ACTIVE' | 'INACTIVE') {
@@ -548,7 +548,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
       lastUpdate: string;
     }>
   > = {
-    15478: [
+    5857: [
       {
         component: 'Controller',
         severity: 'CRITICAL',
