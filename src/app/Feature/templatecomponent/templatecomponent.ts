@@ -90,6 +90,7 @@ export class Templatecomponent implements OnInit {
       sec: 'sec',
       delete: 'Delete',
       createPattern: 'Create / Update Pattern',
+      defaultPattern: 'Default pattern',
     },
     ar: {
       templateManager: 'إدارة القوالب',
@@ -133,6 +134,7 @@ export class Templatecomponent implements OnInit {
       sec: 'ث',
       delete: 'حذف',
       createPattern: 'إنشاء / تعديل النمط',
+      defaultPattern: 'النمط الافتراضي',
     },
   } as const;
 
@@ -280,6 +282,7 @@ export class Templatecomponent implements OnInit {
       }),
       startFrom: new FormControl<string>(this.toHHmm(p.startFrom), { nonNullable: true }),
       finishBy: new FormControl<string>(this.toHHmm(p.finishBy), { nonNullable: true }),
+      isDefault: new FormControl<boolean>(false, { nonNullable: true }),
     });
   }
 
@@ -292,6 +295,7 @@ export class Templatecomponent implements OnInit {
         lightPatternName: lp?.name || `#${lightPatternId}`,
         startFrom: '00:00',
         finishBy: '00:00',
+        isDefault: false,
       } as any)
     );
   }
@@ -306,7 +310,12 @@ export class Templatecomponent implements OnInit {
       return;
     }
 
-    const payload: TemplatePattern = {
+    const defaultRow = this.rows.controls.find((g) => !!g.get('isDefault')?.value);
+    const defaultLightPatternId = defaultRow
+      ? (defaultRow.get('lightPatternId')!.value as number)
+      : 0;
+
+    const payload: TemplatePattern & { defaultLightPatternId?: number } = {
       templateId: this.templateForm.value.templateId as number,
       templateName: this.templateForm.value.templateName as string,
       lightPatterns: this.rows.value.map((r: any) => ({
@@ -314,7 +323,9 @@ export class Templatecomponent implements OnInit {
         lightPatternName: r.lightPatternName,
         startFrom: this.toHHmmss(r.startFrom),
         finishBy: this.toHHmmss(r.finishBy),
+        isDefault: r.isDefault,
       })),
+      defaultLightPatternId,
     };
 
     this.submitting = true;
@@ -384,7 +395,7 @@ export class Templatecomponent implements OnInit {
     const id = Number((e.target as HTMLSelectElement).value || 0);
     if (!id) return;
     const lp = this.lightPatterns.find((x) => x.id === id);
-    if (lp) this.patternForm.get('selectedPattern')!.setValue(lp); // triggers valueChanges
+    if (lp) this.patternForm.get('selectedPattern')!.setValue(lp);
   }
 
   onPatternChange(): void {
@@ -483,5 +494,19 @@ export class Templatecomponent implements OnInit {
 
   trPublic(key: keyof (typeof this.dict)['en']) {
     return this.tr(key);
+  }
+  get hasDefaultSelected(): boolean {
+    return this.rows.controls.some((g) => !!g.get('isDefault')?.value);
+  }
+
+  onDefaultChange(index: number): void {
+    const nowChecked = !!this.rows.at(index).get('isDefault')?.value;
+    if (nowChecked) {
+      for (let i = 0; i < this.rows.length; i++) {
+        if (i !== index) {
+          this.rows.at(i).get('isDefault')!.setValue(false, { emitEvent: false });
+        }
+      }
+    }
   }
 }
