@@ -25,6 +25,7 @@ import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
 import { IAreaService } from '../../Services/Area/iarea-service';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
 import { OverlayModule } from '@angular/cdk/overlay';
+import { ToasterService } from '../../Services/Toster/toaster-service';
 
 type TrafficColorText = 'Green' | 'Yellow' | 'Red' | 'Off' | string;
 
@@ -36,8 +37,8 @@ type TrafficColorText = 'Green' | 'Yellow' | 'Red' | 'Off' | string;
   styleUrls: ['./sign-box-component.css'],
 })
 export class SignBoxComponent implements OnInit, OnDestroy {
-  private static readonly INACTIVITY_MS = 10000; // 10s threshold
-  private static readonly SWEEP_MS = 1000; // 1s sweep
+  private static readonly INACTIVITY_MS = 10000;
+  private static readonly SWEEP_MS = 1000;
 
   private readonly signalr = inject(ISignalrService);
   private readonly signBoxControlService = inject(ISignBoxControlService);
@@ -47,6 +48,8 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
   private readonly areaService = inject(IAreaService);
   private readonly governateService = inject(IGovernateService);
+
+  private readonly toaster = inject(ToasterService);
 
   @ViewChild('popupRef') popupRef?: ElementRef<HTMLDivElement>;
 
@@ -63,9 +66,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
   private sweepSub?: Subscription;
 
-  /** آخر وقت استلام لكل CabinetId (ms) */
   private lastSeen: Record<number, number> = {};
-  /** آخر رسالة Live لكل CabinetId */
   latestByCabinetId: Record<number, TrafficBroadcast> = {};
 
   searchParameter: SearchParameters = {};
@@ -109,18 +110,16 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   popupX = 0;
   popupY = 0;
   popupData: (PopUpSignBox & { cabinetId?: number }) | null = null;
-  /** آخر بث تم استخدامه داخل البوب-أب */
   popupLive: TrafficBroadcast | null = null;
 
   highlightCabinetId?: number;
 
   constructor() {
-    // رسائل SignalR
+    // SignalR
     toObservable(this.signalr.messages)
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
         if (!message) return;
-        console.log(message);
 
         const key = this.toKey((message as any).ID);
         if (key === null) return;
@@ -128,7 +127,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
         this.latestByCabinetId[key] = message;
         this.lastSeen[key] = Date.now();
 
-        // تحديث البوب-أب لو مفتوح على نفس الكابينة
         if (this.popupData?.cabinetId === key) {
           const row = this.signBoxEntity.value.data.find((x) => this.toKey(x.cabinetId) === key);
           if (row) this.popupData = this.toPopup(row, message);
@@ -136,7 +134,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
         }
       });
 
-    // حالة الاتصال
     toObservable(this.signalr.status)
       .pipe(takeUntilDestroyed())
       .subscribe((s: HubConnectionStatus) => {
@@ -159,14 +156,19 @@ export class SignBoxComponent implements OnInit, OnDestroy {
         }
       });
 
-    // بحث
     this.searchChanged$
       .pipe(debounceTime(200), takeUntilDestroyed())
       .subscribe(() => this.loadData());
   }
 
   ngOnInit(): void {
-    this.signalr.connect().catch(console.error);
+    this.signalr.connect().catch((err) => {
+      const msg =
+        this.getBackendMessage(err) ??
+        (this.isAr ? 'تعذر الاتصال بـ SignalR' : 'Failed to connect to SignalR');
+      this.toaster.error(msg);
+      console.error(err);
+    });
 
     this.loadData();
     this.loadGovernates();
@@ -181,22 +183,19 @@ export class SignBoxComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Sweep: كل ثانية نتحقق من الخمول ونفعل إنعكاسه على البوب-أب
     this.sweepSub = timer(SignBoxComponent.SWEEP_MS, SignBoxComponent.SWEEP_MS)
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
-        // لو البوب-أب مفتوح وإنتهت مهلة الـ 10 ثواني، نوقف الحالة Live فيه
         if (this.popupData?.cabinetId != null) {
           const cab = this.popupData.cabinetId!;
           const seen = this.lastSeen[cab] ?? 0;
           const isLiveNow =
             this.isSignalRConnected && Date.now() - seen <= SignBoxComponent.INACTIVITY_MS;
+
           if (!isLiveNow && this.popupLive) {
-            // اصفر البث الظاهر في البوب-أب عشان يتحول لشكل Not Live
             this.popupLive = null;
           }
         }
-        // (مجرد تاتش خفيفة لضمان الـ CD حصلت)
       });
   }
 
@@ -207,24 +206,76 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   }
 
   loadData(after?: () => void): void {
-    console.log(this.searchParameter);
-    this.signBoxControlService.getAll(this.searchParameter).subscribe((data) => {
-      this.signBoxEntity = { ...data, value: { ...data.value, data: [...data.value.data] } };
-      this.hasPreviousPage = data.value.hasPreviousPage;
-      this.hasNextPage = data.value.hasNextPage;
-      after?.();
+    this.signBoxControlService.getAll(this.searchParameter).subscribe({
+      next: (data) => {
+        if ((data as any)?.isFailure && !(data as any)?.isSuccess) {
+          const msg =
+            this.getBackendMessage(data) ??
+            (this.isAr ? 'فشل تحميل البيانات' : 'Failed to load data');
+          this.toaster.error(msg);
+          return;
+        }
+
+        this.signBoxEntity = { ...data, value: { ...data.value, data: [...data.value.data] } };
+        this.hasPreviousPage = data.value.hasPreviousPage;
+        this.hasNextPage = data.value.hasNextPage;
+        after?.();
+      },
+      error: (err) => {
+        const msg =
+          this.getBackendMessage(err) ??
+          (this.isAr ? 'حدث خطأ أثناء تحميل البيانات' : 'An error occurred while loading data');
+        this.toaster.error(msg);
+        console.error(err);
+      },
     });
   }
 
   private loadGovernates(): void {
-    this.governateService.getAll({}).subscribe((res) => {
-      this.governates = Array.isArray(res?.value) ? res.value : [];
+    this.governateService.getAll({}).subscribe({
+      next: (res) => {
+        if ((res as any)?.isFailure && !(res as any)?.isSuccess) {
+          const msg =
+            this.getBackendMessage(res) ??
+            (this.isAr ? 'فشل تحميل المحافظات' : 'Failed to load governorates');
+          this.toaster.error(msg);
+          return;
+        }
+
+        this.governates = Array.isArray(res?.value) ? res.value : [];
+      },
+      error: (err) => {
+        const msg =
+          this.getBackendMessage(err) ??
+          (this.isAr
+            ? 'حدث خطأ أثناء تحميل المحافظات'
+            : 'An error occurred while loading governorates');
+        this.toaster.error(msg);
+        console.error(err);
+      },
     });
   }
 
   private loadAreasByGovernorate(governorateId: number): void {
-    this.areaService.getAll(governorateId).subscribe((res) => {
-      this.areas = Array.isArray(res?.value) ? res.value : [];
+    this.areaService.getAll(governorateId).subscribe({
+      next: (res) => {
+        if ((res as any)?.isFailure && !(res as any)?.isSuccess) {
+          const msg =
+            this.getBackendMessage(res) ??
+            (this.isAr ? 'فشل تحميل الأحياء' : 'Failed to load areas');
+          this.toaster.error(msg);
+          return;
+        }
+
+        this.areas = Array.isArray(res?.value) ? res.value : [];
+      },
+      error: (err) => {
+        const msg =
+          this.getBackendMessage(err) ??
+          (this.isAr ? 'حدث خطأ أثناء تحميل الأحياء' : 'An error occurred while loading areas');
+        this.toaster.error(msg);
+        console.error(err);
+      },
     });
   }
 
@@ -254,7 +305,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
   trackById = (_: number, item: GetAllSignControlBox) => item?.id;
 
-  /** نشِط بناءً على آخر استقبال خلال 10 ثواني */
   private isActiveByCabinetId(cabinetId: unknown): boolean {
     const k = this.toKey(cabinetId);
     if (k === null) return false;
@@ -332,7 +382,13 @@ export class SignBoxComponent implements OnInit, OnDestroy {
             }
           }
         },
-        error: () => {},
+        error: (err) => {
+          const msg =
+            this.getBackendMessage(err) ??
+            (this.isAr ? 'تعذر تحميل تفاصيل الاتجاهات' : 'Failed to load directions details');
+          this.toaster.error(msg);
+          console.error(err);
+        },
       });
     }
   }
@@ -436,7 +492,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     };
   }
 
-  /** نشِط للصف */
   isActive(item: GetAllSignControlBox): boolean {
     return this.isActiveByCabinetId(item.cabinetId);
   }
@@ -468,7 +523,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     return this.areas.find((a) => a.id === id)?.name ?? '';
   }
 
-  /** متصل فعليًا (SignalR) */
+  /**  (SignalR) */
   get isSignalRConnected(): boolean {
     const s =
       typeof this.signalr.status === 'function'
@@ -477,7 +532,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     return s === 'connected';
   }
 
-  /** حالة الـ Live الظاهرة في البوب-أب (مرتبطة بآخر استقبال خلال 10 ثواني + الاتصال) */
+  /** حالة الـ Live الظاهرة في البوب-أب */
   get popupIsLive(): boolean {
     const cab = this.popupData?.cabinetId;
     if (!cab) return false;
@@ -522,6 +577,54 @@ export class SignBoxComponent implements OnInit, OnDestroy {
       return { order, name, templateId };
     });
     return list.sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+
+  private getBackendMessage(source: any): string | null {
+    if (!source) return null;
+
+    if (typeof source === 'string') {
+      const msg = source.trim();
+      return msg || null;
+    }
+
+    if (source.error) {
+      const err = source.error;
+
+      if (typeof err === 'string' && err.trim()) return err.trim();
+
+      const em = err.message || err.Message || err.title || err.Title;
+      if (typeof em === 'string' && em.trim()) return em.trim();
+
+      if (err.errors && typeof err.errors === 'object') {
+        const firstKey = Object.keys(err.errors)[0];
+        const firstVal = firstKey ? err.errors[firstKey]?.[0] : null;
+        if (typeof firstVal === 'string' && firstVal.trim()) return firstVal.trim();
+      }
+
+      if (Array.isArray(err.errorMessages) && err.errorMessages.length) {
+        const first = String(err.errorMessages[0] ?? '').trim();
+        if (first) return first;
+      }
+    }
+
+    // Result pattern
+    const direct =
+      source.message ||
+      source.Message ||
+      source.title ||
+      source.Title ||
+      (source.error?.message ?? null);
+
+    if (typeof direct === 'string' && direct.trim()) return direct.trim();
+
+    // ResultError shape
+    if (source.error && typeof source.error === 'object') {
+      const er = source.error as ResultError;
+      const m1 = (er as any)?.message || (er as any)?.Message;
+      if (typeof m1 === 'string' && m1.trim()) return m1.trim();
+    }
+
+    return null;
   }
 
   severityLabelAr: Record<'CRITICAL' | 'WARN' | 'INFO', string> = {

@@ -41,6 +41,7 @@ import {
   DirectionWithPatternDto,
 } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
 import { Router } from '@angular/router';
+import { ToasterService } from '../../Services/Toster/toaster-service';
 
 type RoundDirection = {
   name?: string;
@@ -83,13 +84,14 @@ export class TrafficWizard implements OnInit, OnDestroy {
   private readonly templatePatternService = inject(ITemplatePatternService);
   private readonly router = inject(Router);
 
+  private readonly toaster = inject(ToasterService);
+
   get isAr() {
     return this.langService.current === 'ar';
   }
 
-  // ===== NEW: إدارة التحديث التلقائي والاشتراكات =====
   private readonly destroy$ = new Subject<void>();
-  private readonly softRefresh$ = interval(30000); // تحديث خفيف كل 30 ثانية
+  private readonly softRefresh$ = interval(30000);
   private isRefreshing = false;
 
   templates: GetAllTemplate[] = [];
@@ -99,16 +101,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
 
   trafficForm: FormGroup;
 
-  toasts: Array<{
-    id: number;
-    message: string;
-    type: 'success' | 'error' | 'warn';
-    active: boolean;
-  }> = [];
-  private toastSeq = 0;
-  private toastTimers = new Map<number, any>();
-
-  // sync (templateId) across conflicts
   private patternSyncSubs = new Map<string, Subscription>();
 
   constructor() {
@@ -148,7 +140,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadGovernate();
     this.loadTemplates();
-    
 
     this.directions.valueChanges
       .pipe(takeUntil(this.destroy$))
@@ -223,6 +214,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
   private softRefreshLists() {
     this.loadTemplates();
   }
+
   get directions(): FormArray<FormGroup> {
     return this.trafficForm.get('directions') as FormArray<FormGroup>;
   }
@@ -440,22 +432,22 @@ export class TrafficWizard implements OnInit, OnDestroy {
     return null;
   }
 
+  //  APPLY (Save)
   onApply(): void {
     if (this.trafficForm.invalid) {
       this.trafficForm.markAllAsTouched();
-      this.showPopup(
-        this.isAr ? '⚠️ من فضلك املأ جميع الحقول المطلوبة' : '⚠️ Please fill all required fields',
-        'warn'
+      this.toaster.warning(
+        this.isAr ? '⚠️ من فضلك املأ جميع الحقول المطلوبة' : '⚠️ Please fill all required fields'
       );
       return;
     }
 
     const v = this.trafficForm.getRawValue();
+
     const areaId = Number(v.area);
     if (areaId <= 0) {
-      this.showPopup(
-        this.isAr ? '⚠️ من فضلك اختر الحي قبل الحفظ' : '⚠️ Please select an area before saving',
-        'warn'
+      this.toaster.warning(
+        this.isAr ? '⚠️ من فضلك اختر الحي قبل الحفظ' : '⚠️ Please select an area before saving'
       );
       return;
     }
@@ -476,11 +468,10 @@ export class TrafficWizard implements OnInit, OnDestroy {
       (x) => !(Number.isFinite(x.templateId) && x.templateId! > 0)
     );
     if (badDir !== -1) {
-      this.showPopup(
+      this.toaster.warning(
         this.isAr
           ? `⚠️ اختر القالب للاتجاه رقم ${badDir + 1}`
-          : `⚠️ Select a template for direction ${badDir + 1}`,
-        'warn'
+          : `⚠️ Select a template for direction ${badDir + 1}`
       );
       return;
     }
@@ -489,18 +480,16 @@ export class TrafficWizard implements OnInit, OnDestroy {
     const payloadTemplateId = formTpl > 0 ? formTpl : directions[0]?.templateId ?? 0;
 
     if (!(payloadTemplateId > 0)) {
-      this.showPopup(
-        this.isAr ? '⚠️ اختر قالبًا رئيسيًا' : '⚠️ Please select a main template',
-        'warn'
+      this.toaster.warning(
+        this.isAr ? '⚠️ اختر قالبًا رئيسيًا' : '⚠️ Please select a main template'
       );
       return;
     }
 
     const cabinetId = Number(v.cabinetId);
     if (cabinetId <= 0) {
-      this.showPopup(
-        this.isAr ? '⚠️ من فضلك اختر المخزن قبل الحفظ' : '⚠️ Please select a cabinet before saving',
-        'warn'
+      this.toaster.warning(
+        this.isAr ? '⚠️ من فضلك اختر المخزن قبل الحفظ' : '⚠️ Please select a cabinet before saving'
       );
       return;
     }
@@ -517,62 +506,85 @@ export class TrafficWizard implements OnInit, OnDestroy {
       directions,
     };
 
-    console.log('PAYLOAD =>', JSON.stringify(payload, null, 2));
-
     this.signBoxService.AddSignBox(payload).subscribe({
       next: () => {
-        this.showPopup(this.isAr ? '✅ تم الحفظ بنجاح' : '✅ Saved successfully!', 'success');
+        this.toaster.success(this.isAr ? 'تم الحفظ بنجاح' : 'Saved successfully!');
+
         this.trafficForm.reset();
         this.clearAllPatternSyncSubs();
         this.directions.clear();
         this.addDirection();
 
-        // NEW: بعد الحفظ حدّث القوائم فورًا
         this.hardRefreshLists();
       },
       error: (err) => {
-        const { messages, fieldMap } = this.extractApiErrors(err);
+        const { messages, fieldMap } = this.extractBackendMessages(err);
 
         this.applyServerFieldErrors(fieldMap);
 
-        const bullet = this.isAr ? '• ' : '• ';
-        const header = this.isAr ? '❌ حدث خطأ أثناء الحفظ:\n' : '❌ Failed to save:\n';
-        const body = messages.length
-          ? messages.map((m) => `${bullet}${m}`).join('\n')
-          : this.isAr
-          ? 'خطأ غير معروف'
-          : 'Unknown error';
+        const text = this.formatToastList(
+          this.isAr ? 'حدث خطأ أثناء الحفظ:' : ' Failed to save:',
+          messages
+        );
 
-        this.showPopup(header + body, 'error');
+        this.toaster.error(text, { durationMs: 8000 });
 
         console.error('Save failed', err);
-        console.log('Server error body:', JSON.stringify(err?.error ?? err, null, 2));
       },
     });
   }
 
-  private showPopup(message: string, type: 'success' | 'error' | 'warn') {
-    const id = ++this.toastSeq;
-    this.toasts = [...this.toasts, { id, message, type, active: false }];
-    setTimeout(() => {
-      this.toasts = this.toasts.map((t) => (t.id === id ? { ...t, active: true } : t));
-    }, 0);
+  private extractBackendMessages(err: any): {
+    messages: string[];
+    fieldMap: Record<string, string[]>;
+  } {
+    const messages: string[] = [];
+    const fieldMap: Record<string, string[]> = {};
 
-    const lifetime = 4000;
-    const timer = setTimeout(() => this.dismissToast(id), lifetime);
-    this.toastTimers.set(id, timer);
+    const e = err?.error ?? err;
+
+    if (e?.errors && typeof e.errors === 'object') {
+      for (const [field, arr] of Object.entries(e.errors)) {
+        const list = Array.isArray(arr) ? arr : [String(arr)];
+        fieldMap[field] = list.map(String);
+        list.forEach((m) => messages.push(String(m)));
+      }
+    }
+
+    if (Array.isArray(e?.errorMessages) && e.errorMessages.length) {
+      const errs = e.errorMessages.map((x: any) => String(x));
+      const props = Array.isArray(e?.propertyNames)
+        ? e.propertyNames.map((x: any) => String(x))
+        : [];
+
+      if (props.length === errs.length && props.length) {
+        for (let i = 0; i < props.length; i++) {
+          const field = props[i] || 'General';
+          const msg = errs[i] || '';
+          fieldMap[field] = [...(fieldMap[field] || []), msg];
+          messages.push(msg);
+        }
+      } else {
+        errs.forEach((m: string) => messages.push(m));
+      }
+    }
+
+    if (e?.title) messages.push(String(e.title));
+    if (e?.detail) messages.push(String(e.detail));
+    if (e?.message) messages.push(String(e.message));
+
+    if (e?.error?.description) messages.push(String(e.error.description));
+    if (!messages.length && typeof e === 'string') messages.push(e);
+    if (!messages.length && err?.message) messages.push(String(err.message));
+
+    const uniq = Array.from(new Set(messages.map((x) => x.trim()).filter(Boolean)));
+    return { messages: uniq, fieldMap };
   }
 
-  dismissToast(id: number) {
-    const timer = this.toastTimers.get(id);
-    if (timer) {
-      clearTimeout(timer);
-      this.toastTimers.delete(id);
-    }
-    this.toasts = this.toasts.map((t) => (t.id === id ? { ...t, active: false } : t));
-    setTimeout(() => {
-      this.toasts = this.toasts.filter((t) => t.id !== id);
-    }, 500);
+  private formatToastList(header: string, list: string[]): string {
+    if (!list.length) return header + '\n' + (this.isAr ? 'خطأ غير معروف' : 'Unknown error');
+    const bullet = '• ';
+    return header + '\n' + list.map((m) => `${bullet}${m}`).join('\n');
   }
 
   private dirAt(i: number): FormGroup {
@@ -589,6 +601,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
     if (name) return name;
     return this.isAr ? `اتجاه ${i + 1}` : `Direction ${i + 1}`;
   }
+
   getDirectionOrder(i: number): number {
     return Number(this.dirAt(i).get('order')?.value ?? i + 1);
   }
@@ -650,12 +663,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
     return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
   }
 
-  private toHHmmss(s?: string | null): string {
-    if (!s) return '00:00:00';
-    const [h = '00', m = '00'] = s.split(':');
-    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
-  }
-
   isStep2Invalid(): boolean {
     const baseInvalid =
       this.trafficForm.get('name')?.invalid ||
@@ -689,73 +696,12 @@ export class TrafficWizard implements OnInit, OnDestroy {
     g.get('templateId')?.setValue(Number(templateId || 0), { emitEvent: true });
     this.reconcileConflicts();
   }
+
   directionLabel(i: number): string {
     return this.isAr ? `اسم الاتجاه ${i + 1}` : `Direction ${i + 1} Name`;
   }
 
-  forceSpaceAtCaret(e: Event, dir: FormGroup) {
-    const input = e.target as HTMLInputElement;
-    if (!input) return;
-
-    e.stopPropagation();
-    e.preventDefault();
-
-    const start = input.selectionStart ?? input.value.length;
-    const end = input.selectionEnd ?? input.value.length;
-
-    const before = input.value.slice(0, start);
-    const after = input.value.slice(end);
-    const newVal = before + ' ' + after;
-
-    input.value = newVal;
-    dir.get('name')?.setValue(newVal);
-
-    const caret = start + 1;
-    setTimeout(() => {
-      try {
-        input.setSelectionRange(caret, caret);
-      } catch {}
-    });
-  }
-
-  private extractApiErrors(err: any): { messages: string[]; fieldMap: Record<string, string[]> } {
-    const messages: string[] = [];
-    const fieldMap: Record<string, string[]> = {};
-
-    const e = err?.error ?? err;
-
-    if (e?.errors && typeof e.errors === 'object') {
-      for (const [field, arr] of Object.entries(e.errors)) {
-        const list = Array.isArray(arr) ? arr : [String(arr)];
-        fieldMap[field] = list.map(String);
-        list.forEach((m) => messages.push(m));
-      }
-    }
-
-    if (Array.isArray(e?.errorMessages) && e.errorMessages.length) {
-      if (Array.isArray(e?.propertyNames) && e.propertyNames.length === e.errorMessages.length) {
-        for (let i = 0; i < e.propertyNames.length; i++) {
-          const field = String(e.propertyNames[i] || 'General');
-          const msg = String(e.errorMessages[i] || '');
-          fieldMap[field] = [...(fieldMap[field] || []), msg];
-          messages.push(msg);
-        }
-      } else {
-        e.errorMessages.forEach((m: any) => messages.push(String(m)));
-      }
-    }
-
-    if (e?.title && !messages.length) messages.push(String(e.title));
-    if (e?.detail) messages.push(String(e.detail));
-
-    if (!messages.length && typeof e === 'string') messages.push(e);
-    if (!messages.length && err?.message) messages.push(String(err.message));
-
-    const uniq = Array.from(new Set(messages.filter(Boolean).map(String)));
-
-    return { messages: uniq, fieldMap };
-  }
-
+  // ==== Server field mapping ====
   private mapApiFieldToControlName(apiField: string): string | null {
     const f = apiField?.toLowerCase();
 
@@ -786,7 +732,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
       if (!ctrlName) continue;
 
       if (ctrlName.startsWith('__dir__')) {
-        // directions
         const [, idxStr, field] = ctrlName.split('__');
         const idx = Number(idxStr);
         const g = this.directions.at(idx) as FormGroup;
@@ -806,6 +751,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
       }
     }
   }
+
   onGovernorateChangeValue(id: number | null): void {
     this.trafficForm.patchValue({ governorate: id, area: null });
     if (id != null && !Number.isNaN(id)) {

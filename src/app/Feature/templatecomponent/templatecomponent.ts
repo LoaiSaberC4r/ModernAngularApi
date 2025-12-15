@@ -22,6 +22,7 @@ import {
 } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { LanguageService } from '../../Services/Language/language-service';
+import { ToasterService } from '../../Services/Toster/toaster-service';
 
 @Component({
   selector: 'app-templatecomponent',
@@ -38,6 +39,8 @@ export class Templatecomponent implements OnInit {
   private readonly templatePatternService = inject(ITemplatePatternService);
   private readonly lightPatternService = inject(LightPatternService);
   public readonly lang = inject(LanguageService);
+
+  private readonly toaster = inject(ToasterService);
 
   @ViewChild('templateNameRef') templateNameRef!: ElementRef<HTMLInputElement>;
   @ViewChild('patternNameRef') patternNameRef!: ElementRef<HTMLInputElement>;
@@ -190,9 +193,9 @@ export class Templatecomponent implements OnInit {
           this.patternForm.patchValue(
             {
               name: p.name,
-              green: p.green,
-              yellow: p.yellow,
-              red: p.red,
+              green: (p as any).green ?? (p as any).Green ?? 0,
+              yellow: (p as any).yellow ?? (p as any).Yellow ?? 0,
+              red: (p as any).red ?? (p as any).Red ?? 0,
               blinkInterval: (p as any).BlinkInterval ?? 500,
               blinkGreen: false,
               blinkYellow: false,
@@ -208,19 +211,39 @@ export class Templatecomponent implements OnInit {
       });
   }
 
+  // =========================
+  // Data loading
+  // =========================
   private loadTemplates() {
-    this.templateService.GetAll().subscribe((resp) => {
-      this.templates = resp?.value ?? [];
+    this.templateService.GetAll().subscribe({
+      next: (resp) => {
+        this.templates = resp?.value ?? [];
+      },
+      error: (err) => {
+        const { messages } = this.extractApiErrors(err);
+        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
+        else this.toaster.error(this.isAr ? '❌ فشل تحميل القوالب' : '❌ Failed to load templates');
+      },
     });
   }
 
   private loadLightPatterns() {
-    this.lightPatternService.getAll().subscribe((resp) => {
-      const list = (resp?.value ?? []).map((p: any) => ({
-        ...p,
-        BlinkInterval: typeof p.BlinkInterval === 'number' ? p.BlinkInterval : 500,
-      }));
-      this.lightPatterns = list;
+    this.lightPatternService.getAll().subscribe({
+      next: (resp) => {
+        const list = (resp?.value ?? []).map((p: any) => ({
+          ...p,
+          BlinkInterval: typeof p.BlinkInterval === 'number' ? p.BlinkInterval : 500,
+        }));
+        this.lightPatterns = list;
+      },
+      error: (err) => {
+        const { messages } = this.extractApiErrors(err);
+        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
+        else
+          this.toaster.error(
+            this.isAr ? '❌ فشل تحميل أنماط الإشارات' : '❌ Failed to load light patterns'
+          );
+      },
     });
   }
 
@@ -249,9 +272,8 @@ export class Templatecomponent implements OnInit {
       return;
     }
 
-    this.templatePatternService
-      .GetAllTemplatePatternByTemplateId(id)
-      .subscribe((resp: ResultV<LightPatternForTemplatePattern>) => {
+    this.templatePatternService.GetAllTemplatePatternByTemplateId(id).subscribe({
+      next: (resp: ResultV<LightPatternForTemplatePattern>) => {
         const list = resp?.value ?? [];
         const patterns: LightPatternForTemplatePattern[] = list.map((p) => ({
           ...p,
@@ -271,7 +293,16 @@ export class Templatecomponent implements OnInit {
 
         this.showTemplateName = true;
         setTimeout(() => this.templateNameRef?.nativeElement?.focus(), 0);
-      });
+      },
+      error: (err) => {
+        const { messages } = this.extractApiErrors(err);
+        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
+        else
+          this.toaster.error(
+            this.isAr ? '❌ فشل تحميل جدول القالب' : '❌ Failed to load template schedule'
+          );
+      },
+    });
   }
 
   private createRow(p: LightPatternForTemplatePattern): FormGroup {
@@ -282,7 +313,7 @@ export class Templatecomponent implements OnInit {
       }),
       startFrom: new FormControl<string>(this.toHHmm(p.startFrom), { nonNullable: true }),
       finishBy: new FormControl<string>(this.toHHmm(p.finishBy), { nonNullable: true }),
-      isDefault: new FormControl<boolean>(false, { nonNullable: true }),
+      isDefault: new FormControl<boolean>(!!(p as any).isDefault, { nonNullable: true }),
     });
   }
 
@@ -304,9 +335,15 @@ export class Templatecomponent implements OnInit {
     this.rows.removeAt(index);
   }
 
+  // =========================
+  // Save Template Pattern (with toaster)
+  // =========================
   saveTemplatePattern() {
     if (!this.templateForm.valid || this.rows.length === 0) {
       this.templateForm.markAllAsTouched();
+      this.toaster.warning(
+        this.isAr ? '⚠️ من فضلك أكمل البيانات المطلوبة' : '⚠️ Please complete required fields'
+      );
       return;
     }
 
@@ -323,26 +360,51 @@ export class Templatecomponent implements OnInit {
         lightPatternName: r.lightPatternName,
         startFrom: this.toHHmmss(r.startFrom),
         finishBy: this.toHHmmss(r.finishBy),
-        isDefault: r.isDefault,
+        isDefault: !!r.isDefault,
       })),
       defaultLightPatternId,
     };
 
     this.submitting = true;
-    this.templatePatternService.AddOrUpdateLightPattern(payload).subscribe((resp) => {
-      this.submitting = false;
-      if (resp?.isSuccess) {
-        const currentId = payload.templateId || 0;
-        if (currentId > 0) {
-          const fakeEvent = { target: { value: String(currentId) } } as unknown as Event;
-          this.onTemplateChange(fakeEvent);
-        } else {
-          this.templateForm.reset({ templateId: 0, templateName: '' });
-          this.rows.clear();
-          this.loadTemplates();
-          this.showTemplateName = false;
+
+    this.templatePatternService.AddOrUpdateLightPattern(payload).subscribe({
+      next: (resp) => {
+        this.submitting = false;
+
+        if (resp?.isSuccess) {
+          this.toaster.success(this.isAr ? '✅ تم حفظ القالب بنجاح' : '✅ Template saved');
+
+          const currentId = payload.templateId || 0;
+          if (currentId > 0) {
+            const fakeEvent = { target: { value: String(currentId) } } as unknown as Event;
+            this.onTemplateChange(fakeEvent);
+          } else {
+            this.templateForm.reset({ templateId: 0, templateName: '' });
+            this.rows.clear();
+            this.loadTemplates();
+            this.showTemplateName = false;
+          }
+
+          return;
         }
-      }
+
+        const { messages } = this.extractApiErrors(resp);
+        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
+        else this.toaster.error(this.isAr ? '❌ فشل حفظ القالب' : '❌ Failed to save template');
+      },
+      error: (err) => {
+        this.submitting = false;
+        const { messages } = this.extractApiErrors(err);
+
+        if (messages.length) {
+          this.toaster.error(this.isAr ? '❌ فشل الحفظ' : '❌ Save failed', { durationMs: 2800 });
+          this.toaster.errorMany(messages, { durationMs: 4500 });
+        } else {
+          this.toaster.error(this.isAr ? '❌ فشل حفظ القالب' : '❌ Failed to save template');
+        }
+
+        console.error('Save template failed', err);
+      },
     });
   }
 
@@ -360,17 +422,37 @@ export class Templatecomponent implements OnInit {
       return;
 
     this.submitting = true;
-    this.templatePatternService.deleteTemplate(id).subscribe((resp) => {
-      this.submitting = false;
-      if (resp?.isSuccess) {
-        this.templateForm.reset({ templateId: 0, templateName: '' });
-        this.rows.clear();
-        this.loadTemplates();
-        this.showTemplateName = false;
-      }
+
+    this.templatePatternService.deleteTemplate(id).subscribe({
+      next: (resp) => {
+        this.submitting = false;
+
+        if (resp?.isSuccess) {
+          this.toaster.success(this.isAr ? '✅ تم حذف القالب' : '✅ Template deleted');
+
+          this.templateForm.reset({ templateId: 0, templateName: '' });
+          this.rows.clear();
+          this.loadTemplates();
+          this.showTemplateName = false;
+          return;
+        }
+
+        const { messages } = this.extractApiErrors(resp);
+        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
+        else this.toaster.error(this.isAr ? '❌ فشل حذف القالب' : '❌ Failed to delete template');
+      },
+      error: (err) => {
+        this.submitting = false;
+        const { messages } = this.extractApiErrors(err);
+        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
+        else this.toaster.error(this.isAr ? '❌ فشل حذف القالب' : '❌ Failed to delete template');
+      },
     });
   }
 
+  // =========================
+  // Light Pattern Editor (with toaster)
+  // =========================
   startAddNewLightPattern(): void {
     this.patternForm.patchValue(
       {
@@ -404,9 +486,9 @@ export class Templatecomponent implements OnInit {
       this.patternForm.patchValue(
         {
           name: selected.name,
-          red: selected.red,
-          green: selected.green,
-          yellow: selected.yellow,
+          red: (selected as any).red ?? (selected as any).Red ?? 0,
+          green: (selected as any).green ?? (selected as any).Green ?? 0,
+          yellow: (selected as any).yellow ?? (selected as any).Yellow ?? 0,
           blinkInterval: (selected as any).BlinkInterval ?? 500,
           blinkGreen: false,
           blinkYellow: false,
@@ -424,6 +506,9 @@ export class Templatecomponent implements OnInit {
   createPattern(): void {
     if (this.patternForm.invalid) {
       this.patternForm.markAllAsTouched();
+      this.toaster.warning(
+        this.isAr ? '⚠️ من فضلك أكمل بيانات النمط' : '⚠️ Please complete pattern fields'
+      );
       return;
     }
     this.submitting = true;
@@ -443,12 +528,27 @@ export class Templatecomponent implements OnInit {
       BlinkRed: !!raw.blinkRed,
     };
 
-    this.lightPatternService.add(payload).subscribe((resp) => {
-      this.submitting = false;
-      if (resp?.isSuccess) {
-        this.resetPatternEditor(true);
-        this.loadLightPatterns();
-      }
+    this.lightPatternService.add(payload).subscribe({
+      next: (resp) => {
+        this.submitting = false;
+
+        if (resp?.isSuccess) {
+          this.toaster.success(this.isAr ? '✅ تم حفظ النمط' : '✅ Pattern saved');
+          this.resetPatternEditor(true);
+          this.loadLightPatterns();
+          return;
+        }
+
+        const { messages } = this.extractApiErrors(resp);
+        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
+        else this.toaster.error(this.isAr ? '❌ فشل حفظ النمط' : '❌ Failed to save pattern');
+      },
+      error: (err) => {
+        this.submitting = false;
+        const { messages } = this.extractApiErrors(err);
+        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
+        else this.toaster.error(this.isAr ? '❌ فشل حفظ النمط' : '❌ Failed to save pattern');
+      },
     });
   }
 
@@ -457,11 +557,24 @@ export class Templatecomponent implements OnInit {
     if (!selected) return;
     if (!confirm(this.isAr ? `حذف "${selected.name}"؟` : `Delete "${selected.name}"?`)) return;
 
-    this.lightPatternService.delete(selected.id).subscribe((resp) => {
-      if (resp?.isSuccess) {
-        this.resetPatternEditor(true);
-        this.loadLightPatterns();
-      }
+    this.lightPatternService.delete(selected.id).subscribe({
+      next: (resp) => {
+        if (resp?.isSuccess) {
+          this.toaster.success(this.isAr ? '✅ تم حذف النمط' : '✅ Pattern deleted');
+          this.resetPatternEditor(true);
+          this.loadLightPatterns();
+          return;
+        }
+
+        const { messages } = this.extractApiErrors(resp);
+        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
+        else this.toaster.error(this.isAr ? '❌ فشل حذف النمط' : '❌ Failed to delete pattern');
+      },
+      error: (err) => {
+        const { messages } = this.extractApiErrors(err);
+        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
+        else this.toaster.error(this.isAr ? '❌ فشل حذف النمط' : '❌ Failed to delete pattern');
+      },
     });
   }
 
@@ -480,6 +593,9 @@ export class Templatecomponent implements OnInit {
     this.showPatternFields = !hide ? this.showPatternFields : false;
   }
 
+  // =========================
+  // Helpers
+  // =========================
   private toHHmm(s?: string | null): string {
     if (!s) return '00:00';
     const [h = '00', m = '00'] = s.split(':');
@@ -495,6 +611,7 @@ export class Templatecomponent implements OnInit {
   trPublic(key: keyof (typeof this.dict)['en']) {
     return this.tr(key);
   }
+
   get hasDefaultSelected(): boolean {
     return this.rows.controls.some((g) => !!g.get('isDefault')?.value);
   }
@@ -508,5 +625,52 @@ export class Templatecomponent implements OnInit {
         }
       }
     }
+  }
+
+  // =========================
+  // Extract API Errors (supports your backend shape)
+  // =========================
+  private extractApiErrors(err: any): { messages: string[]; fieldMap: Record<string, string[]> } {
+    const messages: string[] = [];
+    const fieldMap: Record<string, string[]> = {};
+
+    const e = err?.error ?? err;
+
+    // ASP.NET style: { errors: { Field: [msg] } }
+    if (e?.errors && typeof e.errors === 'object') {
+      for (const [field, arr] of Object.entries(e.errors)) {
+        const list = Array.isArray(arr) ? arr : [String(arr)];
+        fieldMap[String(field)] = list.map(String);
+        list.forEach((m) => messages.push(String(m)));
+      }
+    }
+
+    // Your backend: { errorMessages: [], propertyNames: [] }
+    if (Array.isArray(e?.errorMessages) && e.errorMessages.length) {
+      const errs = e.errorMessages.map((x: unknown) => String(x));
+      const props = Array.isArray(e?.propertyNames)
+        ? e.propertyNames.map((x: unknown) => String(x))
+        : [];
+
+      if (props.length === errs.length && props.length) {
+        for (let i = 0; i < props.length; i++) {
+          const field = props[i] || 'General';
+          const msg = errs[i] || '';
+          fieldMap[field] = [...(fieldMap[field] || []), msg];
+          messages.push(msg);
+        }
+      } else {
+        errs.forEach((m: string) => messages.push(m));
+      }
+    }
+
+    // fallback
+    if (e?.title && !messages.length) messages.push(String(e.title));
+    if (e?.detail) messages.push(String(e.detail));
+    if (!messages.length && typeof e === 'string') messages.push(e);
+    if (!messages.length && err?.message) messages.push(String(err.message));
+
+    const uniq = Array.from(new Set(messages.map((x) => String(x).trim()).filter(Boolean)));
+    return { messages: uniq, fieldMap };
   }
 }
