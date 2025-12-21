@@ -642,8 +642,9 @@ export class TrafficWizard implements OnInit, OnDestroy {
       .GetAllTemplatePatternByTemplateId(templateId)
       .subscribe((resp: ResultV<LightPatternForTemplatePattern>) => {
         const list = resp?.value ?? [];
-        const patterns: LightPatternForTemplatePattern[] = list.map((p) => ({
+        const patterns: LightPatternForTemplatePattern[] = list.map((p: any) => ({
           ...p,
+          isDefault: !!p.isDefault || !!p.IsDefault,
           lightPatternName: p.lightPatternName || `#${p.lightPatternId}`,
         }));
 
@@ -757,5 +758,22 @@ export class TrafficWizard implements OnInit, OnDestroy {
     if (id != null && !Number.isNaN(id)) {
       this.getAreas(Number(id));
     }
+  }
+
+  forceSpaceAtCaret(event: any, group: AbstractControl) {
+    const input = event.target as HTMLInputElement;
+    const start = input.selectionStart ?? 0;
+    const end = input.selectionEnd ?? 0;
+    const oldValue = input.value;
+
+    const newValue = oldValue.substring(0, start) + ' ' + oldValue.substring(end);
+
+    group.get('name')?.setValue(newValue);
+
+    setTimeout(() => {
+      input.selectionStart = input.selectionEnd = start + 1;
+    }, 0);
+
+    event.preventDefault();
   }
 }

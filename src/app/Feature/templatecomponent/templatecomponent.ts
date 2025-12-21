@@ -275,8 +275,9 @@ export class Templatecomponent implements OnInit {
     this.templatePatternService.GetAllTemplatePatternByTemplateId(id).subscribe({
       next: (resp: ResultV<LightPatternForTemplatePattern>) => {
         const list = resp?.value ?? [];
-        const patterns: LightPatternForTemplatePattern[] = list.map((p) => ({
+        const patterns: LightPatternForTemplatePattern[] = list.map((p: any) => ({
           ...p,
+          isDefault: !!p.isDefault || !!p.IsDefault,
           lightPatternName:
             p.lightPatternName ||
             this.lightPatterns.find((lp) => lp.id === p.lightPatternId)?.name ||
