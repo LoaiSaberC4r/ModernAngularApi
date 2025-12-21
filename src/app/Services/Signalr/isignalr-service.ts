@@ -24,7 +24,7 @@ export class ISignalrService {
     return new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
         transport: signalR.HttpTransportType.WebSockets,
-        withCredentials: true,
+        withCredentials: false,
       })
       .withAutomaticReconnect({
         nextRetryDelayInMilliseconds: (ctx) => {
@@ -56,6 +56,7 @@ export class ISignalrService {
         parsed = payload as TrafficBroadcast;
       }
       this.messages.set({ user, message: parsed, at: new Date() });
+      console.log('TrafficBroadcast received:', parsed);
     });
 
     this.connection.onreconnecting((err) => {
@@ -92,7 +93,6 @@ export class ISignalrService {
     }
   }
 
-  // باقي الاستدعاءات كما هي...
   private async ensureConnected(): Promise<void> {
     if (!this.connection || this.connection.state !== signalR.HubConnectionState.Connected) {
       await this.connect();

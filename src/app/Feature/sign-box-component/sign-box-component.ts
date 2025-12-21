@@ -120,6 +120,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
       .pipe(takeUntilDestroyed())
       .subscribe(({ message }) => {
         if (!message) return;
+        console.log(message);
 
         const key = this.toKey((message as any).ID);
         if (key === null) return;
