@@ -4,6 +4,8 @@ export interface GetAllLightPattern {
   red: number;
   green: number;
   yellow: number;
-  blinkMs: number;
-  
+  blinkInterval: number;
+  blinkGreen: boolean;
+  blinkYellow: boolean;
+  blinkRed: boolean;
 }

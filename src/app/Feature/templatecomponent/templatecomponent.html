@@ -210,6 +210,36 @@
                   </div>
                 </div>
                 <div
+                  class="blink-toggles-row"
+                  style="
+                    margin-top: 0.5rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                    flex-wrap: wrap;
+                  "
+                >
+                  <label class="chk-blink" style="display: flex; align-items: center; gap: 0.3rem">
+                    <input type="checkbox" formControlName="blinkGreen" />
+                    <span style="color: #2ecc71"
+                      >{{ tr('green') }} {{ isAr ? 'وميض' : 'Blink' }}</span
+                    >
+                  </label>
+                  <label class="chk-blink" style="display: flex; align-items: center; gap: 0.3rem">
+                    <input type="checkbox" formControlName="blinkYellow" />
+                    <span style="color: #f1c40f"
+                      >{{ tr('yellow') }} {{ isAr ? 'وميض' : 'Blink' }}</span
+                    >
+                  </label>
+                  <label class="chk-blink" style="display: flex; align-items: center; gap: 0.3rem">
+                    <input type="checkbox" formControlName="blinkRed" />
+                    <span style="color: #e74c3c"
+                      >{{ tr('red') }} {{ isAr ? 'وميض' : 'Blink' }}</span
+                    >
+                  </label>
+                </div>
+
+                <div
                   class="default-toggle"
                   style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem"
                 >

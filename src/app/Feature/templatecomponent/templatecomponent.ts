@@ -196,10 +196,10 @@ export class Templatecomponent implements OnInit {
               green: (p as any).green ?? (p as any).Green ?? 0,
               yellow: (p as any).yellow ?? (p as any).Yellow ?? 0,
               red: (p as any).red ?? (p as any).Red ?? 0,
-              blinkInterval: (p as any).BlinkInterval ?? 500,
-              blinkGreen: false,
-              blinkYellow: false,
-              blinkRed: false,
+              blinkInterval: p.blinkInterval ?? 500,
+              blinkGreen: !!p.blinkGreen,
+              blinkYellow: !!p.blinkYellow,
+              blinkRed: !!p.blinkRed,
             },
             { emitEvent: false }
           );
@@ -232,7 +232,10 @@ export class Templatecomponent implements OnInit {
       next: (resp) => {
         const list = (resp?.value ?? []).map((p: any) => ({
           ...p,
-          BlinkInterval: typeof p.BlinkInterval === 'number' ? p.BlinkInterval : 500,
+          blinkInterval: typeof p.blinkInterval === 'number' ? p.blinkInterval : 500,
+          blinkGreen: !!p.blinkGreen,
+          blinkYellow: !!p.blinkYellow,
+          blinkRed: !!p.blinkRed,
         }));
         this.lightPatterns = list;
       },
@@ -315,6 +318,12 @@ export class Templatecomponent implements OnInit {
       startFrom: new FormControl<string>(this.toHHmm(p.startFrom), { nonNullable: true }),
       finishBy: new FormControl<string>(this.toHHmm(p.finishBy), { nonNullable: true }),
       isDefault: new FormControl<boolean>(!!(p as any).isDefault, { nonNullable: true }),
+      blinkGreen: new FormControl<boolean>(!!(p as any).blinkGreen, { nonNullable: true }),
+      blinkYellow: new FormControl<boolean>(!!(p as any).blinkYellow, { nonNullable: true }),
+      blinkRed: new FormControl<boolean>(!!(p as any).blinkRed, { nonNullable: true }),
+      blinkInterval: new FormControl<number>((p as any).blinkInterval ?? 500, {
+        nonNullable: true,
+      }),
     });
   }
 
@@ -362,6 +371,10 @@ export class Templatecomponent implements OnInit {
         startFrom: this.toHHmmss(r.startFrom),
         finishBy: this.toHHmmss(r.finishBy),
         isDefault: !!r.isDefault,
+        blinkGreen: !!r.blinkGreen,
+        blinkYellow: !!r.blinkYellow,
+        blinkRed: !!r.blinkRed,
+        blinkInterval: r.blinkInterval,
       })),
       defaultLightPatternId,
     };
@@ -490,10 +503,10 @@ export class Templatecomponent implements OnInit {
           red: (selected as any).red ?? (selected as any).Red ?? 0,
           green: (selected as any).green ?? (selected as any).Green ?? 0,
           yellow: (selected as any).yellow ?? (selected as any).Yellow ?? 0,
-          blinkInterval: (selected as any).BlinkInterval ?? 500,
-          blinkGreen: false,
-          blinkYellow: false,
-          blinkRed: false,
+          blinkInterval: selected.blinkInterval ?? 500,
+          blinkGreen: !!selected.blinkGreen,
+          blinkYellow: !!selected.blinkYellow,
+          blinkRed: !!selected.blinkRed,
         },
         { emitEvent: false }
       );

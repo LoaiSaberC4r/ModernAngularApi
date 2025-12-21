@@ -11,4 +11,8 @@ export interface LightPatternForTemplatePattern {
   startFrom: string;
   finishBy: string;
   isDefault?: boolean;
+  blinkGreen?: boolean;
+  blinkYellow?: boolean;
+  blinkRed?: boolean;
+  blinkInterval?: number;
 }
