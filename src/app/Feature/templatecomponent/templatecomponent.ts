@@ -24,10 +24,13 @@ import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { LanguageService } from '../../Services/Language/language-service';
 import { ToasterService } from '../../Services/Toster/toaster-service';
 
+// ✅ NEW
+import { Time24hInputComponent } from '../../Shared/Components/time-24h-input/time-24h-input.component';
+
 @Component({
   selector: 'app-templatecomponent',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, Time24hInputComponent],
   templateUrl: './templatecomponent.html',
   styleUrl: './templatecomponent.css',
 })
@@ -153,7 +156,6 @@ export class Templatecomponent implements OnInit {
   showPatternFields = false;
   showTemplateName = false;
 
-  // Forms
   templateForm: FormGroup = this.fb.group({
     templateId: new FormControl<number>(0, { nonNullable: true }),
     templateName: new FormControl<string>('', {
@@ -211,9 +213,6 @@ export class Templatecomponent implements OnInit {
       });
   }
 
-  // =========================
-  // Data loading
-  // =========================
   private loadTemplates() {
     this.templateService.GetAll().subscribe({
       next: (resp) => {
@@ -315,6 +314,7 @@ export class Templatecomponent implements OnInit {
       lightPatternName: new FormControl<string>(p.lightPatternName ?? `#${p.lightPatternId}`, {
         nonNullable: true,
       }),
+      // ✅ values are "HH:mm" (24h) already
       startFrom: new FormControl<string>(this.toHHmm(p.startFrom), { nonNullable: true }),
       finishBy: new FormControl<string>(this.toHHmm(p.finishBy), { nonNullable: true }),
       isDefault: new FormControl<boolean>(!!(p as any).isDefault, { nonNullable: true }),
@@ -345,9 +345,6 @@ export class Templatecomponent implements OnInit {
     this.rows.removeAt(index);
   }
 
-  // =========================
-  // Save Template Pattern (with toaster)
-  // =========================
   saveTemplatePattern() {
     if (!this.templateForm.valid || this.rows.length === 0) {
       this.templateForm.markAllAsTouched();
@@ -398,7 +395,6 @@ export class Templatecomponent implements OnInit {
             this.loadTemplates();
             this.showTemplateName = false;
           }
-
           return;
         }
 
@@ -416,7 +412,6 @@ export class Templatecomponent implements OnInit {
         } else {
           this.toaster.error(this.isAr ? '❌ فشل حفظ القالب' : '❌ Failed to save template');
         }
-
         console.error('Save template failed', err);
       },
     });
@@ -464,9 +459,6 @@ export class Templatecomponent implements OnInit {
     });
   }
 
-  // =========================
-  // Light Pattern Editor (with toaster)
-  // =========================
   startAddNewLightPattern(): void {
     this.patternForm.patchValue(
       {
@@ -607,9 +599,6 @@ export class Templatecomponent implements OnInit {
     this.showPatternFields = !hide ? this.showPatternFields : false;
   }
 
-  // =========================
-  // Helpers
-  // =========================
   private toHHmm(s?: string | null): string {
     if (!s) return '00:00';
     const [h = '00', m = '00'] = s.split(':');
@@ -620,10 +609,6 @@ export class Templatecomponent implements OnInit {
     if (!s) return '00:00:00';
     const [h = '00', m = '00'] = s.split(':');
     return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
-  }
-
-  trPublic(key: keyof (typeof this.dict)['en']) {
-    return this.tr(key);
   }
 
   get hasDefaultSelected(): boolean {
@@ -641,16 +626,12 @@ export class Templatecomponent implements OnInit {
     }
   }
 
-  // =========================
-  // Extract API Errors (supports your backend shape)
-  // =========================
   private extractApiErrors(err: any): { messages: string[]; fieldMap: Record<string, string[]> } {
     const messages: string[] = [];
     const fieldMap: Record<string, string[]> = {};
 
     const e = err?.error ?? err;
 
-    // ASP.NET style: { errors: { Field: [msg] } }
     if (e?.errors && typeof e.errors === 'object') {
       for (const [field, arr] of Object.entries(e.errors)) {
         const list = Array.isArray(arr) ? arr : [String(arr)];
@@ -659,7 +640,6 @@ export class Templatecomponent implements OnInit {
       }
     }
 
-    // Your backend: { errorMessages: [], propertyNames: [] }
     if (Array.isArray(e?.errorMessages) && e.errorMessages.length) {
       const errs = e.errorMessages.map((x: unknown) => String(x));
       const props = Array.isArray(e?.propertyNames)
@@ -678,7 +658,6 @@ export class Templatecomponent implements OnInit {
       }
     }
 
-    // fallback
     if (e?.title && !messages.length) messages.push(String(e.title));
     if (e?.detail) messages.push(String(e.detail));
     if (!messages.length && typeof e === 'string') messages.push(e);

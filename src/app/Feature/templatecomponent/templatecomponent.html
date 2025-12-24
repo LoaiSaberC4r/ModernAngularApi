@@ -189,54 +189,27 @@
                 <div class="time-range">
                   <div class="time-input-group">
                     <label for="startFrom{{ i }}" class="time-label">{{ tr('start') }}</label>
-                    <input
-                      id="startFrom{{ i }}"
-                      type="time"
-                      class="time-input"
+
+                    <app-time-24h-input
                       formControlName="startFrom"
-                      dir="ltr"
+                      [dir]="'ltr'"
+                      [label]="''"
+                      [minuteStep]="1"
                     />
                   </div>
+
                   <div class="time-divider">{{ isAr ? '←' : '→' }}</div>
+
                   <div class="time-input-group">
                     <label for="finishBy{{ i }}" class="time-label">{{ tr('end') }}</label>
-                    <input
-                      id="finishBy{{ i }}"
-                      type="time"
-                      class="time-input"
+
+                    <app-time-24h-input
                       formControlName="finishBy"
-                      dir="ltr"
+                      [dir]="'ltr'"
+                      [label]="''"
+                      [minuteStep]="1"
                     />
                   </div>
-                </div>
-                <div
-                  class="blink-toggles-row"
-                  style="
-                    margin-top: 0.5rem;
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                    flex-wrap: wrap;
-                  "
-                >
-                  <label class="chk-blink" style="display: flex; align-items: center; gap: 0.3rem">
-                    <input type="checkbox" formControlName="blinkGreen" />
-                    <span style="color: #2ecc71"
-                      >{{ tr('green') }} {{ isAr ? 'وميض' : 'Blink' }}</span
-                    >
-                  </label>
-                  <label class="chk-blink" style="display: flex; align-items: center; gap: 0.3rem">
-                    <input type="checkbox" formControlName="blinkYellow" />
-                    <span style="color: #f1c40f"
-                      >{{ tr('yellow') }} {{ isAr ? 'وميض' : 'Blink' }}</span
-                    >
-                  </label>
-                  <label class="chk-blink" style="display: flex; align-items: center; gap: 0.3rem">
-                    <input type="checkbox" formControlName="blinkRed" />
-                    <span style="color: #e74c3c"
-                      >{{ tr('red') }} {{ isAr ? 'وميض' : 'Blink' }}</span
-                    >
-                  </label>
                 </div>
 
                 <div

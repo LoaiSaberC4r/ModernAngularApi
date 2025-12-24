@@ -1,0 +1,52 @@
+<div class="t24-wrap" [class.disabled]="disabled">
+  <label class="t24-label" *ngIf="label">{{ label }}</label>
+
+  <button
+    type="button"
+    class="t24-field"
+    (click)="toggle()"
+    (blur)="markTouched()"
+    [disabled]="disabled"
+    [attr.dir]="dir"
+    aria-haspopup="dialog"
+    [attr.aria-expanded]="isOpen"
+  >
+    <span class="t24-value">{{ value }}</span>
+    <span class="t24-icon" aria-hidden="true">🕒</span>
+  </button>
+
+  <div class="t24-panel" *ngIf="isOpen" role="dialog" aria-label="24h time picker">
+    <div class="t24-row">
+      <div class="t24-col">
+        <div class="t24-title">HH</div>
+        <select class="t24-select" [value]="hour" (change)="setHour(+$any($event.target).value)">
+          <option *ngFor="let h of hours()" [value]="h">{{ ('' + h).padStart(2, '0') }}</option>
+        </select>
+      </div>
+
+      <div class="t24-sep">:</div>
+
+      <div class="t24-col">
+        <div class="t24-title">MM</div>
+        <select
+          class="t24-select"
+          [value]="minute"
+          (change)="setMinute(+$any($event.target).value)"
+        >
+          <option *ngFor="let m of minutes()" [value]="m">{{ ('' + m).padStart(2, '0') }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="t24-actions">
+      <button type="button" class="t24-btn" (click)="stepMinute(-minuteStep)">
+        -{{ minuteStep }}
+      </button>
+      <button type="button" class="t24-btn danger" (click)="clear()">Clear</button>
+      <button type="button" class="t24-btn primary" (click)="close()">Done</button>
+      <button type="button" class="t24-btn" (click)="stepMinute(+minuteStep)">
+        +{{ minuteStep }}
+      </button>
+    </div>
+  </div>
+</div>
