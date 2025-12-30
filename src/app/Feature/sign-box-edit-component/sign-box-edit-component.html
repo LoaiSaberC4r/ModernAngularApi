@@ -4,8 +4,7 @@
     {{ isAr ? 'تعديل صندوق الإشارة' : 'Edit SignBox' }}
     @if (form.get('name')?.value) {
     <span class="sb-name">— {{ form.get('name')?.value }}</span>
-    } @else {
-    — {{ isAr ? '(بدون اسم)' : '(unnamed)' }}
+    } @else { — {{ isAr ? '(بدون اسم)' : '(unnamed)' }}
     }
   </h2>
 
@@ -16,8 +15,13 @@
         <!-- Name -->
         <div class="mb-3">
           <label for="name" class="form-label">{{ isAr ? 'الاسم' : 'Name' }}</label>
-          <input id="name" formControlName="name" class="form-control border"
-            [placeholder]="isAr ? 'اسم وصفي' : 'Descriptive name'" [attr.dir]="isAr ? 'rtl' : 'ltr'" />
+          <input
+            id="name"
+            formControlName="name"
+            class="form-control border"
+            [placeholder]="isAr ? 'اسم وصفي' : 'Descriptive name'"
+            [attr.dir]="isAr ? 'rtl' : 'ltr'"
+          />
           @if (form.controls['name'].invalid && form.controls['name'].touched) {
           <div class="text-danger small mt-1">
             {{ isAr ? 'الاسم مطلوب' : 'Name is required' }}
@@ -28,16 +32,20 @@
         <!-- IP -->
         <div class="mb-3">
           <label for="ip" class="form-label">{{ isAr ? 'عنوان IP' : 'IP Address' }}</label>
-          <input id="ip" formControlName="ipAddress" class="form-control border" dir="ltr"
-            [placeholder]="isAr ? 'مثال: 192.168.1.50' : 'e.g. 192.168.1.50'" />
+          <input
+            id="ip"
+            formControlName="ipAddress"
+            class="form-control border"
+            dir="ltr"
+            [placeholder]="isAr ? 'مثال: 192.168.1.50' : 'e.g. 192.168.1.50'"
+          />
           @if (form.controls['ipAddress'].invalid && form.controls['ipAddress'].touched) {
           <div class="text-danger small mt-1">
             @if (form.controls['ipAddress'].errors?.['required']) {
             <span>
               {{ isAr ? 'عنوان IP مطلوب' : 'IP Address is required' }}
             </span>
-            }
-            @if (form.controls['ipAddress'].errors?.['pattern']) {
+            } @if (form.controls['ipAddress'].errors?.['pattern']) {
             <span>
               {{ isAr ? 'صيغة IP غير صحيحة' : 'Invalid IP format' }}
             </span>
@@ -51,13 +59,18 @@
           <label for="cabinetId" class="form-label">
             {{ isAr ? 'رقم الكبينة' : 'Cabinet ID' }}
           </label>
-          <input id="cabinetId" formControlName="cabinetId" class="form-control border bg-light" dir="ltr"
-            [attr.aria-readonly]="true" />
+          <input
+            id="cabinetId"
+            formControlName="cabinetId"
+            class="form-control border bg-light"
+            dir="ltr"
+            [attr.aria-readonly]="true"
+          />
           <div class="form-text text-muted">
             {{
-            isAr
-            ? 'يتم جلبه من الخادم ولا يمكن تعديله'
-            : 'Loaded from server and cannot be edited'
+              isAr
+                ? 'يتم جلبه من الخادم ولا يمكن تعديله'
+                : 'Loaded from server and cannot be edited'
             }}
           </div>
         </div>
@@ -66,13 +79,23 @@
         <div class="row g-3">
           <div class="col-12 col-md-6">
             <label for="lat" class="form-label">{{ isAr ? 'خط العرض' : 'Latitude' }}</label>
-            <input id="lat" formControlName="latitude" class="form-control border" dir="ltr"
-              [placeholder]="isAr ? 'مثال: 30.0444' : 'e.g. 30.0444'" />
+            <input
+              id="lat"
+              formControlName="latitude"
+              class="form-control border"
+              dir="ltr"
+              [placeholder]="isAr ? 'مثال: 30.0444' : 'e.g. 30.0444'"
+            />
           </div>
           <div class="col-12 col-md-6">
             <label for="lng" class="form-label">{{ isAr ? 'خط الطول' : 'Longitude' }}</label>
-            <input id="lng" formControlName="longitude" class="form-control border" dir="ltr"
-              [placeholder]="isAr ? 'مثال: 31.2357' : 'e.g. 31.2357'" />
+            <input
+              id="lng"
+              formControlName="longitude"
+              class="form-control border"
+              dir="ltr"
+              [placeholder]="isAr ? 'مثال: 31.2357' : 'e.g. 31.2357'"
+            />
           </div>
         </div>
 
@@ -80,8 +103,13 @@
         <div class="row g-3 mt-1">
           <div class="col-12 col-md-6">
             <label for="gov" class="form-label">{{ isAr ? 'المحافظة' : 'Governorate' }}</label>
-            <select id="gov" class="form-select form-control-modern" formControlName="governateId"
-              (change)="onGovernorateChange()" [attr.dir]="isAr ? 'rtl' : 'ltr'">
+            <select
+              id="gov"
+              class="form-select form-control-modern"
+              formControlName="governateId"
+              (change)="onGovernorateChange()"
+              [attr.dir]="isAr ? 'rtl' : 'ltr'"
+            >
               <option [ngValue]="null" disabled>
                 {{ isAr ? 'اختر المحافظة' : 'Select governorate' }}
               </option>
@@ -96,8 +124,12 @@
 
           <div class="col-12 col-md-6">
             <label for="area" class="form-label">{{ isAr ? 'الحي' : 'Area' }}</label>
-            <select id="area" class="form-select form-control-modern" formControlName="areaId"
-              [attr.dir]="isAr ? 'rtl' : 'ltr'">
+            <select
+              id="area"
+              class="form-select form-control-modern"
+              formControlName="areaId"
+              [attr.dir]="isAr ? 'rtl' : 'ltr'"
+            >
               <option [ngValue]="null" disabled>
                 {{ isAr ? 'اختر الحي' : 'Select area' }}
               </option>
@@ -120,14 +152,21 @@
           </label>
 
           <div formArrayName="directions" class="vstack gap-3">
-            <div class="dir-row border rounded-3 p-2" *ngFor="let dir of directions.controls; let i = index"
-              [formGroupName]="i">
+            <div
+              class="dir-row border rounded-3 p-2"
+              *ngFor="let dir of directions.controls; let i = index"
+              [formGroupName]="i"
+            >
               <div class="mb-2">
                 <label class="form-label section-label" [attr.dir]="isAr ? 'rtl' : 'ltr'">
                   {{ isAr ? 'اسم الاتجاه' : 'Direction Name' }}
                 </label>
-                <input formControlName="name" class="form-control"
-                  [placeholder]="isAr ? 'اسم الاتجاه' : 'Direction name'" [attr.dir]="isAr ? 'rtl' : 'ltr'" />
+                <input
+                  formControlName="name"
+                  class="form-control"
+                  [placeholder]="isAr ? 'اسم الاتجاه' : 'Direction name'"
+                  [attr.dir]="isAr ? 'rtl' : 'ltr'"
+                />
               </div>
 
               <div class="row g-2 align-items-end">
@@ -135,18 +174,33 @@
                   <label class="form-label section-label" [attr.dir]="isAr ? 'rtl' : 'ltr'">
                     {{ isAr ? 'طريق' : 'Lane' }}
                   </label>
-                  <input type="number" formControlName="order" min="1" max="4" step="1" class="form-control" dir="ltr"
-                    [placeholder]="isAr ? 'طريق' : 'Lane'" />
+                  <input
+                    type="number"
+                    formControlName="order"
+                    min="1"
+                    max="4"
+                    step="1"
+                    class="form-control"
+                    dir="ltr"
+                    [placeholder]="isAr ? 'طريق' : 'Lane'"
+                  />
                 </div>
 
                 <div class="col-7">
-                  <label [for]="'templateSelect' + i" class="form-label section-label"
-                    [attr.dir]="isAr ? 'rtl' : 'ltr'">
+                  <label
+                    [for]="'templateSelect' + i"
+                    class="form-label section-label"
+                    [attr.dir]="isAr ? 'rtl' : 'ltr'"
+                  >
                     {{ isAr ? 'القالب' : 'Template' }}
                   </label>
-                  <select class="form-select form-control-modern w-100" [id]="'templateSelect' + i"
-                    formControlName="templateId" (change)="onTemplateChange(i, $event)"
-                    [attr.dir]="isAr ? 'rtl' : 'ltr'">
+                  <select
+                    class="form-select form-control-modern w-100"
+                    [id]="'templateSelect' + i"
+                    formControlName="templateId"
+                    (change)="onTemplateChange(i, $event)"
+                    [attr.dir]="isAr ? 'rtl' : 'ltr'"
+                  >
                     <option [ngValue]="null">{{ isAr ? 'اختر القالب' : 'Choose template' }}</option>
                     <option *ngFor="let t of templates" [ngValue]="t.id">{{ t.name }}</option>
                   </select>
@@ -157,10 +211,14 @@
                     {{ isAr ? 'إضافة اتجاه' : 'Add Direction' }}
                   </button>
 
-                  <button type="button"
+                  <button
+                    type="button"
                     class="btn btn-outline-danger d-inline-flex align-items-center justify-content-center"
-                    style="width: 42px; height: 42px; border-radius: 8px" (click)="removeDirection(i)"
-                    [attr.aria-label]="isAr ? 'حذف الاتجاه' : 'Remove direction'" title="{{ isAr ? 'حذف' : 'Remove' }}">
+                    style="width: 42px; height: 42px; border-radius: 8px"
+                    (click)="removeDirection(i)"
+                    [attr.aria-label]="isAr ? 'حذف الاتجاه' : 'Remove direction'"
+                    title="{{ isAr ? 'حذف' : 'Remove' }}"
+                  >
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -174,6 +232,9 @@
       <div class="col-12">
         <div class="actions d-flex align-items-center gap-2 mt-3">
           <div class="actions-end ms-auto d-flex gap-2">
+            <button type="button" (click)="forceApply()" class="btn btn-danger text-white">
+              {{ isAr ? 'تطبيق إجباري' : 'Force Apply' }}
+            </button>
             <button type="submit" class="apply-button btn">
               {{ isAr ? 'تطبيق' : 'Apply' }}
             </button>

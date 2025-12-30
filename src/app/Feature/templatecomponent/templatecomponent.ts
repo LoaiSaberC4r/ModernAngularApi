@@ -24,7 +24,6 @@ import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { LanguageService } from '../../Services/Language/language-service';
 import { ToasterService } from '../../Services/Toster/toaster-service';
 
-// ✅ NEW
 import { Time24hInputComponent } from '../../Shared/Components/time-24h-input/time-24h-input.component';
 
 @Component({
@@ -94,9 +93,13 @@ export class Templatecomponent implements OnInit {
       yellowSec: 'Yellow seconds',
       redSec: 'Red seconds',
       sec: 'sec',
+      mergeWith: 'Merge with',
+      selectLight: 'Select light',
+      none: 'None',
       delete: 'Delete',
       createPattern: 'Create / Update Pattern',
       defaultPattern: 'Default pattern',
+      allLightsZeroError: 'At least one light must have a non-zero value',
     },
     ar: {
       templateManager: 'إدارة القوالب',
@@ -138,9 +141,13 @@ export class Templatecomponent implements OnInit {
       yellowSec: 'ثواني الأصفر',
       redSec: 'ثواني الأحمر',
       sec: 'ث',
+      mergeWith: 'دمج مع',
+      selectLight: 'اختر الإشارة',
+      none: 'لا شيء',
       delete: 'حذف',
       createPattern: 'إنشاء / تعديل النمط',
       defaultPattern: 'النمط الافتراضي',
+      allLightsZeroError: 'يجب أن يكون لإشارة واحدة على الأقل قيمة غير صفر',
     },
   } as const;
 
@@ -165,23 +172,40 @@ export class Templatecomponent implements OnInit {
     rows: this.fb.array<FormGroup>([]),
   });
 
-  patternForm: FormGroup = this.fb.group({
-    name: ['', Validators.required],
-    selectedPattern: [undefined as GetAllLightPattern | undefined],
+  patternForm: FormGroup = this.fb.group(
+    {
+      name: ['', Validators.required],
+      selectedPattern: [undefined as GetAllLightPattern | undefined],
 
-    green: [0, [Validators.required, Validators.min(0)]],
-    yellow: [0, [Validators.required, Validators.min(0)]],
-    red: [0, [Validators.required, Validators.min(0)]],
+      green: [null, [Validators.required, Validators.min(0)]],
+      yellow: [null, [Validators.required, Validators.min(0)]],
+      red: [null, [Validators.required, Validators.min(0)]],
 
-    blinkGreen: [false],
-    blinkYellow: [false],
-    blinkRed: [false],
+      blinkGreen: [false],
+      blinkYellow: [false],
+      blinkRed: [false],
 
-    blinkInterval: [500, [Validators.required, Validators.min(50), Validators.max(10000)]],
-  });
+      blinkInterval: [500, [Validators.required, Validators.min(0), Validators.max(10000)]],
+      mergeYellowWith: ['none'],
+    },
+    { validators: this.atLeastOneLightValidator() }
+  );
 
   get rows(): FormArray<FormGroup> {
     return this.templateForm.get('rows') as FormArray<FormGroup>;
+  }
+
+  private atLeastOneLightValidator() {
+    return (formGroup: any) => {
+      const green = formGroup.get('green')?.value || 0;
+      const yellow = formGroup.get('yellow')?.value || 0;
+      const red = formGroup.get('red')?.value || 0;
+
+      if (green === 0 && yellow === 0 && red === 0) {
+        return { allLightsZero: true };
+      }
+      return null;
+    };
   }
 
   ngOnInit(): void {
@@ -192,6 +216,12 @@ export class Templatecomponent implements OnInit {
       .get('selectedPattern')!
       .valueChanges.subscribe((p: GetAllLightPattern | undefined) => {
         if (p) {
+          // Convert mergeWith to mergeYellowWith
+          let mergeYellowWith = 'none';
+          const mergeVal = p.mergeWith ?? (p as any).MergeWith ?? 0;
+          if (mergeVal === 1) mergeYellowWith = 'red';
+          else if (mergeVal === 3) mergeYellowWith = 'green';
+
           this.patternForm.patchValue(
             {
               name: p.name,
@@ -202,6 +232,7 @@ export class Templatecomponent implements OnInit {
               blinkGreen: !!p.blinkGreen,
               blinkYellow: !!p.blinkYellow,
               blinkRed: !!p.blinkRed,
+              mergeYellowWith: mergeYellowWith,
             },
             { emitEvent: false }
           );
@@ -464,13 +495,14 @@ export class Templatecomponent implements OnInit {
       {
         selectedPattern: undefined,
         name: '',
-        green: 0,
-        yellow: 0,
-        red: 0,
+        green: null,
+        yellow: null,
+        red: null,
         blinkInterval: 500,
         blinkGreen: false,
         blinkYellow: false,
         blinkRed: false,
+        mergeYellowWith: 'none',
       },
       { emitEvent: false }
     );
@@ -499,6 +531,12 @@ export class Templatecomponent implements OnInit {
           blinkGreen: !!selected.blinkGreen,
           blinkYellow: !!selected.blinkYellow,
           blinkRed: !!selected.blinkRed,
+          mergeYellowWith:
+            (selected.mergeWith ?? (selected as any).MergeWith) === 1
+              ? 'red'
+              : (selected.mergeWith ?? (selected as any).MergeWith) === 3
+              ? 'green'
+              : 'none',
         },
         { emitEvent: false }
       );
@@ -522,17 +560,33 @@ export class Templatecomponent implements OnInit {
     const raw = this.patternForm.getRawValue();
     const selected: GetAllLightPattern | undefined = raw.selectedPattern;
 
+    let isMerged = false;
+    let mergedWith = 0;
+
+    if (raw.mergeYellowWith === 'red') {
+      isMerged = true;
+      mergedWith = 1;
+    } else if (raw.mergeYellowWith === 'green') {
+      isMerged = true;
+      mergedWith = 3;
+    }
+
     const payload: AddLightPatternCommand = {
       id: selected ? selected.id : 0,
       name: raw.name,
       greenTime: Number(raw.green) || 0,
       yellowTime: Number(raw.yellow) || 0,
       redTime: Number(raw.red) || 0,
-      BlinkInterval: Number(raw.blinkInterval) || 500,
+      BlinkInterval:
+        raw.blinkInterval !== null && raw.blinkInterval !== '' ? Number(raw.blinkInterval) : 500,
       BlinkGreen: !!raw.blinkGreen,
       BlinkYellow: !!raw.blinkYellow,
       BlinkRed: !!raw.blinkRed,
+      IsMerged: isMerged,
+      MergedWith: mergedWith,
     };
+
+    console.log('📤 Sending Light Pattern Payload:', payload);
 
     this.lightPatternService.add(payload).subscribe({
       next: (resp) => {
@@ -545,17 +599,40 @@ export class Templatecomponent implements OnInit {
           return;
         }
 
-        const { messages } = this.extractApiErrors(resp);
+        const { messages, fieldMap } = this.extractApiErrors(resp);
+        this.applyServerValidationErrors(fieldMap);
+
         if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
         else this.toaster.error(this.isAr ? '❌ فشل حفظ النمط' : '❌ Failed to save pattern');
       },
       error: (err) => {
         this.submitting = false;
-        const { messages } = this.extractApiErrors(err);
+        const { messages, fieldMap } = this.extractApiErrors(err);
+        this.applyServerValidationErrors(fieldMap);
+
         if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
         else this.toaster.error(this.isAr ? '❌ فشل حفظ النمط' : '❌ Failed to save pattern');
       },
     });
+  }
+
+  private applyServerValidationErrors(fieldMap: Record<string, string[]>) {
+    for (const [key, errors] of Object.entries(fieldMap)) {
+      const controlName = key.charAt(0).toLowerCase() + key.slice(1);
+      // Map known backend names to frontend controls if needed
+      let targetControl = controlName;
+
+      // Special mappings
+      if (key.toLowerCase() === 'yellowtime') targetControl = 'yellow';
+      else if (key.toLowerCase() === 'greentime') targetControl = 'green';
+      else if (key.toLowerCase() === 'redtime') targetControl = 'red';
+
+      const control = this.patternForm.get(targetControl);
+      if (control) {
+        control.setErrors({ serverError: errors[0] });
+        control.markAsTouched();
+      }
+    }
   }
 
   deletePattern(): void {
@@ -588,13 +665,14 @@ export class Templatecomponent implements OnInit {
     this.patternForm.reset({
       name: '',
       selectedPattern: undefined,
-      green: 0,
-      yellow: 0,
-      red: 0,
+      green: null,
+      yellow: null,
+      red: null,
       blinkInterval: 500,
       blinkGreen: false,
       blinkYellow: false,
       blinkRed: false,
+      mergeYellowWith: 'none',
     });
     this.showPatternFields = !hide ? this.showPatternFields : false;
   }

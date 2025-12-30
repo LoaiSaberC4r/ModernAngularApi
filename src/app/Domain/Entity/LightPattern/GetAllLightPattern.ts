@@ -8,4 +8,6 @@ export interface GetAllLightPattern {
   blinkGreen: boolean;
   blinkYellow: boolean;
   blinkRed: boolean;
+  mergeWith?: number;
+  MergeWith?: number;
 }

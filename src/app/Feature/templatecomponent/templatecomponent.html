@@ -30,7 +30,7 @@
 
   <div class="row g-4">
     <!-- Template Manager -->
-    <div class="col-12 col-lg-7">
+    <div class="col-12 col-lg-6">
       <section class="modern-card template-manager">
         <div class="card-header">
           <div class="header-title">
@@ -321,7 +321,7 @@
       </section>
     </div>
     <!--  Light Pattern Editor -->
-    <div class="col-12 col-lg-5">
+    <div class="col-12 col-lg-6">
       <section class="modern-card pattern-editor" [formGroup]="patternForm">
         <div class="card-header">
           <div class="header-title">
@@ -439,24 +439,38 @@
             <div class="light-row green-light">
               <div
                 class="light-visual"
-                [class.blink]="patternForm.value.blinkGreen"
+                [class.blink]="patternForm.value.blinkGreen && patternForm.value.blinkInterval > 0"
                 [style.--blinkMs.ms]="patternForm.value.blinkInterval || 500"
               >
                 <img src="assets/img/g.png" alt="green" height="40" />
                 <span class="light-label">{{ tr('green') }}</span>
               </div>
-              <div class="light-input-wrapper">
-                <input
-                  type="number"
-                  class="light-input"
-                  formControlName="green"
-                  min="0"
-                  max="1000"
-                  step="1"
-                  dir="ltr"
-                  [attr.aria-label]="tr('greenSec')"
-                />
-                <span class="light-unit">{{ tr('sec') }}</span>
+              <div
+                class="light-input-wrapper"
+                style="flex-direction: column; align-items: flex-start"
+              >
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                  <input
+                    type="number"
+                    class="light-input"
+                    formControlName="green"
+                    min="0"
+                    max="1000"
+                    step="1"
+                    dir="ltr"
+                    [attr.aria-label]="tr('greenSec')"
+                    [class.is-invalid]="
+                      patternForm.get('green')?.invalid && patternForm.get('green')?.touched
+                    "
+                  />
+                  <span class="light-unit">{{ tr('sec') }}</span>
+                </div>
+                <div
+                  class="error-msg-mini"
+                  *ngIf="patternForm.get('green')?.hasError('serverError')"
+                >
+                  {{ patternForm.get('green')?.getError('serverError') }}
+                </div>
               </div>
               <label class="blink-toggle">
                 <input type="checkbox" formControlName="blinkGreen" />
@@ -465,56 +479,114 @@
             </div>
 
             <!-- Yellow -->
-            <div class="light-row yellow-light">
+            <div
+              class="light-row yellow-light"
+              [class.merged-with-green]="patternForm.value.mergeYellowWith === 'green'"
+              [class.merged-with-red]="patternForm.value.mergeYellowWith === 'red'"
+            >
               <div
                 class="light-visual"
-                [class.blink]="patternForm.value.blinkYellow"
+                [class.blink]="patternForm.value.blinkYellow && patternForm.value.blinkInterval > 0"
                 [style.--blinkMs.ms]="patternForm.value.blinkInterval || 500"
               >
                 <img src="assets/img/a.png" alt="yellow" height="40" />
                 <span class="light-label">{{ tr('yellow') }}</span>
               </div>
-              <div class="light-input-wrapper">
-                <input
-                  type="number"
-                  class="light-input"
-                  formControlName="yellow"
-                  min="0"
-                  max="1000"
-                  step="1"
-                  dir="ltr"
-                  [attr.aria-label]="tr('yellowSec')"
-                />
-                <span class="light-unit">{{ tr('sec') }}</span>
+              <div
+                class="light-input-wrapper"
+                style="flex-direction: column; align-items: flex-start"
+              >
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                  <input
+                    type="number"
+                    class="light-input"
+                    formControlName="yellow"
+                    min="0"
+                    max="1000"
+                    step="1"
+                    dir="ltr"
+                    [attr.aria-label]="tr('yellowSec')"
+                    [class.is-invalid]="
+                      patternForm.get('yellow')?.invalid && patternForm.get('yellow')?.touched
+                    "
+                  />
+                  <span class="light-unit">{{ tr('sec') }}</span>
+                </div>
+                <div
+                  class="error-msg-mini"
+                  *ngIf="patternForm.get('yellow')?.hasError('serverError')"
+                >
+                  {{ patternForm.get('yellow')?.getError('serverError') }}
+                </div>
               </div>
               <label class="blink-toggle">
                 <input type="checkbox" formControlName="blinkYellow" />
                 <span>{{ isAr ? 'وميض' : 'Blink' }}</span>
               </label>
+
+              <!-- Merge Dropdown -->
+              <div class="merge-dropdown-wrapper">
+                <label class="merge-label">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    class="merge-icon"
+                  >
+                    <circle cx="18" cy="18" r="3" />
+                    <circle cx="6" cy="6" r="3" />
+                    <path d="M6 21V9a9 9 0 0 0 9 9" />
+                  </svg>
+                  <span class="merge-text">{{ tr('mergeWith') }}</span>
+                </label>
+                <select
+                  class="merge-select"
+                  formControlName="mergeYellowWith"
+                  [attr.aria-label]="tr('selectLight')"
+                >
+                  <option value="none">{{ tr('none') }}</option>
+                  <option value="green">{{ tr('green') }}</option>
+                  <option value="red">{{ tr('red') }}</option>
+                </select>
+              </div>
             </div>
 
             <!-- Red -->
             <div class="light-row red-light">
               <div
                 class="light-visual"
-                [class.blink]="patternForm.value.blinkRed"
+                [class.blink]="patternForm.value.blinkRed && patternForm.value.blinkInterval > 0"
                 [style.--blinkMs.ms]="patternForm.value.blinkInterval || 500"
               >
                 <img src="assets/img/r.png" alt="red" height="40" />
                 <span class="light-label">{{ tr('red') }}</span>
               </div>
-              <div class="light-input-wrapper">
-                <input
-                  type="number"
-                  class="light-input"
-                  formControlName="red"
-                  min="0"
-                  max="1000"
-                  step="1"
-                  dir="ltr"
-                  [attr.aria-label]="tr('redSec')"
-                />
-                <span class="light-unit">{{ tr('sec') }}</span>
+              <div
+                class="light-input-wrapper"
+                style="flex-direction: column; align-items: flex-start"
+              >
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                  <input
+                    type="number"
+                    class="light-input"
+                    formControlName="red"
+                    min="0"
+                    max="1000"
+                    step="1"
+                    dir="ltr"
+                    [attr.aria-label]="tr('redSec')"
+                    [class.is-invalid]="
+                      patternForm.get('red')?.invalid && patternForm.get('red')?.touched
+                    "
+                  />
+                  <span class="light-unit">{{ tr('sec') }}</span>
+                </div>
+                <div class="error-msg-mini" *ngIf="patternForm.get('red')?.hasError('serverError')">
+                  {{ patternForm.get('red')?.getError('serverError') }}
+                </div>
               </div>
               <label class="blink-toggle">
                 <input type="checkbox" formControlName="blinkRed" />
@@ -564,6 +636,34 @@
               >
                 {{ isAr ? 'قيمة غير صالحة.' : 'Invalid value.' }}
               </div>
+            </div>
+
+            <!-- All Lights Zero Error -->
+            <div
+              class="error-message"
+              style="
+                margin-top: 1rem;
+                padding: 0.75rem;
+                background: rgba(231, 76, 60, 0.1);
+                border-radius: 8px;
+                border: 1px solid #e74c3c;
+              "
+              *ngIf="patternForm.errors?.['allLightsZero'] && patternForm.touched"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                style="display: inline-block; vertical-align: middle; margin-right: 0.5rem"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              {{ tr('allLightsZeroError') }}
             </div>
           </div>
         </div>

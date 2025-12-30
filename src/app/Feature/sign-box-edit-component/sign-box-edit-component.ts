@@ -341,7 +341,7 @@ export class SignBoxEditComponent implements OnInit {
     grp.get('lightPatternName')?.setValue(lp?.name ?? '');
   }
 
-  apply(): void {
+  apply(isForced: boolean = false): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.showPopup(
@@ -390,7 +390,7 @@ export class SignBoxEditComponent implements OnInit {
         ),
         // 3) Apply
         concatMap(() =>
-          this.service.applySignBox({ id: this.id }).pipe(
+          this.service.applySignBox({ id: this.id, isForced }).pipe(
             map(() => ({ ok: true as const })),
             catchError((err) => of({ ok: false as const, err }))
           )
@@ -599,4 +599,7 @@ export class SignBoxEditComponent implements OnInit {
       : 'Saved, but failed to apply settings to the cabinet';
     this.showPopup(msg, 'error');
   };
+  forceApply(): void {
+    this.apply(true);
+  }
 }

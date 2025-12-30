@@ -1,0 +1,118 @@
+/* Merge Dropdown Styles */
+.merge-dropdown-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.merge-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.merge-icon {
+  color: #8b5cf6;
+  flex-shrink: 0;
+}
+
+.merge-text {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .merge-text {
+    display: inline;
+  }
+}
+
+.merge-select {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 90px;
+}
+
+.merge-select:hover {
+  border-color: #8b5cf6;
+}
+
+.merge-select:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+/* Color transitions for merged yellow light */
+.yellow-light.merged-with-green {
+  --c: #10b981 !important; /* Green color */
+  transition: all 0.4s ease;
+}
+
+.yellow-light.merged-with-green .light-visual {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(255, 193, 7, 0.1)) !important;
+  border-color: color-mix(in srgb, #10b981 30%, #ffc107 30%) !important;
+}
+
+.yellow-light.merged-with-green .light-label {
+  color: color-mix(in srgb, #10b981 60%, #374151) !important;
+}
+
+.yellow-light.merged-with-red {
+  --c: #ef4444 !important; /* Red color */
+  transition: all 0.4s ease;
+}
+
+.yellow-light.merged-with-red .light-visual {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(255, 193, 7, 0.1)) !important;
+  border-color: color-mix(in srgb, #ef4444 30%, #ffc107 30%) !important;
+}
+
+.yellow-light.merged-with-red .light-label {
+  color: color-mix(in srgb, #ef4444 60%, #374151) !important;
+}
+
+/* Add animated glow effect when merged */
+.yellow-light.merged-with-green .light-visual::after,
+.yellow-light.merged-with-red .light-visual::after {
+  animation: mergeGlow 2s ease-in-out infinite;
+}
+
+@keyframes mergeGlow {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .light-row {
+    flex-wrap: wrap;
+  }
+
+  .merge-dropdown-wrapper {
+    width: 100%;
+    margin-top: 0.5rem;
+    justify-content: center;
+  }
+}

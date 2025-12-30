@@ -13,4 +13,5 @@ export interface GetAllSignControlBoxWithLightPattern {
 }
 export interface ApplySignBox {
   id: number;
+  isForced?: boolean;
 }
