@@ -10,4 +10,6 @@ export interface AddLightPatternCommand {
   BlinkRed: boolean;
   IsMerged: boolean;
   MergedWith: number;
+  IsOverLap: boolean;
+  OverLapTime: number;
 }

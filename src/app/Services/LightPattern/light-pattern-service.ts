@@ -55,6 +55,9 @@ export class LightPatternService {
       .pipe(
         map((resp) => {
           if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
+          if (resp.value) {
+            resp.value = resp.value.map((p: any) => this.normalizePattern(p));
+          }
           return resp;
         }),
         catchError(this.handleError<ResultV<GetAllLightPattern>>('LightPattern:GetAll', {} as any)),
@@ -70,11 +73,36 @@ export class LightPatternService {
       .pipe(
         map((resp) => {
           if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
+          if (resp.value) {
+            resp.value = this.normalizePattern(resp.value);
+          }
           return resp;
         }),
         catchError(this.handleError<ResultV<GetLightPattern>>('LightPattern:GetById', {} as any)),
         shareReplay(1)
       );
+  }
+
+  private normalizePattern(p: any): any {
+    if (!p) return p;
+    const overTime = p.overLapTime ?? p.OverLapTime ?? p.OverlapTime ?? 0;
+    const blinkInt = p.blinkInterval ?? p.BlinkInterval ?? 500;
+    return {
+      ...p,
+      id: p.id ?? p.Id,
+      name: p.name ?? p.Name,
+      red: p.red ?? p.Red ?? p.redTime ?? p.RedTime ?? 0,
+      yellow: p.yellow ?? p.Yellow ?? p.yellowTime ?? p.YellowTime ?? 0,
+      green: p.green ?? p.Green ?? p.greenTime ?? p.GreenTime ?? 0,
+      blinkInterval: blinkInt,
+      blinkGreen: blinkInt > 0 && !!(p.blinkGreen ?? p.BlinkGreen),
+      blinkYellow: blinkInt > 0 && !!(p.blinkYellow ?? p.BlinkYellow),
+      blinkRed: blinkInt > 0 && !!(p.blinkRed ?? p.BlinkRed),
+      mergeWith:
+        p.mergeWith ?? p.MergeWith ?? (p.isMerged || p.IsMerged ? p.mergedWith || p.MergedWith : 0),
+      isOverLap: p.isOverLap ?? p.IsOverLap ?? p.IsOverlap ?? overTime > 0,
+      overLapTime: overTime,
+    };
   }
 
   add(command: AddLightPatternCommand): Observable<Result> {

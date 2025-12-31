@@ -100,6 +100,9 @@ export class Templatecomponent implements OnInit {
       createPattern: 'Create / Update Pattern',
       defaultPattern: 'Default pattern',
       allLightsZeroError: 'At least one light must have a non-zero value',
+      overlap: 'Overlap',
+      overlapTime: 'Overlap Time (sec)',
+      blinkOverlapWarning: 'Blinking and overlaping not Happening in the counter',
     },
     ar: {
       templateManager: 'إدارة القوالب',
@@ -148,6 +151,9 @@ export class Templatecomponent implements OnInit {
       createPattern: 'إنشاء / تعديل النمط',
       defaultPattern: 'النمط الافتراضي',
       allLightsZeroError: 'يجب أن يكون لإشارة واحدة على الأقل قيمة غير صفر',
+      overlap: 'تداخل',
+      overlapTime: 'وقت التداخل',
+      blinkOverlapWarning: 'الوميض والتداخل لا يظهران في العداد',
     },
   } as const;
 
@@ -187,6 +193,8 @@ export class Templatecomponent implements OnInit {
 
       blinkInterval: [500, [Validators.required, Validators.min(0), Validators.max(10000)]],
       mergeYellowWith: ['none'],
+      isOverLap: [false],
+      overLapTime: [null, [Validators.min(0)]],
     },
     { validators: this.atLeastOneLightValidator() }
   );
@@ -218,21 +226,22 @@ export class Templatecomponent implements OnInit {
         if (p) {
           // Convert mergeWith to mergeYellowWith
           let mergeYellowWith = 'none';
-          const mergeVal = p.mergeWith ?? (p as any).MergeWith ?? 0;
-          if (mergeVal === 1) mergeYellowWith = 'red';
-          else if (mergeVal === 3) mergeYellowWith = 'green';
+          if (p.mergeWith === 1) mergeYellowWith = 'red';
+          else if (p.mergeWith === 3) mergeYellowWith = 'green';
 
           this.patternForm.patchValue(
             {
               name: p.name,
-              green: (p as any).green ?? (p as any).Green ?? 0,
-              yellow: (p as any).yellow ?? (p as any).Yellow ?? 0,
-              red: (p as any).red ?? (p as any).Red ?? 0,
-              blinkInterval: p.blinkInterval ?? 500,
-              blinkGreen: !!p.blinkGreen,
-              blinkYellow: !!p.blinkYellow,
-              blinkRed: !!p.blinkRed,
+              green: p.green,
+              yellow: p.yellow,
+              red: p.red,
+              blinkInterval: p.blinkInterval,
+              blinkGreen: p.blinkGreen,
+              blinkYellow: p.blinkYellow,
+              blinkRed: p.blinkRed,
               mergeYellowWith: mergeYellowWith,
+              isOverLap: p.isOverLap,
+              overLapTime: p.overLapTime,
             },
             { emitEvent: false }
           );
@@ -242,6 +251,15 @@ export class Templatecomponent implements OnInit {
           this.resetPatternEditor(false);
         }
       });
+
+    this.patternForm.get('blinkInterval')!.valueChanges.subscribe((val) => {
+      if (val === 0) {
+        this.patternForm.patchValue(
+          { blinkGreen: false, blinkYellow: false, blinkRed: false },
+          { emitEvent: false }
+        );
+      }
+    });
   }
 
   private loadTemplates() {
@@ -260,14 +278,7 @@ export class Templatecomponent implements OnInit {
   private loadLightPatterns() {
     this.lightPatternService.getAll().subscribe({
       next: (resp) => {
-        const list = (resp?.value ?? []).map((p: any) => ({
-          ...p,
-          blinkInterval: typeof p.blinkInterval === 'number' ? p.blinkInterval : 500,
-          blinkGreen: !!p.blinkGreen,
-          blinkYellow: !!p.blinkYellow,
-          blinkRed: !!p.blinkRed,
-        }));
-        this.lightPatterns = list;
+        this.lightPatterns = resp?.value ?? [];
       },
       error: (err) => {
         const { messages } = this.extractApiErrors(err);
@@ -503,6 +514,8 @@ export class Templatecomponent implements OnInit {
         blinkYellow: false,
         blinkRed: false,
         mergeYellowWith: 'none',
+        isOverLap: false,
+        overLapTime: null,
       },
       { emitEvent: false }
     );
@@ -519,32 +532,7 @@ export class Templatecomponent implements OnInit {
   }
 
   onPatternChange(): void {
-    const selected: GetAllLightPattern | undefined = this.patternForm.value.selectedPattern;
-    if (selected) {
-      this.patternForm.patchValue(
-        {
-          name: selected.name,
-          red: (selected as any).red ?? (selected as any).Red ?? 0,
-          green: (selected as any).green ?? (selected as any).Green ?? 0,
-          yellow: (selected as any).yellow ?? (selected as any).Yellow ?? 0,
-          blinkInterval: selected.blinkInterval ?? 500,
-          blinkGreen: !!selected.blinkGreen,
-          blinkYellow: !!selected.blinkYellow,
-          blinkRed: !!selected.blinkRed,
-          mergeYellowWith:
-            (selected.mergeWith ?? (selected as any).MergeWith) === 1
-              ? 'red'
-              : (selected.mergeWith ?? (selected as any).MergeWith) === 3
-              ? 'green'
-              : 'none',
-        },
-        { emitEvent: false }
-      );
-      this.showPatternFields = true;
-      setTimeout(() => this.patternNameRef?.nativeElement?.focus(), 0);
-    } else {
-      this.resetPatternEditor(false);
-    }
+    // Logic moved to selectedPattern valueChanges subscription in ngOnInit
   }
 
   createPattern(): void {
@@ -584,6 +572,8 @@ export class Templatecomponent implements OnInit {
       BlinkRed: !!raw.blinkRed,
       IsMerged: isMerged,
       MergedWith: mergedWith,
+      IsOverLap: !!raw.isOverLap,
+      OverLapTime: Number(raw.overLapTime) || 0,
     };
 
     console.log('📤 Sending Light Pattern Payload:', payload);
@@ -673,6 +663,8 @@ export class Templatecomponent implements OnInit {
       blinkYellow: false,
       blinkRed: false,
       mergeYellowWith: 'none',
+      isOverLap: false,
+      overLapTime: null,
     });
     this.showPatternFields = !hide ? this.showPatternFields : false;
   }

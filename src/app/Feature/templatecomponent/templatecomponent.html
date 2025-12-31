@@ -366,7 +366,6 @@
                 id="patternSelect"
                 class="form-control-modern"
                 formControlName="selectedPattern"
-                (change)="onPatternChange()"
                 style="min-width: 260px"
               >
                 <option [ngValue]="undefined">
@@ -419,7 +418,7 @@
             </div>
           </div>
 
-          <div class="form-section">
+          <div class="form-section" *ngIf="showPatternFields">
             <label class="section-label">
               <svg
                 width="16"
@@ -592,6 +591,76 @@
                 <input type="checkbox" formControlName="blinkRed" />
                 <span>{{ isAr ? 'وميض' : 'Blink' }}</span>
               </label>
+
+              <!-- Overlap Toggle -->
+              <label class="blink-toggle">
+                <input type="checkbox" formControlName="isOverLap" />
+                <span>{{ tr('overlap') }}</span>
+              </label>
+
+              <!-- Overlap Time Input -->
+              <div
+                class="light-input-wrapper"
+                *ngIf="patternForm.get('isOverLap')?.value"
+                style="flex-direction: column; align-items: flex-start"
+              >
+                <label style="font-size: 0.85rem; margin-bottom: 0.25rem">{{
+                  tr('overlapTime')
+                }}</label>
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                  <input
+                    type="number"
+                    class="light-input"
+                    formControlName="overLapTime"
+                    min="0"
+                    max="1000"
+                    step="1"
+                    dir="ltr"
+                    [class.is-invalid]="
+                      patternForm.get('overLapTime')?.invalid &&
+                      patternForm.get('overLapTime')?.touched
+                    "
+                  />
+                  <span class="light-unit">{{ tr('sec') }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Warning Message -->
+            <div
+              class="warning-message"
+              style="
+                margin-top: 1rem;
+                padding: 0.75rem;
+                background: rgba(241, 196, 15, 0.15);
+                border-left: 4px solid #f1c40f;
+                border-radius: 4px;
+                color: #d35400;
+                font-weight: 500;
+              "
+              *ngIf="
+                patternForm.value.blinkGreen ||
+                patternForm.value.blinkYellow ||
+                patternForm.value.blinkRed ||
+                patternForm.get('isOverLap')?.value
+              "
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                style="margin-right: 0.5rem; vertical-align: bottom"
+              >
+                <path
+                  d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                ></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              {{ tr('blinkOverlapWarning') }}
             </div>
 
             <!-- Blink interval (ms) -->
@@ -616,7 +685,7 @@
                   type="number"
                   class="form-control-modern"
                   formControlName="blinkInterval"
-                  min="50"
+                  min="0"
                   max="10000"
                   step="10"
                   dir="ltr"
@@ -624,7 +693,7 @@
                   [placeholder]="isAr ? 'مثال: 500' : 'e.g. 500'"
                 />
                 <small class="text-muted">
-                  {{ isAr ? 'المدى المقترح 50–10000 مللي ثانية' : 'Suggested range 50–10000 ms' }}
+                  {{ isAr ? 'المدى المقترح 0–10000 مللي ثانية' : 'Suggested range 0–10000 ms' }}
                 </small>
               </div>
               <div

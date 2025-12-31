@@ -9,5 +9,6 @@ export interface GetLightPattern {
   blinkYellow: boolean;
   blinkRed: boolean;
   mergeWith: number;
-  MergeWith?: number;
+  isOverLap?: boolean;
+  overLapTime?: number;
 }
