@@ -100,9 +100,10 @@ export class Templatecomponent implements OnInit {
       createPattern: 'Create / Update Pattern',
       defaultPattern: 'Default pattern',
       allLightsZeroError: 'At least one light must have a non-zero value',
-      overlap: 'Overlap',
+      overlap: 'Green Overlap',
       overlapTime: 'Overlap Time (sec)',
       blinkOverlapWarning: 'Blinking and overlaping not Happening in the counter',
+      overlapExceedsGreenError: 'Overlap time cannot be greater than Green duration',
     },
     ar: {
       templateManager: 'إدارة القوالب',
@@ -154,6 +155,7 @@ export class Templatecomponent implements OnInit {
       overlap: 'تداخل',
       overlapTime: 'وقت التداخل',
       blinkOverlapWarning: 'الوميض والتداخل لا يظهران في العداد',
+      overlapExceedsGreenError: 'وقت التداخل لا يمكن أن يكون أكبر من وقت الأخضر',
     },
   } as const;
 
@@ -196,7 +198,7 @@ export class Templatecomponent implements OnInit {
       isOverLap: [false],
       overLapTime: [null, [Validators.min(0)]],
     },
-    { validators: this.atLeastOneLightValidator() }
+    { validators: [this.atLeastOneLightValidator(), this.overlapNotExceedGreenValidator()] }
   );
 
   get rows(): FormArray<FormGroup> {
@@ -211,6 +213,19 @@ export class Templatecomponent implements OnInit {
 
       if (green === 0 && yellow === 0 && red === 0) {
         return { allLightsZero: true };
+      }
+      return null;
+    };
+  }
+
+  private overlapNotExceedGreenValidator() {
+    return (formGroup: any) => {
+      const green = formGroup.get('green')?.value || 0;
+      const isOverLap = formGroup.get('isOverLap')?.value;
+      const overLapTime = formGroup.get('overLapTime')?.value || 0;
+
+      if (isOverLap && overLapTime > green) {
+        return { overlapExceedsGreen: true };
       }
       return null;
     };

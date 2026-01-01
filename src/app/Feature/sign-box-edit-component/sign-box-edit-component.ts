@@ -602,4 +602,23 @@ export class SignBoxEditComponent implements OnInit {
   forceApply(): void {
     this.apply(true);
   }
+
+  restartSignBox(): void {
+    if (!this.id) return;
+    this.service.Restart(this.id).subscribe();
+  }
+
+  deleteSignBox(): void {
+    const confirmMsg = this.isAr
+      ? 'هل أنت متأكد أنك تريد حذف صندوق الإشارة هذا؟'
+      : 'Are you sure you want to delete this SignBox?';
+
+    if (confirm(confirmMsg)) {
+      this.service.Delete(this.id).subscribe((res: any) => {
+        if (res?.isSuccess) {
+          this.router.navigate(['/signbox']);
+        }
+      });
+    }
+  }
 }

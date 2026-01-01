@@ -190,4 +190,31 @@ export class ISignBoxControlService {
       catchError(this.handleError<Result>('Update', {} as any))
     );
   }
+
+  Delete(signBoxId: number): Observable<Result> {
+    const params = new HttpParams().set('signBoxId', signBoxId.toString());
+    return this.http.delete<Result>(`${environment.baseUrl}/SignControlBox`, { params }).pipe(
+      map((resp) => {
+        if (!(resp as any)?.isSuccess)
+          throw new Error((resp as any)?.error?.description ?? 'Unknown error');
+        return resp;
+      }),
+      tap(() => this.toast.success('Deleted Successfully')),
+      catchError(this.handleError<Result>('Delete', {} as any))
+    );
+  }
+
+  Restart(signBoxId: number): Observable<Result> {
+    return this.http
+      .post<Result>(`${environment.baseUrl}/SignControlBox/Restart`, { signBoxId })
+      .pipe(
+        map((resp) => {
+          if (!(resp as any)?.isSuccess)
+            throw new Error((resp as any)?.error?.description ?? 'Unknown error');
+          return resp;
+        }),
+        tap(() => this.toast.success('Restart command sent successfully')),
+        catchError(this.handleError<Result>('Restart', {} as any))
+      );
+  }
 }

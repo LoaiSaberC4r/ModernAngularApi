@@ -599,15 +599,10 @@
               </label>
 
               <!-- Overlap Time Input -->
-              <div
-                class="light-input-wrapper"
-                *ngIf="patternForm.get('isOverLap')?.value"
-                style="flex-direction: column; align-items: flex-start"
-              >
-                <label style="font-size: 0.85rem; margin-bottom: 0.25rem">{{
-                  tr('overlapTime')
-                }}</label>
-                <div style="display: flex; align-items: center; gap: 0.5rem">
+              <!-- Overlap Time Input -->
+              <div class="overlap-config-wrapper" *ngIf="patternForm.get('isOverLap')?.value">
+                <div class="light-input-wrapper">
+                  <span class="overlap-label-mini">{{ tr('overlapTime') }}</span>
                   <input
                     type="number"
                     class="light-input"
@@ -617,11 +612,25 @@
                     step="1"
                     dir="ltr"
                     [class.is-invalid]="
-                      patternForm.get('overLapTime')?.invalid &&
-                      patternForm.get('overLapTime')?.touched
+                      (patternForm.get('overLapTime')?.invalid &&
+                        patternForm.get('overLapTime')?.touched) ||
+                      (patternForm.hasError('overlapExceedsGreen') &&
+                        (patternForm.get('overLapTime')?.dirty ||
+                          patternForm.get('overLapTime')?.touched))
                     "
                   />
                   <span class="light-unit">{{ tr('sec') }}</span>
+                </div>
+
+                <div
+                  class="error-msg-floating text-danger"
+                  *ngIf="
+                    patternForm.hasError('overlapExceedsGreen') &&
+                    (patternForm.get('overLapTime')?.dirty ||
+                      patternForm.get('overLapTime')?.touched)
+                  "
+                >
+                  {{ tr('overlapExceedsGreenError') }}
                 </div>
               </div>
             </div>

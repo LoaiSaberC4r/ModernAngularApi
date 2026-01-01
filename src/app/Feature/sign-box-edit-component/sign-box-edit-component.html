@@ -231,6 +231,28 @@
       <!-- ====== Actions ====== -->
       <div class="col-12">
         <div class="actions d-flex align-items-center gap-2 mt-3">
+          <!-- Restart Button -->
+          <button
+            type="button"
+            class="btn btn-warning text-dark d-flex align-items-center gap-2"
+            (click)="restartSignBox()"
+            [title]="isAr ? 'إعادة تشغيل الكابينة' : 'Restart Cabinet'"
+          >
+            <i class="bi bi-arrow-clockwise"></i>
+            {{ isAr ? 'إعادة تشغيل' : 'Restart' }}
+          </button>
+
+          <!-- Delete Button -->
+          <button
+            type="button"
+            class="btn btn-outline-danger d-flex align-items-center gap-2"
+            (click)="deleteSignBox()"
+            [title]="isAr ? 'حذف صندوق الإشارة' : 'Delete SignBox'"
+          >
+            <i class="bi bi-trash"></i>
+            {{ isAr ? 'حذف' : 'Delete' }}
+          </button>
+
           <div class="actions-end ms-auto d-flex gap-2">
             <button type="button" (click)="forceApply()" class="btn btn-danger text-white">
               {{ isAr ? 'تطبيق إجباري' : 'Force Apply' }}
