@@ -7,29 +7,30 @@ import { environment } from '../../Shared/environment/environment';
 import { HubConnectionStatus } from '../../Domain/SignalR/HubConnectionStatus';
 import { ChatMessage } from '../../Domain/SignalR/ChatMessage';
 import { TrafficBroadcast } from '../../Domain/SignalR/TrafficBroadcast';
+import { SignalRStatusDto } from '../../Domain/SignalR/SignalRStatusDto';
 
 type IncomingPayload = unknown;
 
 @Injectable({ providedIn: 'root' })
 export class ISignalrService {
-  private static readonly INACTIVITY_MS = 10_000; // ✅ مصدر واحد للحقيقة
+  private static readonly INACTIVITY_MS = 10_000;
 
   private readonly destroyRef = inject(DestroyRef);
 
   readonly status = signal<HubConnectionStatus>('disconnected');
   readonly lastError = signal<string | null>(null);
 
-  readonly cabinetPing = signal<ChatMessage<number> | null>(null);
+  readonly cabinetPing = signal<ChatMessage<SignalRStatusDto> | null>(null);
   readonly trafficBroadcast = signal<ChatMessage<TrafficBroadcast> | null>(null);
 
-  // ✅ Presence store inside the service
+  // Presence store inside the service
   private readonly _lastSeen = signal<Record<number, number>>({});
   private readonly _now = signal<number>(Date.now());
 
-  // ✅ Expose as readonly computed (for debugging / UI if needed)
+  // Expose as readonly computed (for debugging / UI if needed)
   readonly lastSeen = computed(() => this._lastSeen());
 
-  // ✅ This is the “source” for active status
+  // This is the “source” for active status
   isCabinetActive(cabinetId: unknown): boolean {
     const id = Number(cabinetId);
     if (!Number.isFinite(id) || id <= 0) return false;
@@ -42,7 +43,7 @@ export class ISignalrService {
   private joinedCabinetId: number | null = null;
 
   constructor() {
-    // ✅ tick every 1s so computed activity updates automatically
+    // tick every 1s so computed activity updates automatically
     interval(1000)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this._now.set(Date.now()));
@@ -78,10 +79,10 @@ export class ISignalrService {
       const parsed = this.parsePayload(payload);
       if (!parsed) return;
 
-      if (parsed.kind === 'cabinetId') {
-        const msg: ChatMessage<number> = { user, message: parsed.value, at: new Date() };
+      if (parsed.kind === 'status') {
+        const msg: ChatMessage<SignalRStatusDto> = { user, message: parsed.value, at: new Date() };
         this.cabinetPing.set(msg);
-        this.touchCabinet(parsed.value);
+        this.touchCabinet(parsed.value.id);
         return;
       }
 
@@ -97,7 +98,8 @@ export class ISignalrService {
       const id = Number(parsed.value.ID);
       if (Number.isFinite(id) && id > 0) {
         this.touchCabinet(id);
-        this.cabinetPing.set({ user, message: id, at: new Date() });
+        // We could also set cabinetPing here if we wanted, but broadcast implies activity
+        // this.cabinetPing.set({ user, message: { id, isGps: false }, at: new Date() });
       }
     });
 
@@ -210,27 +212,51 @@ export class ISignalrService {
   // ===============================
   private parsePayload(
     payload: IncomingPayload
-  ): { kind: 'cabinetId'; value: number } | { kind: 'broadcast'; value: TrafficBroadcast } | null {
+  ):
+    | { kind: 'status'; value: SignalRStatusDto }
+    | { kind: 'broadcast'; value: TrafficBroadcast }
+    | null {
     const raw = this.tryJson(payload);
 
+    // 1. Number (Old format)
     if (typeof raw === 'number') {
       const id = Number(raw);
-      if (Number.isFinite(id) && id > 0) return { kind: 'cabinetId', value: id };
+      if (Number.isFinite(id) && id > 0) return { kind: 'status', value: { id, isGps: false } };
       return null;
     }
 
     if (typeof raw === 'string') {
       const n = Number(raw);
-      if (Number.isFinite(n) && n > 0) return { kind: 'cabinetId', value: n };
+      if (Number.isFinite(n) && n > 0) return { kind: 'status', value: { id: n, isGps: false } };
       return null;
     }
 
     if (raw && typeof raw === 'object') {
-      const maybeId = Number((raw as any).ID ?? (raw as any).id);
-      if (!Number.isFinite(maybeId) || maybeId <= 0) return null;
+      const r = raw as any;
+      const maybeId = Number(r.Id ?? r.ID ?? r.id);
 
-      const normalized: TrafficBroadcast = { ...(raw as any), ID: maybeId } as TrafficBroadcast;
-      return { kind: 'broadcast', value: normalized };
+      // 2. SignalRStatusDto (New format: Id, IsGps)
+      if (Number.isFinite(maybeId) && maybeId > 0) {
+        // If it has IsGps explicitly
+        if ('IsGps' in r || 'isGps' in r) {
+          return {
+            kind: 'status',
+            value: {
+              id: maybeId,
+              isGps: r.IsGps ?? r.isGps ?? false,
+            },
+          };
+        }
+
+        // Check if it's a TrafficBroadcast
+        if ('L1' in r || 'l1' in r) {
+          const normalized: TrafficBroadcast = { ...r, ID: maybeId } as TrafficBroadcast;
+          return { kind: 'broadcast', value: normalized };
+        }
+
+        // Fallback: It's an object with just ID
+        return { kind: 'status', value: { id: maybeId, isGps: false } };
+      }
     }
 
     return null;

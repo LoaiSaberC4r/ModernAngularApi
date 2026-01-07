@@ -25,6 +25,7 @@ import { debounceTime } from 'rxjs/operators';
 import { LanguageService } from '../../Services/Language/language-service';
 
 import { TrafficBroadcast } from '../../Domain/SignalR/TrafficBroadcast';
+import { SignalRStatusDto } from '../../Domain/SignalR/SignalRStatusDto';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
@@ -40,7 +41,7 @@ type TrafficColorText = 'Green' | 'Yellow' | 'Red' | 'Off' | string;
 @Component({
   selector: 'app-sign-box-component',
   standalone: true,
-  imports: [CommonModule, FormsModule, OverlayModule, CommonModule],
+  imports: [CommonModule, FormsModule, OverlayModule],
   templateUrl: './sign-box-component.html',
   styleUrls: ['./sign-box-component.css'],
 })
@@ -75,12 +76,14 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   readonly status = this.signalr.status;
   readonly lastError = this.signalr.lastError;
 
-  isDisconnected = false;
   private disconnectTimerSub?: Subscription;
   private sweepSub?: Subscription;
 
   // Activity + cache
+  /* lastSeen: آخر وقت وصل فيه أي event للكابينة */
   private lastSeen: Record<number, number> = {};
+  /* gpsStatus: حالة الـ GPS القادمة من SignalR */
+  private gpsStatus: Record<number, boolean> = {};
   latestByCabinetId: Record<number, TrafficBroadcast> = {};
 
   // Search
@@ -138,12 +141,14 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     toObservable(this.signalr.cabinetPing)
       .pipe(takeUntilDestroyed())
       .subscribe((msg) => {
-        if (!msg) return;
+        if (!msg?.message) return;
+        const val = msg.message;
+        const id = val.id;
 
-        const cabId = Number(msg.message);
-        if (!Number.isFinite(cabId) || cabId <= 0) return;
-
-        this.lastSeen[cabId] = Date.now();
+        if (id && id > 0) {
+          this.lastSeen[id] = Date.now();
+          this.gpsStatus[id] = val.isGps;
+        }
       });
 
     /**
@@ -223,7 +228,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     this.loadData();
     this.loadGovernates();
 
-    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const cabId = Number(params.get('cabinetId') || 0);
       const refreshMark = params.get('refresh');
       if (cabId || refreshMark !== null) {
@@ -234,7 +239,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     });
 
     this.sweepSub = timer(SignBoxComponent.SWEEP_MS, SignBoxComponent.SWEEP_MS)
-      .pipe(takeUntilDestroyed())
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         if (this.popupData?.cabinetId != null) {
           const cab = this.popupData.cabinetId!;
@@ -630,6 +635,10 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     return s === 'connected';
   }
 
+  get isDisconnected(): boolean {
+    return !this.isSignalRConnected;
+  }
+
   /** حالة الـ Live الظاهرة في البوب-أب */
   get popupIsLive(): boolean {
     const cab = this.popupData?.cabinetId;
@@ -723,7 +732,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  severityLabelAr: Record<'CRITICAL' | 'WARN' | 'INFO', string> = {
+  severityLabelAr: Record<string, string> = {
     CRITICAL: 'حرج',
     WARN: 'تحذير',
     INFO: 'معلومة',
@@ -746,44 +755,39 @@ export class SignBoxComponent implements OnInit, OnDestroy {
       messageAr: string;
       lastUpdate: string;
     }>
-  > = {
-    5857: [
-      {
-        component: 'Controller',
-        severity: 'CRITICAL',
-        message: 'Controller offline – no heartbeat in 5m',
-        messageAr: 'وحدة التحكم غير متصلة — لا نبض خلال 5 دقائق',
-        lastUpdate: '2025-10-16 11:48',
-      },
-      {
-        component: 'Power',
-        severity: 'WARN',
-        message: 'Battery voltage low (11.3V)',
-        messageAr: 'جهد البطارية منخفض (11.3V)',
-        lastUpdate: '2025-10-16 11:46',
-      },
-      {
-        component: 'Loop-Sensor L2',
-        severity: 'INFO',
-        message: 'High occupancy detected',
-        messageAr: 'ارتفاع الإشغال على الحلقة الثانية',
-        lastUpdate: '2025-10-16 11:45',
-      },
-    ],
-    10001: [],
-    10002: [
-      {
-        component: 'Pedestrian',
-        severity: 'WARN',
-        message: 'Push button stuck (north crossing)',
-        messageAr: 'زر المشاة عالق (المعبر الشمالي)',
-        lastUpdate: '2025-10-16 10:12',
-      },
-    ],
-  };
+  > = {};
 
   getStatus(item: any) {
-    return this.statusMap[item.cabinetId] ?? [];
+    const list = this.statusMap[item.cabinetId] ?? [];
+
+    // Inject GPS Status if available
+    const gps = this.gpsStatus[item.cabinetId];
+
+    if (gps === true) {
+      return [
+        ...list,
+        {
+          component: 'GPS',
+          severity: 'INFO',
+          message: 'GPS Failer',
+          messageAr: 'GPS متوقف',
+          lastUpdate: 'Now',
+        },
+      ];
+    } else if (gps === false) {
+      return [
+        ...list,
+        {
+          component: 'GPS',
+          severity: 'WARN',
+          message: '',
+          messageAr: '',
+          lastUpdate: 'Now',
+        },
+      ];
+    }
+
+    return list;
   }
 
   statusSummary(item: any) {

@@ -131,3 +131,9 @@
     height: 60vh;
   }
 }
+
+::ng-deep .gray-icon {
+  filter: grayscale(100%) !important;
+  -webkit-filter: grayscale(100%) !important;
+  opacity: 0.8;
+}

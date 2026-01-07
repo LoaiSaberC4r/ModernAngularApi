@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -57,6 +57,7 @@ export class SignBoxController implements OnInit, OnDestroy {
   private readonly areaService = inject(IAreaService);
   private readonly governateService = inject(IGovernateService);
   private readonly toaster = inject(ToasterService);
+  private readonly destroyRef = inject(DestroyRef);
 
   get isAr() {
     return this.langService.current === 'ar';
@@ -140,8 +141,8 @@ export class SignBoxController implements OnInit, OnDestroy {
       .subscribe((msg) => {
         if (!msg) return;
 
-        const cabId = Number(msg.message);
-        if (!Number.isFinite(cabId) || cabId <= 0) return;
+        const cabId = msg.message?.id;
+        if (!cabId || cabId <= 0) return;
 
         this.touchCabinet(cabId);
         this.recomputeActives();
@@ -242,7 +243,7 @@ export class SignBoxController implements OnInit, OnDestroy {
 
     // كل ثانية: شيل Active من اللي بقالها أكتر من 10 ثواني
     this.sweepSub = timer(SignBoxController.SWEEP_MS, SignBoxController.SWEEP_MS)
-      .pipe(takeUntilDestroyed())
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.recomputeActives();
       });

@@ -6,4 +6,5 @@ export interface GetAllSignBoxLocation {
   longitude: string;
   areaName: string;
   governateName: string;
+  cabinetId?: number;
 }

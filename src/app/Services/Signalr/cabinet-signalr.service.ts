@@ -137,4 +137,16 @@ export class CabinetSignalrService {
   get currentJoinedCabinetId(): number | null {
     return this.joinedCabinetId;
   }
+
+  // Used for bulk monitoring (e.g. Map View) without tracking single active cabinet
+  async monitorCabinet(cabinetId: number): Promise<void> {
+    const id = Number(cabinetId);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    await this.ensureConnected();
+    if (!this.connection) return;
+
+    // Just join, don't track as "the" active cabinet
+    await this.connection.invoke('JoinCabinet', id);
+  }
 }

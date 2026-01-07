@@ -7,11 +7,17 @@ import {
   NgZone,
   HostListener,
   inject,
+  DestroyRef,
 } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { LanguageService } from '../../Services/Language/language-service';
 import * as L from 'leaflet';
 import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-controlService';
+import { CabinetSignalrService } from '../../Services/Signalr/cabinet-signalr.service';
+import { CabinetStatusMessage } from '../../Domain/SignalR/cabinet-status-message';
+import { FormsModule } from '@angular/forms';
+import { ISignalrService } from '../../Services/Signalr/isignalr-service';
 
 const defaultIcon = L.icon({
   iconUrl: '../../../assets/img/marker-green-40.png',
@@ -22,8 +28,6 @@ const defaultIcon = L.icon({
   shadowSize: [41, 41],
 });
 L.Marker.prototype.options.icon = defaultIcon;
-
-import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-greenwaycomponent',
@@ -37,6 +41,11 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   private ngZone = inject(NgZone);
   private clipboard = inject(Clipboard);
   private langService = inject(LanguageService);
+  private destroyRef = inject(DestroyRef);
+
+  private signBoxService = inject(ISignBoxControlService);
+  private signalrService = inject(CabinetSignalrService);
+  private globalSignalR = inject(ISignalrService);
 
   get isAr() {
     return this.langService.current === 'ar';
@@ -58,10 +67,106 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   cars: L.Marker[] = [];
   cabinetMarkers: L.Marker[] = [];
 
-  private signBoxService = inject(ISignBoxControlService);
+  // Map for O(1) access to markers by ID
+  private cabinetMarkersMap = new Map<number, L.Marker>();
 
   readonly defaultCenter: L.LatLngExpression = [30.0444, 31.2357];
   readonly defaultZoom = 13;
+
+  // Custom Icons
+  readonly iconGray = L.icon({
+    iconUrl: 'assets/img/r.png',
+    iconSize: [35, 35],
+    iconAnchor: [17, 35],
+    popupAnchor: [0, -35],
+    className: 'gray-icon',
+  });
+
+  readonly iconDefault = L.icon({
+    iconUrl: 'assets/img/traffic-light-305721.png',
+    iconSize: [35, 35],
+    iconAnchor: [17, 35],
+    popupAnchor: [0, -35],
+  });
+
+  readonly iconRed = L.icon({
+    iconUrl: 'assets/img/r.png',
+    iconSize: [35, 35],
+    iconAnchor: [17, 35],
+    popupAnchor: [0, -35],
+  });
+
+  readonly iconGreen = L.icon({
+    iconUrl: 'assets/img/g.png',
+    iconSize: [35, 35],
+    iconAnchor: [17, 35],
+    popupAnchor: [0, -35],
+  });
+
+  readonly iconAmber = L.icon({
+    iconUrl: 'assets/img/a.png',
+    iconSize: [35, 35],
+    iconAnchor: [17, 35],
+    popupAnchor: [0, -35],
+  });
+
+  constructor() {
+    // 1. Listen to Specific Cabinet Status (Targeted)
+    toObservable(this.signalrService.cabinetStatus)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((msg) => {
+        if (msg) {
+          this.updateMarkerStatus(msg);
+        }
+      });
+
+    // 2. Listen to Global Traffic Broadcast (Broad) - proven to work in SignBoxComponent
+    toObservable(this.globalSignalR.trafficBroadcast)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((msg) => {
+        if (msg?.message) {
+          const broadcast = msg.message;
+          // Map broadcast to our status format
+          this.updateMarkerStatus({
+            id: broadcast.ID,
+            l1: broadcast.L1,
+            t1: broadcast.T1,
+            l2: broadcast.L2,
+            t2: broadcast.T2,
+            l3: broadcast.L3,
+            t3: broadcast.T3,
+            l4: broadcast.L4,
+            t4: broadcast.T4,
+          });
+        }
+      });
+  }
+
+  updateMarkerStatus(msg: CabinetStatusMessage) {
+    const marker = this.cabinetMarkersMap.get(msg.id);
+    if (!marker) return;
+
+    // Normalize and determine color from L1
+    const color = this.normalizeColor(msg.l1);
+
+    // Debug log to confirm update
+    // console.log(`Traffic Update: ID=${msg.id}, Color=${color}`);
+
+    let newIcon = this.iconGray;
+    if (color === 'R') newIcon = this.iconRed;
+    else if (color === 'G') newIcon = this.iconGreen;
+    else if (color === 'Y') newIcon = this.iconAmber;
+
+    marker.setIcon(newIcon);
+  }
+
+  private normalizeColor(c: any): 'R' | 'G' | 'Y' | null {
+    const val = (c || '').toString().toLowerCase();
+    if (val === 'r' || val === 'red') return 'R';
+    if (val === 'g' || val === 'green') return 'G';
+    if (val === 'y' || val === 'yellow') return 'Y';
+    return null;
+  }
 
   ngOnInit(): void {
     this.initMap();
@@ -69,7 +174,15 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     this.loadCabinetLocations();
   }
 
-  loadCabinetLocations() {
+  async loadCabinetLocations() {
+    // Connect to BOTH services to ensure we get updates
+    try {
+      await this.signalrService.connect();
+      await this.globalSignalR.connect();
+    } catch (err) {
+      console.error('SignalR Connection Error:', err);
+    }
+
     this.signBoxService.getAll({ pageSize: 10000 }).subscribe({
       next: (result) => {
         if (result.isSuccess && result.value && result.value.data) {
@@ -84,21 +197,29 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
                   <strong>${loc.name ?? (this.isAr ? 'كابينة' : 'Cabinet')}</strong><br/>
                   <hr style="margin: 5px 0;">
                   <small><b>IP:</b> ${loc.ipAddress ?? 'N/A'}</small><br/>
-                  <small><b>ID:</b> ${loc.id}</small>
-                </div>
+                 </div>
               `;
 
               const marker = L.marker([lat, lng], {
                 draggable: false,
-                icon: L.icon({
-                  iconUrl: 'assets/img/traffic-light-305721.png',
-                  iconSize: [35, 35],
-                  iconAnchor: [17, 35],
-                  popupAnchor: [0, -35],
-                }),
+                icon: this.iconGray,
               })
                 .bindPopup(popupContent)
                 .addTo(this.map);
+
+              // Map by Database ID
+              if (loc.id) {
+                this.cabinetMarkersMap.set(loc.id, marker);
+                this.signalrService.monitorCabinet(loc.id).catch(() => {});
+              }
+
+              // Map by Cabinet ID (Hardware ID) if available
+              const cabId = Number(loc.cabinetId);
+              if (Number.isFinite(cabId) && cabId > 0) {
+                this.cabinetMarkersMap.set(cabId, marker);
+                this.signalrService.monitorCabinet(cabId).catch(() => {});
+              }
+
               this.cabinetMarkers.push(marker);
             }
           });
@@ -109,6 +230,8 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.signalrService.disconnect();
+
     if (this.map) this.map.remove();
     if (this.resizeObserver) this.resizeObserver.disconnect();
   }
@@ -138,7 +261,6 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
       const tileLayer = L.tileLayer('assets/tiles/{z}/{x}/{y}.png', {
         maxZoom: 14,
         minZoom: 6,
-
         attribution: 'Offline Map',
         errorTileUrl: 'assets/img/no-tile.png',
       });
@@ -169,9 +291,6 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
       this.map.whenReady(() => {
         this.isLoading = false;
         setTimeout(() => this.map.invalidateSize(), 200);
-
-        // Uncomment if you want to fly to user location on load (requires GPS)
-        // this.getCurrentLocation();
       });
     } catch (err) {
       console.error(err);
@@ -294,7 +413,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
           const marker = L.marker(latLng, {
             draggable: false,
             icon: L.icon({
-              iconUrl: 'https://cdn-icons-png.flaticon.com/512/447/447031.png', // This might not work offline!
+              iconUrl: 'https://cdn-icons-png.flaticon.com/512/447/447031.png',
               iconSize: [32, 32],
             }),
           }).addTo(this.map);
