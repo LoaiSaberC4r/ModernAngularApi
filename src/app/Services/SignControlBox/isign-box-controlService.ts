@@ -110,7 +110,7 @@ export class ISignBoxControlService {
       );
   }
 
-  getAllLocatopn(): Observable<ResultV<GetAllSignBoxLocation>> {
+  getAllLocations(): Observable<ResultV<GetAllSignBoxLocation>> {
     return this.http
       .get<ResultV<GetAllSignBoxLocation>>(
         `${environment.baseUrl}/SignControlBox/GetSignControlBoxLocations`

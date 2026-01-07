@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -26,16 +26,20 @@ import { HubConnectionStatus } from '../../Domain/SignalR/HubConnectionStatus';
 import { ToasterService } from '../../Services/Toster/toaster-service';
 
 export interface ReceiveMessage {
-  L1: 'R' | 'Y' | 'G';
-  L2: 'R' | 'Y' | 'G';
-  T1: number;
-  T2: number;
+  L1?: 'R' | 'Y' | 'G';
+  L2?: 'R' | 'Y' | 'G';
+  L3?: 'R' | 'Y' | 'G';
+  L4?: 'R' | 'Y' | 'G';
+  T1?: number;
+  T2?: number;
+  T3?: number;
+  T4?: number;
+
+  /**
+   * ✅ IMPORTANT:
+   * الباك عندك بيستخدم ID كـ CabinetId
+   */
   ID: number;
-}
-export interface ChatMessage {
-  user: string;
-  message: ReceiveMessage;
-  at: Date;
 }
 
 @Component({
@@ -45,14 +49,13 @@ export interface ChatMessage {
   templateUrl: './sign-box-controller.html',
   styleUrl: './sign-box-controller.css',
 })
-export class SignBoxController {
+export class SignBoxController implements OnInit, OnDestroy {
   private readonly signalr = inject(ISignalrService);
   private readonly signBoxControlService = inject(ISignBoxControlService);
   private readonly router = inject(Router);
-  public langService = inject(LanguageService);
+  public readonly langService = inject(LanguageService);
   private readonly areaService = inject(IAreaService);
   private readonly governateService = inject(IGovernateService);
-
   private readonly toaster = inject(ToasterService);
 
   get isAr() {
@@ -63,11 +66,13 @@ export class SignBoxController {
   private static readonly SWEEP_MS = 1000;
 
   private sweepSub?: Subscription;
-  private _tick = 0;
 
   readonly status = this.signalr.status;
   readonly lastError = this.signalr.lastError;
-  readonly messages = this.signalr.messages;
+
+  // ✅ بدل messages القديمة
+  readonly cabinetPing = this.signalr.cabinetPing;
+  readonly trafficBroadcast = this.signalr.trafficBroadcast;
 
   searchParameter: SearchParameters = {};
   private searchChanged$ = new Subject<void>();
@@ -106,46 +111,86 @@ export class SignBoxController {
     return this.isAr ? 'غير نشِط فقط' : 'Inactive Only';
   }
 
+  // ===== Popup (لو هتكمّله بعدين) =====
   popupVisible = false;
   popupX = 0;
   popupY = 0;
   popupData: PopUpSignBox | null = null;
   popupLive: ReceiveMessage | null = null;
+
+  /**
+   * latestByCabinetId: آخر Broadcast لكل CabinetId
+   */
   latestById: Record<number, ReceiveMessage> = {};
 
-  //  Toast reconnect/disconnect
+  /**
+   * lastSeen: آخر وقت وصل فيه أي event للكابينة
+   */
+  private lastSeen: Record<number, number> = {};
+
+  // Toast reconnect/disconnect
   private _wasDisconnected = false;
 
   constructor() {
-    // ===== SignalR messages =====
-    toObservable(this.signalr.messages)
+    // =========================
+    // 1) Cabinet Ping => Active
+    // =========================
+    toObservable(this.signalr.cabinetPing)
       .pipe(takeUntilDestroyed())
-      .subscribe(({ message }) => {
-        const cur = this.signBoxEntity;
+      .subscribe((msg) => {
+        if (!msg) return;
 
-        if (!message) {
-          this.signBoxEntity = {
-            ...cur,
-            value: { ...cur.value, data: cur.value.data.map((x) => ({ ...x, active: false })) },
-          };
-          return;
-        }
+        const cabId = Number(msg.message);
+        if (!Number.isFinite(cabId) || cabId <= 0) return;
 
-        const id = message.ID;
-        this.latestById[id] = message;
-
-        this.signBoxEntity = {
-          ...cur,
-          value: { ...cur.value, data: cur.value.data.map((x) => ({ ...x, active: x.id === id })) },
-        };
+        this.touchCabinet(cabId);
+        this.recomputeActives();
       });
 
-    // ===== Search debounce =====
+    // =========================
+    // 2) Broadcast => Active + cache
+    // =========================
+    toObservable(this.signalr.trafficBroadcast)
+      .pipe(takeUntilDestroyed())
+      .subscribe((msg) => {
+        if (!msg?.message) return;
+
+        const m = msg.message as any;
+        const cabId = Number(m.ID ?? m.id);
+        if (!Number.isFinite(cabId) || cabId <= 0) return;
+
+        const normalized: ReceiveMessage = {
+          ID: cabId,
+          L1: m.L1 ?? m.l1,
+          T1: Number(m.T1 ?? m.t1 ?? 0) || 0,
+          L2: m.L2 ?? m.l2,
+          T2: Number(m.T2 ?? m.t2 ?? 0) || 0,
+          L3: m.L3 ?? m.l3,
+          T3: Number(m.T3 ?? m.t3 ?? 0) || 0,
+          L4: m.L4 ?? m.l4,
+          T4: Number(m.T4 ?? m.t4 ?? 0) || 0,
+        };
+
+        this.latestById[cabId] = normalized;
+        this.touchCabinet(cabId);
+        this.recomputeActives();
+
+        // لو عندك popup مفتوح لنفس الكابينة، حدّثه (اختياري)
+        // if (this.popupData && (this.popupData as any).cabinetId === cabId) {
+        //   this.popupLive = normalized;
+        // }
+      });
+
+    // =========================
+    // Search debounce
+    // =========================
     this.searchChanged$
       .pipe(debounceTime(200), takeUntilDestroyed())
       .subscribe(() => this.loadData());
 
-    // ===== SignalR status -> toaster =====
+    // =========================
+    // SignalR status -> toaster
+    // =========================
     toObservable(this.signalr.status)
       .pipe(takeUntilDestroyed())
       .subscribe((s: HubConnectionStatus) => {
@@ -167,12 +212,16 @@ export class SignBoxController {
           this.disconnectTimerSub?.unsubscribe();
           if (this._wasDisconnected) {
             this._wasDisconnected = false;
-            this.toaster.success(this.isAr ? ' تم إعادة الاتصال بالـ Live' : 'Live reconnected');
+            this.toaster.success(
+              this.isAr ? '✅ تم إعادة الاتصال بالـ Live' : '✅ Live reconnected'
+            );
           }
         }
       });
 
-    // ===== lastError -> toaster =====
+    // =========================
+    // lastError -> toaster
+    // =========================
     toObservable(this.signalr.lastError)
       .pipe(takeUntilDestroyed())
       .subscribe((err: any) => {
@@ -184,17 +233,18 @@ export class SignBoxController {
 
   ngOnInit(): void {
     this.signalr.connect().catch((e) => {
-      this.toaster.error(this.isAr ? '❌ فشل الاتصال بالـ Live' : ' Failed to connect to Live');
+      this.toaster.error(this.isAr ? '❌ فشل الاتصال بالـ Live' : '❌ Failed to connect to Live');
       console.error(e);
     });
 
     this.loadData();
     this.loadGovernates();
 
+    // كل ثانية: شيل Active من اللي بقالها أكتر من 10 ثواني
     this.sweepSub = timer(SignBoxController.SWEEP_MS, SignBoxController.SWEEP_MS)
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
-        this._tick++;
+        this.recomputeActives();
       });
   }
 
@@ -211,14 +261,25 @@ export class SignBoxController {
       next: (data) => {
         if (seq !== this._reqSeq) return;
 
-        this.signBoxEntity = data;
+        // ✅ أول ما الداتا تيجي: اعمل reconcile للـ active حسب lastSeen
+        this.signBoxEntity = {
+          ...data,
+          value: {
+            ...data.value,
+            data: data.value.data.map((x) => ({
+              ...x,
+              active: this.isActiveByCabinetId(x.cabinetId),
+            })),
+          },
+        };
+
         this.hasPreviousPage = data.value.hasPreviousPage;
         this.hasNextPage = data.value.hasNextPage;
       },
       error: (err) => {
         const msg =
           this.extractBackendMessage(err) ||
-          (this.isAr ? ' حدث خطأ أثناء تحميل البيانات' : ' Failed to load data');
+          (this.isAr ? 'حدث خطأ أثناء تحميل البيانات' : 'Failed to load data');
         this.toaster.error(msg);
         console.error(err);
       },
@@ -286,6 +347,43 @@ export class SignBoxController {
     return input.replace(/[٠-٩۰-۹]/g, (d) => map[d] ?? d);
   }
 
+  // =========================
+  // ✅ Active logic helpers
+  // =========================
+  private touchCabinet(cabinetId: number): void {
+    this.lastSeen[cabinetId] = Date.now();
+  }
+
+  private isActiveByCabinetId(cabinetId: unknown): boolean {
+    const id = Number(cabinetId);
+    if (!Number.isFinite(id) || id <= 0) return false;
+
+    const seen = this.lastSeen[id] ?? 0;
+    return !!seen && Date.now() - seen <= SignBoxController.INACTIVITY_MS;
+  }
+
+  /**
+   * ✅ Recompute actives بدون ما تعتمد على "آخر رسالة = آخر Active"
+   * ده يحل مشكلة إن Active يفصل بعد 10 ثواني تلقائيًا
+   */
+  private recomputeActives(): void {
+    const cur = this.signBoxEntity;
+
+    if (!cur?.value?.data?.length) return;
+
+    this.signBoxEntity = {
+      ...cur,
+      value: {
+        ...cur.value,
+        data: cur.value.data.map((x) => ({
+          ...x,
+          active: this.isActiveByCabinetId(x.cabinetId),
+        })),
+      },
+    };
+  }
+
+  // ===== Popup placeholders (كما هي) =====
   showPopup(row: GetAllSignControlBox, event: MouseEvent) {}
   movePopup(event: MouseEvent) {}
   hidePopup() {}
@@ -304,12 +402,14 @@ export class SignBoxController {
 
     this.signBoxControlService.applySignBox(payload).subscribe({
       next: () => {
-        this.toaster.success(this.isAr ? ' تم تطبيق النمط بنجاح' : 'Pattern applied successfully');
+        this.toaster.success(
+          this.isAr ? '✅ تم تطبيق النمط بنجاح' : '✅ Pattern applied successfully'
+        );
       },
       error: (err) => {
         const msg =
           this.extractBackendMessage(err) ||
-          (this.isAr ? ' فشل تطبيق النمط' : 'Failed to apply pattern');
+          (this.isAr ? 'فشل تطبيق النمط' : 'Failed to apply pattern');
         this.toaster.error(msg);
         console.error(err);
       },
@@ -345,7 +445,7 @@ export class SignBoxController {
       error: (err) => {
         const msg =
           this.extractBackendMessage(err) ||
-          (this.isAr ? ' فشل تحميل المحافظات' : 'Failed to load governorates');
+          (this.isAr ? 'فشل تحميل المحافظات' : 'Failed to load governorates');
         this.toaster.error(msg);
         console.error(err);
       },
@@ -360,7 +460,7 @@ export class SignBoxController {
       error: (err) => {
         const msg =
           this.extractBackendMessage(err) ||
-          (this.isAr ? ' فشل تحميل الأحياء' : 'Failed to load areas');
+          (this.isAr ? 'فشل تحميل الأحياء' : 'Failed to load areas');
         this.toaster.error(msg);
         console.error(err);
       },

@@ -1,4 +1,12 @@
-import { Component, ElementRef, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  inject,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  DestroyRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -17,7 +25,6 @@ import { debounceTime } from 'rxjs/operators';
 import { LanguageService } from '../../Services/Language/language-service';
 
 import { TrafficBroadcast } from '../../Domain/SignalR/TrafficBroadcast';
-import { HubConnectionStatus } from '../../Domain/SignalR/HubConnectionStatus';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
@@ -26,6 +33,7 @@ import { IAreaService } from '../../Services/Area/iarea-service';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
 import { OverlayModule } from '@angular/cdk/overlay';
 import { ToasterService } from '../../Services/Toster/toaster-service';
+import { CabinetSignalrService } from '../../Services/Signalr/cabinet-signalr.service';
 
 type TrafficColorText = 'Green' | 'Yellow' | 'Red' | 'Off' | string;
 
@@ -45,11 +53,17 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   public readonly langService = inject(LanguageService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly cabinetSignalr = inject(CabinetSignalrService);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly areaService = inject(IAreaService);
   private readonly governateService = inject(IGovernateService);
 
   private readonly toaster = inject(ToasterService);
+
+  // ===== Hover Join/Leave =====
+  private popupHoverTimer?: ReturnType<typeof setTimeout>;
+  private hoveredCabinetId: number | null = null;
 
   @ViewChild('popupRef') popupRef?: ElementRef<HTMLDivElement>;
 
@@ -57,24 +71,26 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     return this.langService.current === 'ar';
   }
 
+  // ===== SignalR state =====
   readonly status = this.signalr.status;
   readonly lastError = this.signalr.lastError;
-  readonly messages = this.signalr.messages;
 
   isDisconnected = false;
   private disconnectTimerSub?: Subscription;
-
   private sweepSub?: Subscription;
 
+  // Activity + cache
   private lastSeen: Record<number, number> = {};
   latestByCabinetId: Record<number, TrafficBroadcast> = {};
 
+  // Search
   searchParameter: SearchParameters = {};
   private searchChanged$ = new Subject<void>();
 
   hasPreviousPage = false;
   hasNextPage = false;
 
+  // Filters
   selectedGovernorateId: number | null = null;
   selectedAreaId: number | null = null;
 
@@ -115,45 +131,78 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   highlightCabinetId?: number;
 
   constructor() {
-    // SignalR
-    toObservable(this.signalr.messages)
+    /**
+     * ✅ 1) أي Activity (Ping أو Broadcast) => lastSeen[cabinetId] = now
+     * cabinetPing بيرجع ChatMessage<number> | null
+     */
+    toObservable(this.signalr.cabinetPing)
       .pipe(takeUntilDestroyed())
-      .subscribe(({ message }) => {
-        if (!message) return;
-        console.log(message);
+      .subscribe((msg) => {
+        if (!msg) return;
 
-        const key = this.toKey((message as any).ID);
+        const cabId = Number(msg.message);
+        if (!Number.isFinite(cabId) || cabId <= 0) return;
+
+        this.lastSeen[cabId] = Date.now();
+      });
+
+    /**
+     * ✅ 2) Broadcast كامل => خزّنه + lastSeen + حدّث Popup لو مفتوح
+     * trafficBroadcast بيرجع ChatMessage<TrafficBroadcast> | null
+     */
+    toObservable(this.signalr.trafficBroadcast)
+      .pipe(takeUntilDestroyed())
+      .subscribe((msg) => {
+        if (!msg?.message) return;
+
+        const key = this.toKey((msg.message as any).ID);
         if (key === null) return;
 
-        this.latestByCabinetId[key] = message;
+        this.latestByCabinetId[key] = msg.message;
         this.lastSeen[key] = Date.now();
 
         if (this.popupData?.cabinetId === key) {
           const row = this.signBoxEntity.value.data.find((x) => this.toKey(x.cabinetId) === key);
-          if (row) this.popupData = this.toPopup(row, message);
-          this.popupLive = message;
+          if (row) this.popupData = this.toPopup(row, msg.message);
+          this.popupLive = msg.message;
         }
       });
 
-    toObservable(this.signalr.status)
-      .pipe(takeUntilDestroyed())
-      .subscribe((s: HubConnectionStatus) => {
-        if (s === 'disconnected') {
-          this.disconnectTimerSub?.unsubscribe();
-          this.disconnectTimerSub = timer(4000).subscribe(() => {
-            try {
-              const current =
-                typeof this.signalr.status === 'function'
-                  ? (this.signalr.status() as any)
-                  : (this.signalr.status as any);
-              if (current === 'disconnected') this.isDisconnected = true;
-            } catch {
-              this.isDisconnected = true;
-            }
-          });
-        } else {
-          this.disconnectTimerSub?.unsubscribe();
-          this.isDisconnected = false;
+    toObservable(this.cabinetSignalr.cabinetStatus)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((msg) => {
+        if (!msg) return;
+        console.log(msg.id);
+        console.log(msg.l1);
+        console.log(msg.t1);
+        console.log(msg.l2);
+        console.log(msg.t2);
+        console.log(msg.l3);
+        console.log(msg.t3);
+        console.log(msg.l4);
+        console.log(msg.t4);
+        const key = this.toKey(msg.id);
+        if (key === null) return;
+
+        const asBroadcast: TrafficBroadcast = {
+          ID: msg.id,
+          L1: msg.l1,
+          T1: msg.t1,
+          L2: msg.l2,
+          T2: msg.t2,
+          L3: msg.l3,
+          T3: msg.t3,
+          L4: msg.l4,
+          T4: msg.t4,
+        } as TrafficBroadcast;
+
+        this.latestByCabinetId[key] = asBroadcast;
+        this.lastSeen[key] = Date.now();
+
+        if (this.popupData?.cabinetId === key) {
+          const row = this.signBoxEntity.value.data.find((x) => this.toKey(x.cabinetId) === key);
+          if (row) this.popupData = this.toPopup(row, asBroadcast);
+          this.popupLive = asBroadcast;
         }
       });
 
@@ -201,6 +250,14 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // cancel hover join timer + leave joined group (best effort)
+    this.cancelHoverJoin();
+
+    const joined = this.signalr.currentJoinedCabinetId ?? null;
+    if (joined != null) {
+      this.signalr.leaveCabinet(joined).catch(() => {});
+    }
+
     this.signalr.disconnect().catch(() => {});
     this.disconnectTimerSub?.unsubscribe();
     this.sweepSub?.unsubscribe();
@@ -371,6 +428,29 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     this.popupVisible = true;
     this.updatePopupPosition(event);
 
+    // ===== Hover Join/Leave Logic (200ms) =====
+    this.cancelHoverJoin();
+    this.hoveredCabinetId = this.popupData?.cabinetId ?? null;
+
+    if (this.hoveredCabinetId != null) {
+      this.popupHoverTimer = setTimeout(async () => {
+        if (!this.popupVisible) return;
+        if (this.popupData?.cabinetId !== this.hoveredCabinetId) return;
+
+        try {
+          console.log(this.hoveredCabinetId + 'join');
+          await this.cabinetSignalr.joinCabinet(this.hoveredCabinetId);
+          console.log(this.hoveredCabinetId);
+        } catch (err) {
+          const msg =
+            this.getBackendMessage(err) ??
+            (this.isAr ? 'تعذر الانضمام إلى مجموعة الكابينة' : 'Failed to join cabinet group');
+          this.toaster.error(msg);
+          console.error(err);
+        }
+      }, 200);
+    }
+
     if (!cached && missingNames) {
       this.signBoxControlService.getById(row.id).subscribe({
         next: (full) => {
@@ -378,6 +458,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
           if (dirs.length) {
             this.dirNamesCache[row.id] = dirs.map((d) => ({ order: d.order, name: d.name }));
             const hydrated = { ...row, directions: dirs } as any;
+
             if (this.popupVisible && this.popupData?.Id === row.id) {
               this.popupData = this.toPopup(hydrated, live ?? undefined);
             }
@@ -399,15 +480,31 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   }
 
   hidePopup() {
+    const cab = this.popupData?.cabinetId ?? null;
+
     this.popupVisible = false;
     this.popupData = null;
     this.popupLive = null;
+
+    this.cancelHoverJoin();
+    this.hoveredCabinetId = null;
+
+    if (cab != null) {
+      this.cabinetSignalr.leaveCabinet(cab).catch(() => {});
+    }
+  }
+
+  private cancelHoverJoin(): void {
+    if (this.popupHoverTimer) {
+      clearTimeout(this.popupHoverTimer);
+      this.popupHoverTimer = undefined;
+    }
   }
 
   private updatePopupPosition(event: MouseEvent) {
     const offset = 10;
-    let x = event.clientX + offset;
-    let y = event.clientY + offset;
+    const x = event.clientX + offset;
+    const y = event.clientY + offset;
 
     this.popupX = x;
     this.popupY = y;
@@ -524,7 +621,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     return this.areas.find((a) => a.id === id)?.name ?? '';
   }
 
-  /**  (SignalR) */
+  /** (SignalR) */
   get isSignalRConnected(): boolean {
     const s =
       typeof this.signalr.status === 'function'
@@ -608,7 +705,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Result pattern
     const direct =
       source.message ||
       source.Message ||
@@ -618,7 +714,6 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
     if (typeof direct === 'string' && direct.trim()) return direct.trim();
 
-    // ResultError shape
     if (source.error && typeof source.error === 'object') {
       const er = source.error as ResultError;
       const m1 = (er as any)?.message || (er as any)?.Message;

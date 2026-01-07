@@ -3,7 +3,7 @@
 .map-container {
   position: relative;
   width: 100%;
-  height: calc(100vh - 56px); /* يطرح طول النافبار */
+  height: 100vh;
   overflow: hidden;
 }
 
@@ -26,11 +26,108 @@
   z-index: 1000;
 }
 
-.map-controls {
+/* Coordinates Overlay */
+.coords-overlay {
   position: absolute;
   top: 10px;
-  right: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+.coords-box {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   display: flex;
+  align-items: center;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.map-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  direction: rtl;
   gap: 5px;
-  z-index: 1001;
+}
+
+.map-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  border-top: 2px solid red;
+  border-right: 2px solid red;
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  transform: translate(-50%, -50%) rotate(45deg);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.map-crosshair::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background-color: red;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Sidebar Styles */
+.sidebar-panel {
+  background-color: #f8f9fa;
+  border-left: 1px solid #dee2e6;
+  border-right: 1px solid #dee2e6;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-content {
+  padding: 20px;
+}
+
+.sidebar-title {
+  color: #343a40;
+  margin-bottom: 20px;
+  font-weight: 600;
+  text-align: center;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 10px;
+}
+
+.markers-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.markers-list table {
+  font-size: 0.85rem;
+}
+
+.container-fluid,
+.row,
+.h-100 {
+  height: 100vh;
+}
+
+@media (max-width: 991px) {
+  .sidebar-panel {
+    height: auto;
+    min-height: 400px;
+  }
+
+  .map-container {
+    height: 60vh;
+  }
 }

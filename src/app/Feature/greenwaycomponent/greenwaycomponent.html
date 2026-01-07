@@ -1,20 +1,143 @@
-<div class="map-container">
-  @if (isLoading) {
-  <div class="map-loading">
-    <div class="spinner-border text-primary"></div>
-    <p>Loading map...</p>
-  </div>
-  } @else if (mapError) {
-  <div class="alert alert-danger">
-    {{ mapError }}
-    <button class="btn btn-sm btn-primary" (click)="initMap()">Retry</button>
-  </div>
-  }
+<div [attr.dir]="isAr ? 'rtl' : 'ltr'">
+  <div class="container-fluid p-0 h-100">
+    <div class="row g-0 h-100">
+      <!-- Map Column -->
+      <div class="col-lg-8 position-relative">
+        <div class="map-container">
+          @if (isLoading) {
+          <div class="map-loading">
+            <div class="spinner-border text-primary"></div>
+            <p>{{ isAr ? 'جارِ تحميل الخريطة...' : 'Loading map...' }}</p>
+          </div>
+          } @else if (mapError) {
+          <div class="alert alert-danger">
+            {{ mapError }}
+            <button class="btn btn-sm btn-primary" (click)="initMap()">
+              {{ isAr ? 'إعادة المحاولة' : 'Retry' }}
+            </button>
+          </div>
+          }
 
-  <div #mapContainer id="map"></div>
+          <div #mapContainer id="map"></div>
 
-  <div class="map-controls">
-    <button class="btn btn-success btn-sm" (click)="addMarker(map.getCenter())">Add Marker</button>
-    <button class="btn btn-danger btn-sm" (click)="clearMarkers()">Clear Markers</button>
+          <!-- Coordinates Overlay -->
+          <div class="coords-overlay">
+            @if (currentCoords) {
+            <div class="coords-box">
+              <span class="fw-bold">{{ isAr ? 'عرض:' : 'Lat:' }}</span>
+              {{ currentCoords.lat.toFixed(6) }}
+              <span class="fw-bold ms-2">{{ isAr ? 'طول:' : 'Lng:' }}</span>
+              {{ currentCoords.lng.toFixed(6) }}
+              <button
+                class="btn btn-xs btn-outline-dark ms-2"
+                (click)="copyCoordinates()"
+                [title]="isAr ? 'نسخ' : 'Copy to clipboard'"
+              >
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+            }
+          </div>
+
+          <!-- Center Crosshair -->
+          <div class="map-crosshair"></div>
+
+          <div class="map-controls">
+            <button class="btn btn-success btn-sm" (click)="addMarker(map.getCenter())">
+              {{ isAr ? 'إضافة علامة' : 'Add Marker' }}
+            </button>
+            <button class="btn btn-danger btn-sm" (click)="clearMarkers()">
+              {{ isAr ? 'مسح الكل' : 'Clear Markers' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar Column -->
+      <div class="col-lg-4 sidebar-panel">
+        <div class="sidebar-content">
+          <h5 class="sidebar-title">{{ isAr ? 'إدارة العلامات' : 'Marker Management' }}</h5>
+
+          <!-- Add Marker Form -->
+          <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+              <h6 class="mb-0">{{ isAr ? 'إضافة علامة' : 'Add Marker' }}</h6>
+            </div>
+            <div class="card-body">
+              <div class="mb-2">
+                <label class="form-label">{{ isAr ? 'خط العرض (Latitude)' : 'Latitude' }}</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  [(ngModel)]="inputLat"
+                  [placeholder]="isAr ? '30.0444' : '30.0444'"
+                  step="0.000001"
+                />
+              </div>
+              <div class="mb-2">
+                <label class="form-label">{{ isAr ? 'خط الطول (Longitude)' : 'Longitude' }}</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  [(ngModel)]="inputLng"
+                  [placeholder]="isAr ? '31.2357' : '31.2357'"
+                  step="0.000001"
+                />
+              </div>
+              <button class="btn btn-primary w-100" (click)="addMarkerFromInput()">
+                <i class="bi bi-plus-circle"></i> {{ isAr ? 'إضافة' : 'Add' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Markers List -->
+          <div class="card">
+            <div class="card-header bg-secondary text-white">
+              <h6 class="mb-0">
+                {{ isAr ? 'العلامات المضافة' : 'Added Markers' }} ({{ markers.length }})
+              </h6>
+            </div>
+            <div class="card-body p-0">
+              <div class="markers-list">
+                @if (markers.length === 0) {
+                <div class="p-3 text-muted text-center">
+                  {{ isAr ? 'لا توجد علامات بعد' : 'No markers added yet' }}
+                </div>
+                } @else {
+                <table class="table table-sm table-hover mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>#</th>
+                      <th>{{ isAr ? 'خط العرض' : 'Lat' }}</th>
+                      <th>{{ isAr ? 'خط الطول' : 'Lng' }}</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (marker of getMarkerCoordinates(); track marker.index) {
+                    <tr>
+                      <td>{{ marker.index + 1 }}</td>
+                      <td>{{ marker.lat.toFixed(6) }}</td>
+                      <td>{{ marker.lng.toFixed(6) }}</td>
+                      <td>
+                        <button
+                          class="btn btn-sm btn-danger"
+                          (click)="removeMarker(marker.index)"
+                          [title]="isAr ? 'حذف' : 'Delete'"
+                        >
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    }
+                  </tbody>
+                </table>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

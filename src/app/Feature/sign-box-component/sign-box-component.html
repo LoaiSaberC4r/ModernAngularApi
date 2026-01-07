@@ -72,8 +72,9 @@
         <th>{{ isAr ? 'الإجراءات' : 'Actions' }}</th>
       </tr>
     </thead>
+
     <tbody>
-      <ng-container *ngFor="let item of signBoxEntity.value.data; trackBy: trackById">
+      <ng-container *ngFor="let item of filteredData; trackBy: trackById">
         <!-- Main row -->
         <tr
           id="row-cab-{{ item.cabinetId }}"
@@ -95,9 +96,11 @@
               ></i>
             </button>
           </td>
+
           <td>{{ item.cabinetId }}</td>
           <td dir="ltr">{{ item.ipAddress }}</td>
           <td class="name-cell">{{ item.name }}</td>
+
           <!-- Quick status indicator -->
           <td class="status-cell">
             <span
@@ -119,20 +122,26 @@
                   'fa-circle-check': rowSeverity(item) === 'OK'
                 }"
               ></i>
+
               <span class="st-label">
                 {{ isAr ? rowSeverityLabelAr(rowSeverity(item)) : rowSeverity(item) }}
               </span>
+
               <span class="st-count" *ngIf="statusSummary(item).total > 0">
                 {{ statusSummary(item).total }}
               </span>
             </span>
           </td>
+
+          <!-- Required update -->
           <td class="actions-cell">
             <span class="chip chip-warning" *ngIf="!item.isApplied" (click)="onEdit(item)">
               <i class="fa-solid fa-triangle-exclamation"></i>
               {{ isAr ? 'مطلوب تحديث' : 'Required Update' }}
             </span>
           </td>
+
+          <!-- Active / Inactive -->
           <td>
             <span class="chip" [ngClass]="isActive(item) ? 'chip-active' : 'chip-inactive'">
               <i
@@ -143,10 +152,11 @@
             </span>
           </td>
         </tr>
+
         <!-- Expand row -->
         <tr class="expand-row" *ngIf="isExpanded(item)">
           <td></td>
-          <td colspan="5">
+          <td colspan="6">
             <div class="status-panel">
               <div class="status-header">
                 <div class="status-title">
@@ -154,24 +164,30 @@
                   {{ isAr ? 'حالة الكابينة' : 'Cabinet Status' }} —
                   {{ item.name || (isAr ? 'بدون اسم' : 'Unnamed') }}
                 </div>
+
                 <div class="status-chips">
                   <span class="s-chip s-crit">
-                    <i class="fa-solid fa-circle-xmark"></i> {{ isAr ? 'حرج' : 'Critical' }}:
-                    {{ statusSummary(item).critical }}
+                    <i class="fa-solid fa-circle-xmark"></i>
+                    {{ isAr ? 'حرج' : 'Critical' }}: {{ statusSummary(item).critical }}
                   </span>
+
                   <span class="s-chip s-warn">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                     {{ isAr ? 'تحذير' : 'Warning' }}: {{ statusSummary(item).warn }}
                   </span>
+
                   <span class="s-chip s-info">
-                    <i class="fa-solid fa-circle-info"></i> {{ isAr ? 'معلومة' : 'Info' }}:
-                    {{ statusSummary(item).info }}
+                    <i class="fa-solid fa-circle-info"></i>
+                    {{ isAr ? 'معلومة' : 'Info' }}: {{ statusSummary(item).info }}
                   </span>
+
                   <span class="s-chip s-ok" *ngIf="statusSummary(item).total === 0">
-                    <i class="fa-solid fa-circle-check"></i> {{ isAr ? 'لا مشاكل' : 'No issues' }}
+                    <i class="fa-solid fa-circle-check"></i>
+                    {{ isAr ? 'لا مشاكل' : 'No issues' }}
                   </span>
                 </div>
               </div>
+
               <div class="status-body" *ngIf="getStatus(item).length > 0; else noIssuesTpl">
                 <table class="status-table">
                   <thead>
@@ -209,6 +225,7 @@
                   </tbody>
                 </table>
               </div>
+
               <ng-template #noIssuesTpl>
                 <div class="no-issues">
                   <i class="fa-solid fa-circle-check"></i>
@@ -223,13 +240,15 @@
           </td>
         </tr>
       </ng-container>
+
       <tr *ngIf="filteredData.length === 0">
-        <td colspan="6" class="no-results">
+        <td colspan="7" class="no-results">
           {{ isAr ? 'لا توجد إشارات مطابقة' : 'No traffic signals found' }}
         </td>
       </tr>
     </tbody>
   </table>
+
   <!-- Popup -->
   <div
     #popupRef

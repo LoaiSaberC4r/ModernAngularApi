@@ -95,10 +95,24 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
       } catch {}
       this.map = null as any;
     }
-    this.map = L.map(this.mapContainer.nativeElement).setView([30.0444, 31.2357], 13);
+    this.map = L.map(this.mapContainer.nativeElement, {
+      center: [30.0444, 31.2357],
+      zoom: 13,
+      minZoom: 6,
+      maxZoom: 14,
+      maxBounds: [
+        [22.0, 24.0],
+        [32.0, 37.0],
+      ],
+      maxBoundsViscosity: 1.0,
+    });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    // Offline Map Implementation
+    L.tileLayer('assets/tiles/{z}/{x}/{y}.png', {
+      minZoom: 6,
+      maxZoom: 14,
+      attribution: 'Offline Map',
+      errorTileUrl: 'assets/tiles/no_tile.png',
     }).addTo(this.map);
 
     this.map.on('click', (e: L.LeafletMouseEvent) => {
