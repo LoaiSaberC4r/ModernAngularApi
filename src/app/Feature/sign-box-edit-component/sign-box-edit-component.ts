@@ -172,9 +172,12 @@ export class SignBoxEditComponent implements OnInit {
 
   // ====== Light Patterns (optional) ======
   private loadLightPatterns(): void {
-    this.lpService.getAll().subscribe((resp: ResultV<GetAllLightPattern> | any) => {
-      const arr = (resp?.value?.data ?? resp?.value ?? resp?.data ?? resp?.items ?? []) as any[];
-      this.lightPatterns = (Array.isArray(arr) ? arr : []).map((x: any) => ({
+    this.lpService.getAll().subscribe((resp: any) => {
+      // resp is now the array directly, but keeping defensive check just in case
+      const arr = Array.isArray(resp)
+        ? resp
+        : resp?.value?.data ?? resp?.value ?? resp?.data ?? resp?.items ?? [];
+      this.lightPatterns = arr.map((x: any) => ({
         id: Number(x.id ?? x.Id),
         name: String(x.name ?? x.Name ?? `#${x.id ?? x.Id}`),
       }));
@@ -268,14 +271,14 @@ export class SignBoxEditComponent implements OnInit {
     for (const g of this.governates) {
       if (found) break;
       pending++;
-      this.areaService.getAll(g.id).subscribe({
+      this.areaService.getAll(g.governateId).subscribe({
         next: (resp) => {
           if (found) return;
-          const list = resp?.value ?? [];
-          const hit = list.find((a) => a.id === areaId);
+          const list = resp ?? [];
+          const hit = list.find((a) => a.areaId === areaId);
           if (hit) {
             found = true;
-            this.form.get('governateId')?.setValue(g.id, { emitEvent: false });
+            this.form.get('governateId')?.setValue(g.governateId, { emitEvent: false });
             this.areas = list;
             this.form.get('areaId')?.setValue(areaId, { emitEvent: false });
           }
@@ -438,7 +441,7 @@ export class SignBoxEditComponent implements OnInit {
 
   loadGovernate(): void {
     this.governateService.getAll({ pageSize: 1000 }).subscribe((data) => {
-      this.governates = data.value ?? [];
+      this.governates = data ?? [];
       this.governatesLoaded = true;
 
       if (this.pendingGovId != null) {
@@ -452,7 +455,7 @@ export class SignBoxEditComponent implements OnInit {
 
   getAreas(governateId: number, selectedAreaId?: number | null): void {
     this.areaService.getAll(governateId).subscribe((data) => {
-      this.areas = data.value ?? [];
+      this.areas = data ?? [];
       if (selectedAreaId != null) {
         this.form.get('areaId')?.setValue(selectedAreaId, { emitEvent: false });
       }
@@ -565,7 +568,7 @@ export class SignBoxEditComponent implements OnInit {
   private loadTemplates(): void {
     this.templateService.GetAll().subscribe({
       next: (resp) => {
-        this.templates = resp?.value ?? [];
+        this.templates = resp ?? [];
       },
       error: (err) => {
         console.error('Failed to load templates', err);

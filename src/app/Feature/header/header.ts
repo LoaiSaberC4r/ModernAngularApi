@@ -2,11 +2,12 @@ import { Component, HostListener, inject } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { SwitcherLangComponent } from '../../Shared/language-switcher/switcher-lang-component/switcher-lang-component';
 import { LanguageService } from '../../Services/Language/language-service';
+import { AuthService } from '../../Services/Auth/auth.service';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, SwitcherLangComponent],
+  imports: [RouterLink, RouterLinkActive, SwitcherLangComponent],
   templateUrl: './header.html',
   styleUrl: './header.css',
 })
@@ -14,6 +15,7 @@ export class Header {
   isMenuOpen = false;
   private router = inject(Router);
   public langService = inject(LanguageService);
+  public authService = inject(AuthService);
 
   constructor() {
     this.router.events.subscribe((e) => {
@@ -28,6 +30,11 @@ export class Header {
 
   toggleMenu(): void {
     this.isMenuOpen = !this.isMenuOpen;
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.isMenuOpen = false;
   }
 
   @HostListener('window:resize')

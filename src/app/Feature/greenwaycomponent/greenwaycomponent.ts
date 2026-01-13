@@ -18,15 +18,17 @@ import { CabinetSignalrService } from '../../Services/Signalr/cabinet-signalr.se
 import { CabinetStatusMessage } from '../../Domain/SignalR/cabinet-status-message';
 import { FormsModule } from '@angular/forms';
 import { ISignalrService } from '../../Services/Signalr/isignalr-service';
+import { HttpClient } from '@angular/common/http';
+import PathFinder from 'geojson-path-finder';
+import * as turf from '@turf/turf';
 
 const defaultIcon = L.icon({
-  iconUrl: '../../../assets/img/marker-green-40.png',
-  shadowUrl: '../../../assets/img/marker-green.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+  iconUrl: 'assets/img/marker-green-40.png',
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
 });
+
 L.Marker.prototype.options.icon = defaultIcon;
 
 @Component({
@@ -42,6 +44,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   private clipboard = inject(Clipboard);
   private langService = inject(LanguageService);
   private destroyRef = inject(DestroyRef);
+  private http = inject(HttpClient);
 
   private signBoxService = inject(ISignBoxControlService);
   private signalrService = inject(CabinetSignalrService);
@@ -69,6 +72,12 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
   // Map for O(1) access to markers by ID
   private cabinetMarkersMap = new Map<number, L.Marker>();
+
+  // Routing properties
+  private pathFinder?: PathFinder<any, any>;
+  private roadNetwork?: any;
+  isLoadingRoads = false;
+  routingEnabled = false;
 
   readonly defaultCenter: L.LatLngExpression = [30.0444, 31.2357];
   readonly defaultZoom = 13;
@@ -172,6 +181,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     this.initMap();
     this.observeResize();
     this.loadCabinetLocations();
+    this.loadRoadNetwork();
   }
 
   async loadCabinetLocations() {
@@ -320,8 +330,11 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     // Connect every two markers
     if (this.markers.length % 2 === 0) {
       const lastTwo = this.markers.slice(-2).map((m) => m.getLatLng());
-      const line = L.polyline(lastTwo, { color: 'blue' }).addTo(this.map);
+      const line = L.polyline(lastTwo, { color: 'blue', weight: 3 }).addTo(this.map);
       this.lines.push(line);
+
+      // Immediately apply routing if enabled
+      this.updateLines();
     }
   }
 
@@ -384,12 +397,82 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     });
   }
 
-  private updateLines() {
+  public updateLines() {
+    if (!this.routingEnabled || !this.pathFinder) {
+      console.log('Routing disabled or pathFinder not ready');
+      this.updateLinesStraight();
+      return;
+    }
+
+    console.log(`Updating ${this.lines.length} lines with routing...`);
+    this.lines.forEach((line, i) => {
+      const m1 = this.markers[i * 2];
+      const m2 = this.markers[i * 2 + 1];
+      if (m1 && m2) {
+        const start = m1.getLatLng();
+        const end = m2.getLatLng();
+
+        try {
+          // Snap points to nearest nodes in the road network for better success rate
+          const startCoords = this.getSnapPoint(start);
+          const endCoords = this.getSnapPoint(end);
+
+          console.log(`Finding path from [${startCoords}] to [${endCoords}]`);
+
+          const path = this.pathFinder!.findPath(
+            { type: 'Feature', geometry: { type: 'Point', coordinates: startCoords } } as any,
+            { type: 'Feature', geometry: { type: 'Point', coordinates: endCoords } } as any
+          );
+
+          if (path && path.path && path.path.length > 0) {
+            console.log(`Path found! ${path.path.length} points`);
+            const routeCoords = path.path.map((coord: number[]) => L.latLng(coord[1], coord[0]));
+            line.setLatLngs(routeCoords);
+            line.setStyle({ color: 'green', weight: 4, opacity: 0.8, dashArray: '' });
+          } else {
+            console.warn('No path found, showing fallback');
+            line.setLatLngs([start, end]);
+            line.setStyle({ color: 'red', weight: 3, opacity: 0.6, dashArray: '10, 10' });
+          }
+        } catch (err) {
+          console.error('Routing error during update:', err);
+          line.setLatLngs([start, end]);
+          line.setStyle({ color: 'blue', weight: 3, opacity: 0.5 });
+        }
+      }
+    });
+  }
+
+  private getSnapPoint(latLng: L.LatLng): number[] {
+    if (!this.roadNetwork || !this.roadNetwork.features) return [latLng.lng, latLng.lat];
+
+    const point = turf.point([latLng.lng, latLng.lat]);
+    let minDistance = Infinity;
+    let closestPoint = [latLng.lng, latLng.lat];
+
+    // Snap to the nearest node in the network (PathFinder works best with nodes)
+    this.roadNetwork.features.forEach((feature: any) => {
+      if (feature.geometry.type === 'LineString') {
+        feature.geometry.coordinates.forEach((coord: number[]) => {
+          const dist = turf.distance(point, turf.point(coord));
+          if (dist < minDistance) {
+            minDistance = dist;
+            closestPoint = coord;
+          }
+        });
+      }
+    });
+
+    return closestPoint;
+  }
+
+  private updateLinesStraight() {
     this.lines.forEach((line, i) => {
       const m1 = this.markers[i * 2];
       const m2 = this.markers[i * 2 + 1];
       if (m1 && m2) {
         line.setLatLngs([m1.getLatLng(), m2.getLatLng()]);
+        line.setStyle({ color: 'blue', weight: 2, dashArray: '' });
       }
     });
   }
@@ -413,7 +496,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
           const marker = L.marker(latLng, {
             draggable: false,
             icon: L.icon({
-              iconUrl: 'https://cdn-icons-png.flaticon.com/512/447/447031.png',
+              iconUrl: 'assets/img/marker-green.png',
               iconSize: [32, 32],
             }),
           }).addTo(this.map);
@@ -435,7 +518,32 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     if (this.currentCoords) {
       const text = `${this.currentCoords.lat.toFixed(6)}, ${this.currentCoords.lng.toFixed(6)}`;
       this.clipboard.copy(text);
-      // Optional: add toast notification here
     }
+  }
+
+  async loadRoadNetwork() {
+    this.isLoadingRoads = true;
+    try {
+      const data: any = await this.http.get('assets/roads.geojson').toPromise();
+      this.roadNetwork = data;
+      this.pathFinder = new PathFinder(this.roadNetwork);
+      this.routingEnabled = true;
+      console.log('Road network loaded successfully');
+      this.ngZone.run(() => {
+        this.mapError = null;
+      });
+    } catch (err) {
+      console.error('Failed to load road network', err);
+      this.ngZone.run(() => {
+        this.mapError = 'فشل تحميل بيانات الطرق / Failed to load road data';
+      });
+    } finally {
+      this.isLoadingRoads = false;
+    }
+  }
+
+  toggleRouting() {
+    this.routingEnabled = !this.routingEnabled;
+    this.updateLines();
   }
 }

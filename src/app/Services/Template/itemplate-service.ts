@@ -6,7 +6,6 @@ import { catchError, map, shareReplay } from 'rxjs/operators';
 import { environment } from '../../Shared/environment/environment';
 import { ToasterService } from '../Toster/toaster-service';
 
-import { ResultV } from '../../Domain/ResultPattern/ResultV';
 import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
 
 @Injectable({ providedIn: 'root' })
@@ -37,23 +36,18 @@ export class ITemplateService {
     return resultErrorDesc || `Operation "${op}" failed`;
   }
 
-  GetAll(): Observable<ResultV<GetAllTemplate>> {
+  GetAll(): Observable<GetAllTemplate[]> {
     const query = new HttpParams();
 
     return this.http
-      .get<ResultV<GetAllTemplate>>(`${environment.baseUrl}/Template/GetAll`, { params: query })
+      .get<GetAllTemplate[]>(`${environment.baseUrl}/Template/GetAll`, { params: query })
       .pipe(
-        map((resp) => {
-          if (!resp?.isSuccess) {
-            throw new Error(resp?.error?.description ?? 'Unknown error');
-          }
-          return resp;
-        }),
+        map((resp) => resp || []),
         catchError((err) => {
           const msg = this.extractErrorMessage(err, 'Template:GetAll');
           console.error('[Template:GetAll] failed:', err);
           this.toast.error(msg);
-          return of({} as ResultV<GetAllTemplate>);
+          return of([] as GetAllTemplate[]);
         }),
         shareReplay(1)
       );

@@ -136,19 +136,25 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
   }
 
   loadGovernate() {
-    this.governateService.getAll({}).subscribe((data) => (this.governates = data.value));
+    this.governateService.getAll({}).subscribe((data) => (this.governates = data || []));
   }
 
   getAreas(id: number) {
-    this.areaService.getAll(id).subscribe((data) => (this.areas = data.value));
+    console.log('[MapView] Requesting areas for governateId:', id);
+    this.areaService.getAll(id).subscribe((data) => {
+      console.log('[MapView] Received areas:', data.length);
+      this.areas = data || [];
+    });
   }
 
   loadAllTemplates() {
-    this.templateService.GetAll().subscribe((result) => (this.templates = result.value));
+    this.templateService.GetAll().subscribe((result) => (this.templates = result || []));
   }
 
   onGovernorateChange(e: Event) {
-    const id = Number((e.target as HTMLSelectElement).value);
+    const val = (e.target as HTMLSelectElement).value;
+    console.log('[MapView] Governorate dropdown changed value:', val);
+    const id = Number(val);
     this.getAreas(id);
   }
 
@@ -160,13 +166,12 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
     }
     this.templatePatternService
       .GetAllTemplatePatternByTemplateId(templateId)
-      .subscribe((result) => (this.templatePatterns = result.value));
+      .subscribe((result) => (this.templatePatterns = result || []));
   }
 
   onTemplatePatternChange(lightPatternId: number) {
     this.selectedLightPatternId = lightPatternId;
-    this.lightPatternService.getById(lightPatternId).subscribe((result) => {
-      const lp = Array.isArray(result.value) ? result.value[0] : result.value;
+    this.lightPatternService.getById(lightPatternId).subscribe((lp) => {
       if (!lp) return;
       this.lightPattern = lp;
       const redCtrl = this.trafficForm.get('redTime');
@@ -179,19 +184,10 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
   onApply() {
     if (this.trafficForm.invalid || !this.selectedLightPatternId) {
       this.trafficForm.markAllAsTouched();
-      // alert(this.isAr ? 'املأ النموذج واختر نمط الإشارة' : 'Fill the form and select a pattern');
       return;
     }
 
-    const raw = this.trafficForm.getRawValue() as {
-      id: number | string | null;
-      ipCabinet: number | string | null;
-      name: string;
-      latitude: string | number;
-      longitude: string | number;
-      area: string | number | null;
-      ipAddress: string;
-    };
+    const raw = this.trafficForm.getRawValue();
 
     const payload: AddSignBoxWithUpdateLightPattern = {
       id: Number(raw.id),

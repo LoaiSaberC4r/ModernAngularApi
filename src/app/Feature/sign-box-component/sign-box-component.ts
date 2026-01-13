@@ -305,7 +305,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
           return;
         }
 
-        this.governates = Array.isArray(res?.value) ? res.value : [];
+        this.governates = Array.isArray(res) ? res : [];
       },
       error: (err) => {
         const msg =
@@ -330,7 +330,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
           return;
         }
 
-        this.areas = Array.isArray(res?.value) ? res.value : [];
+        this.areas = Array.isArray(res) ? res : [];
       },
       error: (err) => {
         const msg =
@@ -618,12 +618,12 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
   getGovernorateName(id: number | null): string {
     if (!id) return '';
-    return this.governates.find((g) => g.id === id)?.name ?? '';
+    return this.governates.find((g) => g.governateId === id)?.name ?? '';
   }
 
   getAreaName(id: number | null): string {
     if (!id) return '';
-    return this.areas.find((a) => a.id === id)?.name ?? '';
+    return this.areas.find((a) => a.areaId === id)?.name ?? '';
   }
 
   /** (SignalR) */

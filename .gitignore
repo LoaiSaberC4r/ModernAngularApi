@@ -42,8 +42,17 @@ testem.log
 .DS_Store
 Thumbs.db
 
-# Offline Map Tiles (Large Files - Download Separately)
-# The offline map tiles are ~307 MB and must be downloaded from releases or cloud storage
+# Offline Map Tiles & Data (Large Files - Download Separately)
+# These files are too large for standard GitHub repositories (>100MB)
 /src/assets/tiles/
 /src/assets/tiles.zip
 /src/assets/Maperitive/
+/src/assets/*.osm.pbf
+/src/assets/offlineMap.rar
+/src/assets/roads.geojson
+/*.rar
+/*.zip
+/*.7z
+/src.rar
+/src_backup.rar
+

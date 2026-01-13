@@ -1,0 +1,158 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  /* Background is handled by global styles (gradient), but we ensure this container covers full viewport */
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
+  padding: 48px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  animation: slideUpFade 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.logo-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+/* Custom Traffic Light Icon using CSS */
+.traffic-light-icon {
+  background: #2c3e50;
+  padding: 10px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  animation: float 3s ease-in-out infinite;
+}
+
+.light {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #3f3f3f;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  transition: background-color 0.4s, box-shadow 0.4s;
+}
+
+.light.red {
+  background-color: #ff5f56;
+  box-shadow: 0 0 10px #ff5f56;
+}
+.light.yellow {
+  background-color: #ffbd2e;
+} /* Dimmed initially or animated if desired */
+.light.green {
+  background-color: #27c93f;
+}
+
+.header-text {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.header-text h1 {
+  margin: 0;
+  color: #1a202c;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.header-text p {
+  margin: 8px 0 0;
+  color: #718096;
+  font-size: 15px;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* Customizing Material Form Field to fit glass theme */
+::ng-deep .mat-mdc-form-field-wrapper {
+  padding-bottom: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+}
+
+.forgot-pass {
+  color: #4a5568;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.forgot-pass:hover {
+  color: #3182ce;
+}
+
+.submit-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(49, 130, 206, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(49, 130, 206, 0.4);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+/* Animations */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* Loading Spinner centering */
+::ng-deep .mat-mdc-progress-spinner {
+  margin: 0 auto;
+}

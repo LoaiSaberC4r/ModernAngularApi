@@ -11,7 +11,7 @@ import {
 } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
 import { Result } from '../../Domain/ResultPattern/Result';
 import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern';
-import { ResultV } from '../../Domain/ResultPattern/ResultV';
+
 import { GetAllSignBoxLocation } from '../../Domain/Entity/SignControlBox/GetAllSignBoxLocation';
 import { AddSignBoxCommandDto } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
 import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox';
@@ -110,20 +110,14 @@ export class ISignBoxControlService {
       );
   }
 
-  getAllLocations(): Observable<ResultV<GetAllSignBoxLocation>> {
+  getAllLocations(): Observable<GetAllSignBoxLocation[]> {
     return this.http
-      .get<ResultV<GetAllSignBoxLocation>>(
+      .get<GetAllSignBoxLocation[]>(
         `${environment.baseUrl}/SignControlBox/GetSignControlBoxLocations`
       )
       .pipe(
-        map((resp) => {
-          if (!(resp as any)?.isSuccess)
-            throw new Error((resp as any)?.error?.description ?? 'Unknown error');
-          return resp;
-        }),
-        catchError(
-          this.handleError<ResultV<GetAllSignBoxLocation>>('GetSignControlBoxLocations', {} as any)
-        )
+        map((resp) => resp || []),
+        catchError(this.handleError<GetAllSignBoxLocation[]>('GetSignControlBoxLocations', []))
       );
   }
 

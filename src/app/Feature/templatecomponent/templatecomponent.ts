@@ -20,7 +20,7 @@ import {
   LightPatternForTemplatePattern,
   TemplatePattern,
 } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
-import { ResultV } from '../../Domain/ResultPattern/ResultV';
+
 import { LanguageService } from '../../Services/Language/language-service';
 import { ToasterService } from '../../Services/Toster/toaster-service';
 
@@ -104,6 +104,22 @@ export class Templatecomponent implements OnInit {
       overlapTime: 'Overlap Time (sec)',
       blinkOverlapWarning: 'Blinking and overlaping not Happening in the counter',
       overlapExceedsGreenError: 'Overlap time cannot be greater than Green duration',
+
+      // Messages
+      completionReq: 'Please complete required fields',
+      saveSuccess: 'Template saved',
+      saveFailed: 'Failed to save template',
+      loadTemplateFail: 'Failed to load templates',
+      loadPatternFail: 'Failed to load light patterns',
+      loadScheduleFail: 'Failed to load template schedule',
+      confirmDeleteTemplate: 'Are you sure you want to delete this template?',
+      deleteSuccess: 'Template deleted',
+      deleteFail: 'Failed to delete template',
+      completePatternReq: 'Please complete pattern fields',
+      patternSaved: 'Pattern saved',
+      patternSaveFail: 'Failed to save pattern',
+      patternDeleted: 'Pattern deleted',
+      patternDeleteFail: 'Failed to delete pattern',
     },
     ar: {
       templateManager: 'إدارة القوالب',
@@ -156,6 +172,22 @@ export class Templatecomponent implements OnInit {
       overlapTime: 'وقت التداخل',
       blinkOverlapWarning: 'الوميض والتداخل لا يظهران في العداد',
       overlapExceedsGreenError: 'وقت التداخل لا يمكن أن يكون أكبر من وقت الأخضر',
+
+      // Messages
+      completionReq: 'من فضلك أكمل البيانات المطلوبة',
+      saveSuccess: 'تم حفظ القالب بنجاح',
+      saveFailed: 'فشل حفظ القالب',
+      loadTemplateFail: 'فشل تحميل القوالب',
+      loadPatternFail: 'فشل تحميل أنماط الإشارات',
+      loadScheduleFail: 'فشل تحميل جدول القالب',
+      confirmDeleteTemplate: 'هل أنت متأكد من حذف هذا القالب؟',
+      deleteSuccess: 'تم حذف القالب',
+      deleteFail: 'فشل حذف القالب',
+      completePatternReq: 'من فضلك أكمل بيانات النمط',
+      patternSaved: 'تم حفظ النمط',
+      patternSaveFail: 'فشل حفظ النمط',
+      patternDeleted: 'تم حذف النمط',
+      patternDeleteFail: 'فشل حذف النمط',
     },
   } as const;
 
@@ -280,12 +312,12 @@ export class Templatecomponent implements OnInit {
   private loadTemplates() {
     this.templateService.GetAll().subscribe({
       next: (resp) => {
-        this.templates = resp?.value ?? [];
+        this.templates = resp ?? [];
       },
       error: (err) => {
         const { messages } = this.extractApiErrors(err);
         if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.isAr ? '❌ فشل تحميل القوالب' : '❌ Failed to load templates');
+        else this.toaster.error(this.tr('loadTemplateFail'));
       },
     });
   }
@@ -293,15 +325,12 @@ export class Templatecomponent implements OnInit {
   private loadLightPatterns() {
     this.lightPatternService.getAll().subscribe({
       next: (resp) => {
-        this.lightPatterns = resp?.value ?? [];
+        this.lightPatterns = resp ?? [];
       },
       error: (err) => {
         const { messages } = this.extractApiErrors(err);
         if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else
-          this.toaster.error(
-            this.isAr ? '❌ فشل تحميل أنماط الإشارات' : '❌ Failed to load light patterns'
-          );
+        else this.toaster.error(this.tr('loadPatternFail'));
       },
     });
   }
@@ -332,8 +361,8 @@ export class Templatecomponent implements OnInit {
     }
 
     this.templatePatternService.GetAllTemplatePatternByTemplateId(id).subscribe({
-      next: (resp: ResultV<LightPatternForTemplatePattern>) => {
-        const list = resp?.value ?? [];
+      next: (resp: LightPatternForTemplatePattern[]) => {
+        const list = resp ?? [];
         const patterns: LightPatternForTemplatePattern[] = list.map((p: any) => ({
           ...p,
           isDefault: !!p.isDefault || !!p.IsDefault,
@@ -357,10 +386,7 @@ export class Templatecomponent implements OnInit {
       error: (err) => {
         const { messages } = this.extractApiErrors(err);
         if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else
-          this.toaster.error(
-            this.isAr ? '❌ فشل تحميل جدول القالب' : '❌ Failed to load template schedule'
-          );
+        else this.toaster.error(this.tr('loadScheduleFail'));
       },
     });
   }
@@ -405,9 +431,7 @@ export class Templatecomponent implements OnInit {
   saveTemplatePattern() {
     if (!this.templateForm.valid || this.rows.length === 0) {
       this.templateForm.markAllAsTouched();
-      this.toaster.warning(
-        this.isAr ? '⚠️ من فضلك أكمل البيانات المطلوبة' : '⚠️ Please complete required fields'
-      );
+      this.toaster.warning(this.tr('completionReq'));
       return;
     }
 
@@ -439,8 +463,9 @@ export class Templatecomponent implements OnInit {
       next: (resp) => {
         this.submitting = false;
 
-        if (resp?.isSuccess) {
-          this.toaster.success(this.isAr ? '✅ تم حفظ القالب بنجاح' : '✅ Template saved');
+        // Check if resp is a valid object (not empty)
+        if (resp && Object.keys(resp).length > 0) {
+          this.toaster.success(this.tr('saveSuccess'));
 
           const currentId = payload.templateId || 0;
           if (currentId > 0) {
@@ -457,17 +482,17 @@ export class Templatecomponent implements OnInit {
 
         const { messages } = this.extractApiErrors(resp);
         if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.isAr ? '❌ فشل حفظ القالب' : '❌ Failed to save template');
+        else this.toaster.error(this.tr('saveFailed'));
       },
       error: (err) => {
         this.submitting = false;
         const { messages } = this.extractApiErrors(err);
 
         if (messages.length) {
-          this.toaster.error(this.isAr ? '❌ فشل الحفظ' : '❌ Save failed', { durationMs: 2800 });
+          this.toaster.error(this.tr('saveFailed'), { durationMs: 2800 });
           this.toaster.errorMany(messages, { durationMs: 4500 });
         } else {
-          this.toaster.error(this.isAr ? '❌ فشل حفظ القالب' : '❌ Failed to save template');
+          this.toaster.error(this.tr('saveFailed'));
         }
         console.error('Save template failed', err);
       },
@@ -478,14 +503,7 @@ export class Templatecomponent implements OnInit {
     const id = (this.templateForm.value.templateId as number) || 0;
     if (id <= 0) return;
 
-    if (
-      !confirm(
-        this.isAr
-          ? 'هل أنت متأكد من حذف هذا القالب؟'
-          : 'Are you sure you want to delete this template?'
-      )
-    )
-      return;
+    if (!confirm(this.tr('confirmDeleteTemplate'))) return;
 
     this.submitting = true;
 
@@ -494,7 +512,7 @@ export class Templatecomponent implements OnInit {
         this.submitting = false;
 
         if (resp?.isSuccess) {
-          this.toaster.success(this.isAr ? '✅ تم حذف القالب' : '✅ Template deleted');
+          this.toaster.success(this.tr('deleteSuccess'));
 
           this.templateForm.reset({ templateId: 0, templateName: '' });
           this.rows.clear();
@@ -505,13 +523,13 @@ export class Templatecomponent implements OnInit {
 
         const { messages } = this.extractApiErrors(resp);
         if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.isAr ? '❌ فشل حذف القالب' : '❌ Failed to delete template');
+        else this.toaster.error(this.tr('deleteFail'));
       },
       error: (err) => {
         this.submitting = false;
         const { messages } = this.extractApiErrors(err);
         if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.isAr ? '❌ فشل حذف القالب' : '❌ Failed to delete template');
+        else this.toaster.error(this.tr('deleteFail'));
       },
     });
   }
@@ -553,9 +571,7 @@ export class Templatecomponent implements OnInit {
   createPattern(): void {
     if (this.patternForm.invalid) {
       this.patternForm.markAllAsTouched();
-      this.toaster.warning(
-        this.isAr ? '⚠️ من فضلك أكمل بيانات النمط' : '⚠️ Please complete pattern fields'
-      );
+      this.toaster.warning(this.tr('completionReq'));
       return;
     }
     this.submitting = true;
@@ -598,7 +614,7 @@ export class Templatecomponent implements OnInit {
         this.submitting = false;
 
         if (resp?.isSuccess) {
-          this.toaster.success(this.isAr ? '✅ تم حفظ النمط' : '✅ Pattern saved');
+          this.toaster.success(this.tr('patternSaved'));
           this.resetPatternEditor(true);
           this.loadLightPatterns();
           return;
@@ -608,7 +624,7 @@ export class Templatecomponent implements OnInit {
         this.applyServerValidationErrors(fieldMap);
 
         if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.isAr ? '❌ فشل حفظ النمط' : '❌ Failed to save pattern');
+        else this.toaster.error(this.tr('patternSaveFail'));
       },
       error: (err) => {
         this.submitting = false;
@@ -616,7 +632,7 @@ export class Templatecomponent implements OnInit {
         this.applyServerValidationErrors(fieldMap);
 
         if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.isAr ? '❌ فشل حفظ النمط' : '❌ Failed to save pattern');
+        else this.toaster.error(this.tr('patternSaveFail'));
       },
     });
   }
@@ -643,12 +659,13 @@ export class Templatecomponent implements OnInit {
   deletePattern(): void {
     const selected: GetAllLightPattern | undefined = this.patternForm.value.selectedPattern;
     if (!selected) return;
+
     if (!confirm(this.isAr ? `حذف "${selected.name}"؟` : `Delete "${selected.name}"?`)) return;
 
     this.lightPatternService.delete(selected.id).subscribe({
       next: (resp) => {
         if (resp?.isSuccess) {
-          this.toaster.success(this.isAr ? '✅ تم حذف النمط' : '✅ Pattern deleted');
+          this.toaster.success(this.tr('patternDeleted'));
           this.resetPatternEditor(true);
           this.loadLightPatterns();
           return;
@@ -656,12 +673,12 @@ export class Templatecomponent implements OnInit {
 
         const { messages } = this.extractApiErrors(resp);
         if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.isAr ? '❌ فشل حذف النمط' : '❌ Failed to delete pattern');
+        else this.toaster.error(this.tr('patternDeleteFail'));
       },
       error: (err) => {
         const { messages } = this.extractApiErrors(err);
         if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.isAr ? '❌ فشل حذف النمط' : '❌ Failed to delete pattern');
+        else this.toaster.error(this.tr('patternDeleteFail'));
       },
     });
   }

@@ -28,7 +28,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 
 import { RoundaboutComponent } from '../roundabout-component/roundabout-component';
-import { ResultV } from '../../Domain/ResultPattern/ResultV';
+
 import { LanguageService } from '../../Services/Language/language-service';
 import { Subscription, Subject, fromEvent, interval } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, takeUntil } from 'rxjs/operators';
@@ -181,7 +181,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
     this.isRefreshing = true;
     this.templateService.GetAll().subscribe({
       next: (res) => {
-        const incoming = res?.value ?? [];
+        const incoming = res || [];
         const sameLen = this.templates.length === incoming.length;
         const sameIds =
           sameLen && this.templates.every((t, i) => Number(t.id) === Number(incoming[i]?.id));
@@ -194,13 +194,13 @@ export class TrafficWizard implements OnInit, OnDestroy {
 
   private loadGovernate() {
     this.governateService.getAll({}).subscribe((data) => {
-      this.governates = data.value ?? [];
+      this.governates = data || [];
     });
   }
 
   private getAreas(id: number) {
     this.areaService.getAll(id).subscribe((data) => {
-      this.areas = data.value ?? [];
+      this.areas = data || [];
     });
   }
 
@@ -275,12 +275,12 @@ export class TrafficWizard implements OnInit, OnDestroy {
 
   getGovernorateName(id: number | null): string {
     if (!id) return '';
-    return this.governates.find((g) => g.id === id)?.name ?? '';
+    return this.governates.find((g) => g.governateId === id)?.name ?? '';
   }
 
   getAreaName(id: number | null): string {
     if (!id) return '';
-    return this.areas.find((a) => a.id === id)?.name ?? '';
+    return this.areas.find((a) => a.areaId === id)?.name ?? '';
   }
 
   templateName(id: number | null | undefined): string {
@@ -640,8 +640,8 @@ export class TrafficWizard implements OnInit, OnDestroy {
 
     this.templatePatternService
       .GetAllTemplatePatternByTemplateId(templateId)
-      .subscribe((resp: ResultV<LightPatternForTemplatePattern>) => {
-        const list = resp?.value ?? [];
+      .subscribe((resp: LightPatternForTemplatePattern[]) => {
+        const list = resp || [];
         const patterns: LightPatternForTemplatePattern[] = list.map((p: any) => ({
           ...p,
           isDefault: !!p.isDefault || !!p.IsDefault,

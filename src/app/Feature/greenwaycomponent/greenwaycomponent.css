@@ -137,3 +137,17 @@
   -webkit-filter: grayscale(100%) !important;
   opacity: 0.8;
 }
+
+/* Road Editor Specifics */
+.border-warning {
+  border-width: 2px !important;
+}
+
+.card-header.bg-warning {
+  border-bottom: 2px solid #856404;
+}
+
+.map-container.editing-roads {
+  cursor: crosshair !important;
+  border: 4px solid #ffc107;
+}

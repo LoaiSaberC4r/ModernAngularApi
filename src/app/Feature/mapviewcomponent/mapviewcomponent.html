@@ -17,7 +17,7 @@
               [attr.dir]="isAr ? 'rtl' : 'ltr'"
             >
               <option value="">{{ isAr ? '-- اختر --' : '-- Select --' }}</option>
-              <option *ngFor="let g of governates" [value]="g.id">{{ g.name }}</option>
+              <option *ngFor="let g of governates" [value]="g.governateId">{{ g.name }}</option>
             </select>
             <div
               class="invalid-feedback"
@@ -39,7 +39,7 @@
               [attr.dir]="isAr ? 'rtl' : 'ltr'"
             >
               <option [ngValue]="null">{{ isAr ? '-- اختر --' : '-- Select --' }}</option>
-              <option *ngFor="let a of areas" [value]="a.id">{{ a.name }}</option>
+              <option *ngFor="let a of areas" [value]="a.areaId">{{ a.name }}</option>
             </select>
             <div class="invalid-feedback" *ngIf="f['area'].touched && f['area'].invalid">
               {{ isAr ? 'الحي مطلوب' : 'Area is required' }}
@@ -138,7 +138,7 @@
               <h6 class="template-patterns-header">
                 {{ isAr ? 'أنماط القالب' : 'Template Patterns' }}
               </h6>
-              <div *ngIf="!templatePatterns?.length" class="text-muted small mb-3">
+              <div *ngIf="!templatePatterns.length" class="text-muted small mb-3">
                 {{
                   isAr
                     ? 'لا توجد أنماط للعرض. اختر قالبًا.'

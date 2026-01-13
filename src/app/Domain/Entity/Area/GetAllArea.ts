@@ -1,4 +1,7 @@
 export interface GetAllArea {
+  areaId: number;
   name: string;
-  id: number;
+  latitude: string;
+  longitude: string;
+  governanceId?: number;
 }

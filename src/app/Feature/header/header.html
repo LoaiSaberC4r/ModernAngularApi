@@ -8,9 +8,13 @@
       </span>
     </a>
 
-
-    <button class="hamburger" (click)="toggleMenu()" aria-label="Toggle navigation" [attr.aria-expanded]="isMenuOpen"
-      aria-controls="primary-nav">
+    <button
+      class="hamburger"
+      (click)="toggleMenu()"
+      aria-label="Toggle navigation"
+      [attr.aria-expanded]="isMenuOpen"
+      aria-controls="primary-nav"
+    >
       <span></span><span></span><span></span>
     </button>
 
@@ -53,10 +57,11 @@
       <li class="nav-item lang-switch">
         <app-switcher-lang-component></app-switcher-lang-component>
       </li>
+      <li class="nav-item">
+        <a class="nav-link logout-link" (click)="logout()" style="cursor: pointer; color: #e74c3c">
+          <i class="fa fa-sign-out"></i> {{ isAr ? 'خروج' : 'Logout' }}
+        </a>
+      </li>
     </ul>
   </div>
 </nav>
-
-<div class="container-fluid p-0">
-  <router-outlet></router-outlet>
-</div>

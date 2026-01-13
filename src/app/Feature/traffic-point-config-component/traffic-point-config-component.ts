@@ -90,12 +90,12 @@ export class TrafficPointConfigComponent implements OnInit {
   loadLightPattern() {
     this.lightPatternService.getAll().subscribe((data) => {
       console.log(data);
-      this.pattern = data.value;
+      this.pattern = data || [];
     });
   }
   loadGovernate() {
     this.governateService.getAll({}).subscribe((data) => {
-      this.governorates = data.value;
+      this.governorates = data || [];
     });
   }
   onGovernorateChange(e: Event) {
@@ -125,7 +125,7 @@ export class TrafficPointConfigComponent implements OnInit {
   }
   getAreas(id: number) {
     this.areaServoce.getAll(id).subscribe((data) => {
-      this.areas = data.value;
+      this.areas = data || [];
     });
   }
 

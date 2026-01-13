@@ -90,6 +90,41 @@
             </div>
           </div>
 
+          <!-- Routing Control -->
+          <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+              <h6 class="mb-0">{{ isAr ? 'تفعيل المسارات' : 'Road Routing' }}</h6>
+            </div>
+            <div class="card-body">
+              @if (isLoadingRoads) {
+              <div class="text-center py-2">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                <small>{{ isAr ? 'جاري تحميل بيانات الطرق...' : 'Loading road data...' }}</small>
+              </div>
+              } @else {
+              <div class="form-check form-switch">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="routingToggle"
+                  [(ngModel)]="routingEnabled"
+                  (change)="updateLines()"
+                />
+                <label class="form-check-label" for="routingToggle">
+                  {{ isAr ? 'استخدام routing على الطرق' : 'Enable road routing' }}
+                </label>
+              </div>
+              <small class="text-muted d-block mt-2">
+                {{
+                  isAr
+                    ? 'عند التفعيل: الخط الأخضر = مسار على الطرق، الخط الأحمر المنقط = لا يوجد مسار'
+                    : 'When enabled: Green = route found, Red dashed = no route'
+                }}
+              </small>
+              }
+            </div>
+          </div>
+
           <!-- Markers List -->
           <div class="card">
             <div class="card-header bg-secondary text-white">

@@ -42,7 +42,7 @@
           (ngModelChange)="onGovernorateChangeValue($event)"
         >
           <option [ngValue]="null">{{ isAr ? 'الكل' : 'All' }}</option>
-          <option *ngFor="let g of governates" [ngValue]="g.id">{{ g.name }}</option>
+          <option *ngFor="let g of governates" [ngValue]="g.governateId">{{ g.name }}</option>
         </select>
       </div>
       <!-- Area -->
@@ -54,7 +54,7 @@
           (ngModelChange)="onAreaChangeValue($event)"
         >
           <option [ngValue]="null">{{ isAr ? 'الكل' : 'All' }}</option>
-          <option *ngFor="let a of areas" [ngValue]="a.id">{{ a.name }}</option>
+          <option *ngFor="let a of areas" [ngValue]="a.areaId">{{ a.name }}</option>
         </select>
       </div>
     </div>

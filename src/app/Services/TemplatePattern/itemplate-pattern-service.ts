@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, of, shareReplay, tap } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
-import { ResultV } from '../../Domain/ResultPattern/ResultV';
+
 import {
   LightPatternForTemplatePattern,
   TemplatePattern,
@@ -38,15 +38,14 @@ export class ITemplatePatternService {
     return resultErrorDesc || `Operation "${op}" failed`;
   }
 
-  AddOrUpdateLightPattern(payload: TemplatePattern): Observable<ResultV<TemplatePattern>> {
+  AddOrUpdateLightPattern(payload: TemplatePattern): Observable<TemplatePattern> {
     return this.http
-      .post<ResultV<TemplatePattern>>(
+      .post<TemplatePattern>(
         `${environment.baseUrl}/TemplatePattern/AddOrUpdateTemplatePattern`,
         payload
       )
       .pipe(
         map((resp) => {
-          if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
           return resp;
         }),
         tap(() => this.toast.success('Success')),
@@ -54,32 +53,27 @@ export class ITemplatePatternService {
           const msg = this.extractErrorMessage(err, 'TemplatePattern:AddOrUpdate');
           console.error('[TemplatePattern:AddOrUpdate] failed:', err);
           this.toast.error(msg);
-          return of({} as ResultV<TemplatePattern>);
+          return of({} as TemplatePattern);
         }),
         shareReplay(1)
       );
   }
 
-  GetAllTemplatePatternByTemplateId(
-    Id: number
-  ): Observable<ResultV<LightPatternForTemplatePattern>> {
+  GetAllTemplatePatternByTemplateId(Id: number): Observable<LightPatternForTemplatePattern[]> {
     const query = new HttpParams().set('templateId', String(Id));
 
     return this.http
-      .get<ResultV<LightPatternForTemplatePattern>>(
+      .get<LightPatternForTemplatePattern[]>(
         `${environment.baseUrl}/TemplatePattern/GetAllByTemplateId`,
         { params: query }
       )
       .pipe(
-        map((resp) => {
-          if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
-          return resp;
-        }),
+        map((resp) => resp || []),
         catchError((err) => {
           const msg = this.extractErrorMessage(err, 'TemplatePattern:GetAllByTemplateId');
           console.error('[TemplatePattern:GetAllByTemplateId] failed:', err);
           this.toast.error(msg);
-          return of({} as ResultV<LightPatternForTemplatePattern>);
+          return of([] as LightPatternForTemplatePattern[]);
         }),
         shareReplay(1)
       );

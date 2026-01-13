@@ -1,0 +1,71 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [31.2357, 30.0444],
+          [31.2367, 30.0454],
+          [31.2377, 30.0464],
+          [31.2387, 30.0474],
+          [31.2397, 30.0484]
+        ]
+      },
+      "properties": {
+        "highway": "primary",
+        "name": "Test Road 1"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [31.2397, 30.0484],
+          [31.2407, 30.0494],
+          [31.2417, 30.0504],
+          [31.2427, 30.0514]
+        ]
+      },
+      "properties": {
+        "highway": "primary",
+        "name": "Test Road 2"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [31.2357, 30.0444],
+          [31.2357, 30.0454],
+          [31.2357, 30.0464],
+          [31.2357, 30.0474]
+        ]
+      },
+      "properties": {
+        "highway": "secondary",
+        "name": "Test Road 3"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [31.2357, 30.0474],
+          [31.2367, 30.0474],
+          [31.2377, 30.0474],
+          [31.2387, 30.0474],
+          [31.2397, 30.0484]
+        ]
+      },
+      "properties": {
+        "highway": "secondary",
+        "name": "Test Road 4"
+      }
+    }
+  ]
+}

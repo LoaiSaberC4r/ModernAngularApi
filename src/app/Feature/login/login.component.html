@@ -1,0 +1,59 @@
+<div class="login-container">
+  <div class="glass-card">
+    <div class="logo-container">
+      <div class="traffic-light-icon">
+        <div class="light red"></div>
+        <div class="light yellow"></div>
+        <div class="light green"></div>
+      </div>
+    </div>
+
+    <div class="header-text">
+      <h1>Welcome Back</h1>
+      <p>Sign in to continue to Traffic Control</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Username</mat-label>
+        <input matInput formControlName="username" placeholder="Enter your username" />
+        <mat-icon matPrefix>person</mat-icon>
+        <mat-error *ngIf="loginForm.get('username')?.hasError('required')">
+          Username is required
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Password</mat-label>
+        <input
+          matInput
+          [type]="hidePassword() ? 'password' : 'text'"
+          formControlName="password"
+          placeholder="Enter your password"
+        />
+        <mat-icon matPrefix>lock</mat-icon>
+        <button mat-icon-button matSuffix (click)="togglePasswordVisibility($event)" tabindex="-1">
+          <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+        <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
+          Password is required
+        </mat-error>
+      </mat-form-field>
+
+      <div class="actions">
+        <a href="javascript:void(0)" class="forgot-pass">Forgot Password?</a>
+      </div>
+
+      <button
+        mat-flat-button
+        color="primary"
+        class="submit-btn"
+        type="submit"
+        [disabled]="loginForm.invalid || isLoading()"
+      >
+        <span *ngIf="!isLoading()">LOGIN</span>
+        <mat-spinner *ngIf="isLoading()" diameter="24" color="accent"></mat-spinner>
+      </button>
+    </form>
+  </div>
+</div>
