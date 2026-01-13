@@ -2,12 +2,13 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  width: 100%;
 }
 
 .content-container {
-  flex: 1;
+  flex: 1 0 auto;
   position: relative;
-  /* Ensure content doesn't get hidden behind fixed headers if any */
+  width: 100%;
 }
 
 .company-logo-fixed {
@@ -18,17 +19,17 @@
   animation: fadeInLogo 0.8s ease-out;
   opacity: 0.85;
   transition: opacity 0.3s ease;
-  pointer-events: none; /* Let clicks pass through if needed, or remove if logo is interactive */
+  pointer-events: none;
+}
 
-  &:hover {
-    opacity: 1;
-  }
+.company-logo-fixed:hover {
+  opacity: 1;
+}
 
-  img {
-    height: 42px;
-    width: auto;
-    display: block;
-  }
+.company-logo-fixed img {
+  height: 42px;
+  width: auto;
+  display: block;
 }
 
 @keyframes fadeInLogo {

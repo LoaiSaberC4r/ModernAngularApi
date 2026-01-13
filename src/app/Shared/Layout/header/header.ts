@@ -1,8 +1,8 @@
 import { Component, HostListener, inject } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { SwitcherLangComponent } from '../../Shared/language-switcher/switcher-lang-component/switcher-lang-component';
-import { LanguageService } from '../../Services/Language/language-service';
-import { AuthService } from '../../Services/Auth/auth.service';
+import { SwitcherLangComponent } from '../../language-switcher/switcher-lang-component/switcher-lang-component';
+import { LanguageService } from '../../../Services/Language/language-service';
+import { AuthService } from '../../../Services/Auth/auth.service';
 
 @Component({
   selector: 'app-header',

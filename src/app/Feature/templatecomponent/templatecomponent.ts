@@ -20,6 +20,9 @@ import {
   LightPatternForTemplatePattern,
   TemplatePattern,
 } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
+import { IGovernateService } from '../../Services/Governate/igovernate-service';
+import { IAreaService } from '../../Services/Area/iarea-service';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
 
 import { LanguageService } from '../../Services/Language/language-service';
 import { ToasterService } from '../../Services/Toster/toaster-service';
@@ -263,9 +266,26 @@ export class Templatecomponent implements OnInit {
     };
   }
 
+  // Services for new section
+  private readonly governateService = inject(IGovernateService);
+  private readonly areaService = inject(IAreaService);
+
+  governates: GetAllGovernate[] = [];
+
+  // New Forms
+  governateForm = this.fb.group({
+    name: ['', Validators.required],
+  });
+
+  areaForm = this.fb.group({
+    governateId: [null as number | null, Validators.required],
+    name: ['', Validators.required],
+  });
+
   ngOnInit(): void {
     this.loadTemplates();
     this.loadLightPatterns();
+    this.loadGovernates();
 
     this.patternForm
       .get('selectedPattern')!
@@ -307,6 +327,64 @@ export class Templatecomponent implements OnInit {
         );
       }
     });
+  }
+
+  // ====== New Logic for Governorate & Area ======
+
+  loadGovernates() {
+    this.governateService.getAll({ pageSize: 1000 }).subscribe({
+      next: (res) => {
+        this.governates = res || [];
+      },
+      error: (err) => console.error(err),
+    });
+  }
+
+  saveGovernate() {
+    if (this.governateForm.invalid) {
+      this.governateForm.markAllAsTouched();
+      return;
+    }
+    const name = this.governateForm.value.name!;
+    this.submitting = true;
+    this.governateService.create({ name, latitude: '0', longitude: '0' }).subscribe({
+      next: () => {
+        this.submitting = false;
+        this.toaster.success(this.isAr ? 'تم حفظ المحافظة' : 'Governorate saved');
+        this.governateForm.reset();
+        this.loadGovernates();
+      },
+      error: (err: any) => {
+        this.submitting = false;
+        // Error is handled in service toast, but we stop loading state
+      },
+    });
+  }
+
+  saveArea() {
+    if (this.areaForm.invalid) {
+      this.areaForm.markAllAsTouched();
+      return;
+    }
+    const val = this.areaForm.value;
+    this.submitting = true;
+    this.areaService
+      .create({
+        name: val.name!,
+        governanceId: Number(val.governateId),
+        latitude: '0',
+        longitude: '0',
+      })
+      .subscribe({
+        next: () => {
+          this.submitting = false;
+          this.toaster.success(this.isAr ? 'تم حفظ المنطقة' : 'Area saved');
+          this.areaForm.reset();
+        },
+        error: (err: any) => {
+          this.submitting = false;
+        },
+      });
   }
 
   private loadTemplates() {

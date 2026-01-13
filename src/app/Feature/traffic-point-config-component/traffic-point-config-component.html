@@ -12,7 +12,7 @@
           (change)="onGovernorateChange($event)"
         >
           <option value="">-- Select --</option>
-          <option *ngFor="let g of governorates" [value]="g.id">
+          <option *ngFor="let g of governorates" [value]="g.governateId">
             {{ g.name }}
           </option>
         </select>
@@ -23,7 +23,7 @@
         <label class="form-label required">Area</label>
         <select formControlName="area" class="form-control">
           <option [ngValue]="null">-- Select --</option>
-          <option *ngFor="let a of areas" [value]="a.id">
+          <option *ngFor="let a of areas" [value]="a.areaId">
             {{ a.name }}
           </option>
         </select>

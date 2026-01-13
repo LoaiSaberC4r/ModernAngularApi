@@ -8,13 +8,13 @@ import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { languageInterceptorFn } from './interceptors/LanguageInterceptorFn';
+import { authInterceptor } from './Shared/Interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(),
-    provideHttpClient(withInterceptors([languageInterceptorFn])),
+    provideHttpClient(withInterceptors([authInterceptor, languageInterceptorFn])),
   ],
 };

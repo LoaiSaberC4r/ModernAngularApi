@@ -31,7 +31,7 @@ import { ITemplatePatternService } from '../../Services/TemplatePattern/itemplat
 import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
 import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
 
-import { EMPTY, catchError, concatMap, from, map, of, tap } from 'rxjs';
+import { EMPTY, catchError, concatMap, from, map, of, tap, Observable } from 'rxjs';
 
 const IPV4_REGEX = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
 
@@ -374,31 +374,33 @@ export class SignBoxEditComponent implements OnInit {
     };
 
     // 1) Update
-    this.service
-      .Update(payload)
-      .pipe(
-        catchError((err) => {
-          this.handleUpdateError(err);
-          this.isApplying = false;
-          return EMPTY;
-        }),
-        concatMap(() =>
-          from(
-            this.showPopupAsync(
-              this.isAr ? '✅ تم التحديث بنجاح' : '✅ Updated successfully!',
-              'success',
-              { duration: 1800 }
-            )
+    let process$: Observable<any> = this.service.Update(payload).pipe(
+      catchError((err) => {
+        this.handleUpdateError(err);
+        this.isApplying = false;
+        return EMPTY;
+      }),
+      concatMap(() =>
+        from(
+          this.showPopupAsync(
+            this.isAr ? '✅ تم التحديث بنجاح' : '✅ Updated successfully!',
+            'success',
+            { duration: 1800 }
           )
-        ),
-        // 3) Apply
+        )
+      )
+    );
+
+    // 2) Apply (Only if forced)
+    if (isForced) {
+      process$ = process$.pipe(
         concatMap(() =>
           this.service.applySignBox({ id: this.id, isForced }).pipe(
             map(() => ({ ok: true as const })),
             catchError((err) => of({ ok: false as const, err }))
           )
         ),
-        concatMap((res) =>
+        concatMap((res: { ok: boolean; err?: any }) =>
           from(
             this.showPopupAsync(
               res.ok
@@ -413,15 +415,17 @@ export class SignBoxEditComponent implements OnInit {
             )
           ).pipe(map(() => res))
         )
-      )
-      .subscribe({
-        next: () => {
-          this.isApplying = false;
-        },
-        error: () => {
-          this.isApplying = false;
-        },
-      });
+      );
+    }
+
+    process$.subscribe({
+      next: () => {
+        this.isApplying = false;
+      },
+      error: () => {
+        this.isApplying = false;
+      },
+    });
   }
 
   cancel(): void {

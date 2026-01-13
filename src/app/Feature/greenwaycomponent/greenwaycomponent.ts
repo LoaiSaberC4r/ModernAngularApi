@@ -74,8 +74,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   private cabinetMarkersMap = new Map<number, L.Marker>();
 
   // Routing properties
-  private pathFinder?: PathFinder<any, any>;
-  private roadNetwork?: any;
+  private worker?: Worker;
   isLoadingRoads = false;
   routingEnabled = false;
 
@@ -195,8 +194,8 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
     this.signBoxService.getAll({ pageSize: 10000 }).subscribe({
       next: (result) => {
-        if (result.isSuccess && result.value && result.value.data) {
-          result.value.data.forEach((loc) => {
+        if (result && result.data) {
+          result.data.forEach((loc) => {
             const lat = parseFloat(loc.latitude);
             const lng = parseFloat(loc.longitude);
             if (!isNaN(lat) && !isNaN(lng)) {
@@ -398,13 +397,11 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   }
 
   public updateLines() {
-    if (!this.routingEnabled || !this.pathFinder) {
-      console.log('Routing disabled or pathFinder not ready');
+    if (!this.routingEnabled || !this.worker) {
       this.updateLinesStraight();
       return;
     }
 
-    console.log(`Updating ${this.lines.length} lines with routing...`);
     this.lines.forEach((line, i) => {
       const m1 = this.markers[i * 2];
       const m2 = this.markers[i * 2 + 1];
@@ -412,59 +409,20 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
         const start = m1.getLatLng();
         const end = m2.getLatLng();
 
-        try {
-          // Snap points to nearest nodes in the road network for better success rate
-          const startCoords = this.getSnapPoint(start);
-          const endCoords = this.getSnapPoint(end);
-
-          console.log(`Finding path from [${startCoords}] to [${endCoords}]`);
-
-          const path = this.pathFinder!.findPath(
-            { type: 'Feature', geometry: { type: 'Point', coordinates: startCoords } } as any,
-            { type: 'Feature', geometry: { type: 'Point', coordinates: endCoords } } as any
-          );
-
-          if (path && path.path && path.path.length > 0) {
-            console.log(`Path found! ${path.path.length} points`);
-            const routeCoords = path.path.map((coord: number[]) => L.latLng(coord[1], coord[0]));
-            line.setLatLngs(routeCoords);
-            line.setStyle({ color: 'green', weight: 4, opacity: 0.8, dashArray: '' });
-          } else {
-            console.warn('No path found, showing fallback');
-            line.setLatLngs([start, end]);
-            line.setStyle({ color: 'red', weight: 3, opacity: 0.6, dashArray: '10, 10' });
-          }
-        } catch (err) {
-          console.error('Routing error during update:', err);
-          line.setLatLngs([start, end]);
-          line.setStyle({ color: 'blue', weight: 3, opacity: 0.5 });
-        }
-      }
-    });
-  }
-
-  private getSnapPoint(latLng: L.LatLng): number[] {
-    if (!this.roadNetwork || !this.roadNetwork.features) return [latLng.lng, latLng.lat];
-
-    const point = turf.point([latLng.lng, latLng.lat]);
-    let minDistance = Infinity;
-    let closestPoint = [latLng.lng, latLng.lat];
-
-    // Snap to the nearest node in the network (PathFinder works best with nodes)
-    this.roadNetwork.features.forEach((feature: any) => {
-      if (feature.geometry.type === 'LineString') {
-        feature.geometry.coordinates.forEach((coord: number[]) => {
-          const dist = turf.distance(point, turf.point(coord));
-          if (dist < minDistance) {
-            minDistance = dist;
-            closestPoint = coord;
-          }
+        // Send request to worker
+        this.worker!.postMessage({
+          type: 'findPath',
+          payload: {
+            index: i,
+            start: { lat: start.lat, lng: start.lng },
+            end: { lat: end.lat, lng: end.lng },
+          },
         });
       }
     });
-
-    return closestPoint;
   }
+
+  // Removed getSnapPoint as it's now in the worker
 
   private updateLinesStraight() {
     this.lines.forEach((line, i) => {
@@ -522,23 +480,61 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   }
 
   async loadRoadNetwork() {
-    this.isLoadingRoads = true;
-    try {
-      const data: any = await this.http.get('assets/roads.geojson').toPromise();
-      this.roadNetwork = data;
-      this.pathFinder = new PathFinder(this.roadNetwork);
-      this.routingEnabled = true;
-      console.log('Road network loaded successfully');
-      this.ngZone.run(() => {
-        this.mapError = null;
-      });
-    } catch (err) {
-      console.error('Failed to load road network', err);
-      this.ngZone.run(() => {
-        this.mapError = 'فشل تحميل بيانات الطرق / Failed to load road data';
-      });
-    } finally {
-      this.isLoadingRoads = false;
+    if (typeof Worker !== 'undefined') {
+      this.isLoadingRoads = true;
+      try {
+        // Initialize Worker
+        this.worker = new Worker(new URL('./routing.worker', import.meta.url));
+
+        this.worker.onmessage = ({ data }) => {
+          const { type, payload } = data;
+
+          if (type === 'init-complete') {
+            this.ngZone.run(() => {
+              this.isLoadingRoads = false;
+              this.routingEnabled = true;
+              console.log('Road network loaded and worker initialized');
+            });
+          } else if (type === 'path-found') {
+            const { index, path } = payload;
+            const line = this.lines[index];
+            if (line) {
+              this.ngZone.run(() => {
+                if (path && path.length > 0) {
+                  const routeCoords = path.map((coord: number[]) => L.latLng(coord[1], coord[0]));
+                  line.setLatLngs(routeCoords);
+                  line.setStyle({ color: 'green', weight: 4, opacity: 0.8, dashArray: '' });
+                } else {
+                  // Fallback to straight line
+                  const m1 = this.markers[index * 2];
+                  const m2 = this.markers[index * 2 + 1];
+                  if (m1 && m2) {
+                    line.setLatLngs([m1.getLatLng(), m2.getLatLng()]);
+                  }
+                  line.setStyle({ color: 'red', weight: 3, opacity: 0.6, dashArray: '10, 10' });
+                }
+              });
+            }
+          } else if (type === 'error') {
+            console.error('Worker error:', payload);
+            this.ngZone.run(() => {
+              this.isLoadingRoads = false;
+            });
+          }
+        };
+
+        // Load data and send to worker
+        const roadNetwork = await this.http.get('assets/roads.geojson').toPromise();
+        this.worker.postMessage({ type: 'init', payload: { roadNetwork } });
+      } catch (err) {
+        console.error('Failed to initialize road network worker', err);
+        this.ngZone.run(() => {
+          this.isLoadingRoads = false;
+          this.mapError = 'فشل تحميل بيانات الطرق / Failed to load road data';
+        });
+      }
+    } else {
+      console.warn('Web Workers are not supported in this environment.');
     }
   }
 

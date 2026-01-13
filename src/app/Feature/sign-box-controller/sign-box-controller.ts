@@ -7,7 +7,7 @@ import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-
 import { ISignalrService } from '../../Services/Signalr/isignalr-service';
 
 import { SearchParameters } from '../../Domain/ResultPattern/SearchParameters';
-import { Pagination } from '../../Domain/ResultPattern/Pagination';
+import { PaginateValue } from '../../Domain/ResultPattern/PaginateValue';
 import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBox';
 import { ResultError } from '../../Domain/ResultPattern/Error';
 
@@ -89,19 +89,14 @@ export class SignBoxController implements OnInit, OnDestroy {
   areas: GetAllArea[] = [];
   private _reqSeq = 0;
 
-  signBoxEntity: Pagination<GetAllSignControlBox> = {
-    value: {
-      data: [],
-      pageSize: 0,
-      totalPages: 0,
-      currentPage: 1,
-      hasNextPage: false,
-      hasPreviousPage: false,
-      totalItems: 0,
-    },
-    isSuccess: false,
-    isFailure: false,
-    error: {} as ResultError,
+  signBoxEntity: PaginateValue<GetAllSignControlBox> = {
+    data: [],
+    pageSize: 0,
+    totalPages: 0,
+    currentPage: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+    totalItems: 0,
   };
 
   activeFilter: 'ALL' | 'ACTIVE' | 'INACTIVE' = 'ALL';
@@ -262,20 +257,16 @@ export class SignBoxController implements OnInit, OnDestroy {
       next: (data) => {
         if (seq !== this._reqSeq) return;
 
-        // ✅ أول ما الداتا تيجي: اعمل reconcile للـ active حسب lastSeen
         this.signBoxEntity = {
           ...data,
-          value: {
-            ...data.value,
-            data: data.value.data.map((x) => ({
-              ...x,
-              active: this.isActiveByCabinetId(x.cabinetId),
-            })),
-          },
+          data: data.data.map((x) => ({
+            ...x,
+            active: this.isActiveByCabinetId(x.cabinetId),
+          })),
         };
 
-        this.hasPreviousPage = data.value.hasPreviousPage;
-        this.hasNextPage = data.value.hasNextPage;
+        this.hasPreviousPage = data.hasPreviousPage;
+        this.hasNextPage = data.hasNextPage;
       },
       error: (err) => {
         const msg =
@@ -293,7 +284,7 @@ export class SignBoxController implements OnInit, OnDestroy {
   }
 
   get filteredData(): GetAllSignControlBox[] {
-    let base = this.signBoxEntity.value.data.filter((item) => {
+    let base = this.signBoxEntity.data.filter((item) => {
       if (this.activeFilter === 'ACTIVE') return item.active === true;
       if (this.activeFilter === 'INACTIVE') return item.active === false;
       return true;
@@ -370,17 +361,14 @@ export class SignBoxController implements OnInit, OnDestroy {
   private recomputeActives(): void {
     const cur = this.signBoxEntity;
 
-    if (!cur?.value?.data?.length) return;
+    if (!cur?.data?.length) return;
 
     this.signBoxEntity = {
       ...cur,
-      value: {
-        ...cur.value,
-        data: cur.value.data.map((x) => ({
-          ...x,
-          active: this.isActiveByCabinetId(x.cabinetId),
-        })),
-      },
+      data: cur.data.map((x) => ({
+        ...x,
+        active: this.isActiveByCabinetId(x.cabinetId),
+      })),
     };
   }
 

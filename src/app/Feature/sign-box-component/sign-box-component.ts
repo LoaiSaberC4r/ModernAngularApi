@@ -13,8 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-controlService';
 import { ISignalrService } from '../../Services/Signalr/isignalr-service';
 
-import { SearchParameters } from '../../Domain/ResultPattern/SearchParameters';
-import { Pagination } from '../../Domain/ResultPattern/Pagination';
+import { PaginateValue } from '../../Domain/ResultPattern/PaginateValue';
 import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBox';
 import { ResultError } from '../../Domain/ResultPattern/Error';
 
@@ -35,6 +34,7 @@ import { IGovernateService } from '../../Services/Governate/igovernate-service';
 import { OverlayModule } from '@angular/cdk/overlay';
 import { ToasterService } from '../../Services/Toster/toaster-service';
 import { CabinetSignalrService } from '../../Services/Signalr/cabinet-signalr.service';
+import { SearchParameters } from '../../Domain/ResultPattern/SearchParameters';
 
 type TrafficColorText = 'Green' | 'Yellow' | 'Red' | 'Off' | string;
 
@@ -100,19 +100,14 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   governates: GetAllGovernate[] = [];
   areas: GetAllArea[] = [];
 
-  signBoxEntity: Pagination<GetAllSignControlBox> = {
-    value: {
-      data: [],
-      pageSize: 0,
-      totalPages: 0,
-      currentPage: 1,
-      hasNextPage: false,
-      hasPreviousPage: false,
-      totalItems: 0,
-    },
-    isSuccess: false,
-    isFailure: false,
-    error: {} as ResultError,
+  signBoxEntity: PaginateValue<GetAllSignControlBox> = {
+    data: [],
+    pageSize: 0,
+    totalPages: 0,
+    currentPage: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+    totalItems: 0,
   };
 
   // ===== Active Filter =====
@@ -167,7 +162,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
         this.lastSeen[key] = Date.now();
 
         if (this.popupData?.cabinetId === key) {
-          const row = this.signBoxEntity.value.data.find((x) => this.toKey(x.cabinetId) === key);
+          const row = this.signBoxEntity.data.find((x) => this.toKey(x.cabinetId) === key);
           if (row) this.popupData = this.toPopup(row, msg.message);
           this.popupLive = msg.message;
         }
@@ -205,7 +200,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
         this.lastSeen[key] = Date.now();
 
         if (this.popupData?.cabinetId === key) {
-          const row = this.signBoxEntity.value.data.find((x) => this.toKey(x.cabinetId) === key);
+          const row = this.signBoxEntity.data.find((x) => this.toKey(x.cabinetId) === key);
           if (row) this.popupData = this.toPopup(row, asBroadcast);
           this.popupLive = asBroadcast;
         }
@@ -279,9 +274,9 @@ export class SignBoxComponent implements OnInit, OnDestroy {
           return;
         }
 
-        this.signBoxEntity = { ...data, value: { ...data.value, data: [...data.value.data] } };
-        this.hasPreviousPage = data.value.hasPreviousPage;
-        this.hasNextPage = data.value.hasNextPage;
+        this.signBoxEntity = { ...data, data: [...data.data] };
+        this.hasPreviousPage = data.hasPreviousPage;
+        this.hasNextPage = data.hasNextPage;
         after?.();
       },
       error: (err) => {
@@ -385,7 +380,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
       return true;
     };
 
-    let base = this.signBoxEntity.value.data.filter(byActivity);
+    let base = this.signBoxEntity.data.filter(byActivity);
 
     if (this.selectedGovernorateId !== null) {
       base = base.filter((x) => x.governorateId === this.selectedGovernorateId);

@@ -14,12 +14,21 @@
     </div>
 
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      @if (authService.errorMessage()) {
+      <div class="error-message">
+        {{ authService.errorMessage() }}
+      </div>
+      }
+
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Username</mat-label>
-        <input matInput formControlName="username" placeholder="Enter your username" />
-        <mat-icon matPrefix>person</mat-icon>
-        <mat-error *ngIf="loginForm.get('username')?.hasError('required')">
-          Username is required
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" placeholder="Enter your email" type="email" />
+        <mat-icon matPrefix>email</mat-icon>
+        <mat-error *ngIf="loginForm.get('email')?.hasError('required')">
+          Email is required
+        </mat-error>
+        <mat-error *ngIf="loginForm.get('email')?.hasError('email')">
+          Please enter a valid email
         </mat-error>
       </mat-form-field>
 
@@ -38,6 +47,9 @@
         <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
           Password is required
         </mat-error>
+        <mat-error *ngIf="loginForm.get('password')?.hasError('minlength')">
+          Password must be at least 6 characters
+        </mat-error>
       </mat-form-field>
 
       <div class="actions">
@@ -49,10 +61,10 @@
         color="primary"
         class="submit-btn"
         type="submit"
-        [disabled]="loginForm.invalid || isLoading()"
+        [disabled]="loginForm.invalid || authService.isLoading()"
       >
-        <span *ngIf="!isLoading()">LOGIN</span>
-        <mat-spinner *ngIf="isLoading()" diameter="24" color="accent"></mat-spinner>
+        <span *ngIf="!authService.isLoading()">LOGIN</span>
+        <mat-spinner *ngIf="authService.isLoading()" diameter="24" color="accent"></mat-spinner>
       </button>
     </form>
   </div>

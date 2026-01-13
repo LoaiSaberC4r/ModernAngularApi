@@ -17,6 +17,7 @@ import { AddSignBoxCommandDto } from '../../Domain/Entity/SignControlBox/AddSign
 import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox';
 
 import { ToasterService } from '../Toster/toaster-service';
+import { PaginateValue } from '../../Domain/ResultPattern/PaginateValue';
 
 @Injectable({ providedIn: 'root' })
 export class ISignBoxControlService {
@@ -60,7 +61,7 @@ export class ISignBoxControlService {
 
   // ===== Reads =====
 
-  getAll(params: SearchParameters): Observable<Pagination<GetAllSignControlBox>> {
+  getAll(params: SearchParameters): Observable<PaginateValue<GetAllSignControlBox>> {
     const query = new HttpParams()
       .set('SearchText', params.searchText ?? '')
       .set('SortOrder', params.sortOrder ?? 'Newest')
@@ -68,22 +69,27 @@ export class ISignBoxControlService {
       .set('PageSize', (params.pageSize ?? 1000).toString());
 
     return this.http
-      .get<Pagination<GetAllSignControlBox>>(`${environment.baseUrl}/SignControlBox/GetAll`, {
+      .get<PaginateValue<GetAllSignControlBox>>(`${environment.baseUrl}/SignControlBox/GetAll`, {
         params: query,
       })
       .pipe(
-        map((resp) => {
-          if (!(resp as any)?.isSuccess)
-            throw new Error((resp as any)?.error?.description ?? 'Unknown error');
-          return resp;
-        }),
-        catchError(this.handleError<Pagination<GetAllSignControlBox>>('GetAll', {} as any))
+        catchError(
+          this.handleError<PaginateValue<GetAllSignControlBox>>('GetAll', {
+            data: [],
+            pageSize: 0,
+            totalPages: 0,
+            currentPage: 0,
+            hasNextPage: false,
+            hasPreviousPage: false,
+            totalItems: 0,
+          })
+        )
       );
   }
 
   getAllWithLightPattern(
     params: SearchParameters
-  ): Observable<Pagination<GetAllSignControlBoxWithLightPattern>> {
+  ): Observable<PaginateValue<GetAllSignControlBoxWithLightPattern>> {
     const query = new HttpParams()
       .set('SearchText', params.searchText ?? '')
       .set('SortOrder', params.sortOrder ?? 'Newest')
@@ -91,20 +97,23 @@ export class ISignBoxControlService {
       .set('PageSize', params.pageSize?.toString() ?? '10');
 
     return this.http
-      .get<Pagination<GetAllSignControlBoxWithLightPattern>>(
+      .get<PaginateValue<GetAllSignControlBoxWithLightPattern>>(
         `${environment.baseUrl}/SignControlBox/GetAllWithLightPatter`,
         { params: query }
       )
       .pipe(
-        map((resp) => {
-          if (!(resp as any)?.isSuccess)
-            throw new Error((resp as any)?.error?.description ?? 'Unknown error');
-          return resp;
-        }),
         catchError(
-          this.handleError<Pagination<GetAllSignControlBoxWithLightPattern>>(
+          this.handleError<PaginateValue<GetAllSignControlBoxWithLightPattern>>(
             'GetAllWithLightPattern',
-            {} as any
+            {
+              data: [],
+              pageSize: 0,
+              totalPages: 0,
+              currentPage: 0,
+              hasNextPage: false,
+              hasPreviousPage: false,
+              totalItems: 0,
+            }
           )
         )
       );
