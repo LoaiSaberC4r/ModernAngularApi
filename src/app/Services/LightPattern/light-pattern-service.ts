@@ -97,24 +97,27 @@ export class LightPatternService {
   }
 
   add(command: AddLightPatternCommand): Observable<Result> {
-    return this.http.post<Result>(`${environment.baseUrl}/LightPattern/Add`, command).pipe(
-      map((resp) => {
-        if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
-        return resp;
-      }),
-      catchError(this.handleError<Result>('LightPattern:Add', {} as any))
-    );
+    return this.http
+      .post<Result>(`${environment.baseUrl}/LightPattern/Add`, command, {
+        observe: 'response',
+      })
+      .pipe(
+        map((res) => {
+          if (res.status === 204 || res.body == null) {
+            return { isSuccess: true } as any;
+          }
+          return res.body;
+        }),
+        catchError(this.handleError<Result>('LightPattern:Add', undefined as any, true))
+      );
   }
 
   deletePattern(lightPatternId: number): Observable<Result> {
     const params = new HttpParams().set('LightPatternId', String(lightPatternId));
 
     return this.http.delete<Result>(`${environment.baseUrl}/LightPattern/Delete`, { params }).pipe(
-      map((resp) => {
-        if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
-        return resp;
-      }),
-      catchError(this.handleError<Result>('LightPattern:Delete', {} as any))
+      map((resp) => resp ?? ({ isSuccess: false } as any)),
+      catchError(this.handleError<Result>('LightPattern:Delete', undefined as any, true))
     );
   }
 }

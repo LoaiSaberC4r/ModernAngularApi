@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { catchError, map, Observable, of, shareReplay, tap } from 'rxjs';
+import { catchError, map, Observable, throwError, shareReplay } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
 
 import {
@@ -8,35 +8,10 @@ import {
   TemplatePattern,
 } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
 import { Result } from '../../Domain/ResultPattern/Result';
-import { ToasterService } from '../Toster/toaster-service';
 
 @Injectable({ providedIn: 'root' })
 export class ITemplatePatternService {
   private readonly http = inject(HttpClient);
-  private readonly toast = inject(ToasterService);
-
-  private extractErrorMessage(err: any, op: string): string {
-    const validationList: string[] =
-      err?.error?.errorMessages ?? err?.error?.errors ?? err?.error?.ErrorMessages ?? [];
-
-    if (Array.isArray(validationList) && validationList.length > 0) {
-      return `Validation (${op}): ${validationList.join(' | ')}`;
-    }
-
-    const problemTitle = err?.error?.title || err?.error?.Title;
-    const problemDetail = err?.error?.detail || err?.error?.Detail;
-    if (problemTitle || problemDetail) {
-      return `${problemTitle ?? 'Request failed'}${problemDetail ? `: ${problemDetail}` : ''}`;
-    }
-
-    const resultErrorDesc =
-      err?.error?.error?.description ||
-      err?.error?.Error?.Description ||
-      err?.error?.message ||
-      err?.message;
-
-    return resultErrorDesc || `Operation "${op}" failed`;
-  }
 
   AddOrUpdateLightPattern(payload: TemplatePattern): Observable<TemplatePattern> {
     return this.http
@@ -45,16 +20,11 @@ export class ITemplatePatternService {
         payload
       )
       .pipe(
-        map((resp) => {
-          return resp;
-        }),
+        map((resp) => resp),
         catchError((err) => {
-          const msg = this.extractErrorMessage(err, 'TemplatePattern:AddOrUpdate');
           console.error('[TemplatePattern:AddOrUpdate] failed:', err);
-          // Error is handled in component
-          return of({} as TemplatePattern);
-        }),
-        shareReplay(1)
+          return throwError(() => err);
+        })
       );
   }
 
@@ -69,12 +39,10 @@ export class ITemplatePatternService {
       .pipe(
         map((resp) => resp || []),
         catchError((err) => {
-          const msg = this.extractErrorMessage(err, 'TemplatePattern:GetAllByTemplateId');
           console.error('[TemplatePattern:GetAllByTemplateId] failed:', err);
-          // Error is handled in component
-          return of([] as LightPatternForTemplatePattern[]);
+          return throwError(() => err);
         }),
-        shareReplay(1)
+        shareReplay({ bufferSize: 1, refCount: true })
       );
   }
 
@@ -89,13 +57,8 @@ export class ITemplatePatternService {
           return resp;
         }),
         catchError((err) => {
-          const msg = this.extractErrorMessage(err, 'TemplatePattern:DeleteTemplate');
           console.error('[TemplatePattern:DeleteTemplate] failed:', err);
-          // Error is handled in component
-          return of({
-            isSuccess: false,
-            error: { description: 'Delete failed' },
-          } as Result);
+          return throwError(() => err);
         })
       );
   }

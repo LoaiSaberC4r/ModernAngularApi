@@ -6,3 +6,11 @@ body {
   background-attachment: fixed;
   background-repeat: no-repeat;
 }
+.cdk-overlay-container,
+.cdk-global-overlay-wrapper {
+  z-index: 999999 !important;
+}
+
+.toast-shell {
+  z-index: 999999 !important;
+}

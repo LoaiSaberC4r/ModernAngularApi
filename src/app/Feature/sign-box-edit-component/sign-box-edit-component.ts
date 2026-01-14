@@ -334,10 +334,12 @@ export class SignBoxEditComponent implements OnInit {
   }
 
   apply(isForced: boolean = false): void {
+    if (this.isApplying) return;
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.toaster.warning(
-        this.isAr ? '⚠️ يرجى ملء الحقول المطلوبة' : '⚠️ Please fill all required fields'
+        this.isAr ? 'يرجى ملء الحقول المطلوبة' : 'Please fill all required fields'
       );
       return;
     }
@@ -363,16 +365,20 @@ export class SignBoxEditComponent implements OnInit {
 
     // 1) Update
     let process$: Observable<any> = this.service.Update(payload).pipe(
+      tap((resp) => {
+        this.toaster.successFromBackend(resp, {
+          fallback: this.isAr ? 'تم التحديث بنجاح' : 'Updated successfully!',
+        });
+        const { fieldMap, isSuccess } = this.toaster.extractMessages(resp);
+        if (!isSuccess) this.applyServerValidationErrors(fieldMap);
+      }),
       catchError((err) => {
+        const { fieldMap } = this.toaster.extractMessages(err);
+        this.applyServerValidationErrors(fieldMap);
         this.toaster.errorFromBackend(err);
         this.isApplying = false;
         return EMPTY;
-      }),
-      tap(() =>
-        this.toaster.success(this.isAr ? '✅ تم التحديث بنجاح' : '✅ Updated successfully!', {
-          durationMs: 1800,
-        })
-      )
+      })
     );
 
     // 2) Apply (Only if forced)
@@ -380,20 +386,19 @@ export class SignBoxEditComponent implements OnInit {
       process$ = process$.pipe(
         concatMap(() =>
           this.service.applySignBox({ id: this.id, isForced }).pipe(
+            tap((resp) =>
+              this.toaster.successFromBackend(resp, {
+                fallback: this.isAr ? 'تم التطبيق بنجاح' : 'Applied successfully!',
+              })
+            ),
             map(() => ({ ok: true as const })),
-            catchError((err) => of({ ok: false as const, err }))
+            catchError((err) => {
+              this.toaster.errorFromBackend(err);
+              return of({ ok: false as const, err });
+            })
           )
         ),
-        concatMap((res: { ok: boolean; err?: any }) => {
-          if (res.ok) {
-            this.toaster.success(this.isAr ? '✅ تم التطبيق بنجاح' : '✅ Applied successfully!', {
-              durationMs: 2200,
-            });
-          } else {
-            this.toaster.errorFromBackend(res.err);
-          }
-          return of(res);
-        })
+        map((res) => res)
       );
     }
 
@@ -506,7 +511,14 @@ export class SignBoxEditComponent implements OnInit {
 
   restartSignBox(): void {
     if (!this.id) return;
-    this.service.Restart(this.id).subscribe();
+    this.service.Restart(this.id).subscribe({
+      next: (resp) => {
+        this.toaster.successFromBackend(resp, {
+          fallback: this.isAr ? 'تم البدء في إعادة التشغيل' : 'Restart initiated successfully',
+        });
+      },
+      error: (err) => this.toaster.errorFromBackend(err),
+    });
   }
 
   deleteSignBox(): void {
@@ -515,11 +527,63 @@ export class SignBoxEditComponent implements OnInit {
       : 'Are you sure you want to delete this SignBox?';
 
     if (confirm(confirmMsg)) {
-      this.service.Delete(this.id).subscribe((res: any) => {
-        if (res?.isSuccess) {
-          this.router.navigate(['/signbox']);
-        }
+      this.service.Delete(this.id).subscribe({
+        next: (res: any) => {
+          this.toaster.successFromBackend(res, {
+            fallback: this.isAr ? 'تم الحذف بنجاح' : 'Deleted successfully',
+          });
+          const { isSuccess } = this.toaster.extractMessages(res);
+          if (isSuccess || res === null) {
+            this.router.navigate(['/signbox']);
+          }
+        },
+        error: (err) => this.toaster.errorFromBackend(err),
       });
     }
+  }
+
+  private applyServerValidationErrors(fieldMap: Record<string, string[]>) {
+    for (const [apiField, msgs] of Object.entries(fieldMap)) {
+      const ctrlName = this.mapApiFieldToControlName(apiField);
+      if (!ctrlName) continue;
+
+      if (ctrlName.startsWith('__dir__')) {
+        const [, idxStr, field] = ctrlName.split('__');
+        const idx = Number(idxStr);
+        const g = this.directions.at(idx) as FormGroup;
+        const c = g?.get(field);
+        if (c) {
+          c.setErrors({ ...c.errors, server: msgs[0] });
+          c.markAsTouched();
+        }
+      } else {
+        const c = this.form.get(ctrlName);
+        if (c) {
+          c.setErrors({ ...c.errors, server: msgs[0] });
+          c.markAsTouched();
+        }
+      }
+    }
+  }
+
+  private mapApiFieldToControlName(apiField: string): string | null {
+    const f = apiField?.toLowerCase();
+    if (f.includes('ip')) return 'ipAddress';
+    if (f.includes('cabinet')) return 'cabinetId';
+    if (f.includes('name')) return 'name';
+    if (f.includes('latitude') || f.includes('lat')) return 'latitude';
+    if (f.includes('longitude') || f.includes('lng') || f.includes('long')) return 'longitude';
+    if (f.includes('governorate') || f.includes('governate')) return 'governateId';
+    if (f.includes('area')) return 'areaId';
+
+    if (f.startsWith('directions[')) {
+      const m = f.match(/directions\[(\d+)\]\.(.+)/i);
+      if (m) {
+        const idx = Number(m[1]);
+        const field = m[2];
+        return `__dir__${idx}__${field}`;
+      }
+    }
+    return null;
   }
 }

@@ -24,7 +24,11 @@
           />
           @if (form.controls['name'].invalid && form.controls['name'].touched) {
           <div class="text-danger small mt-1">
+            @if (form.controls['name'].errors?.['required']) {
             {{ isAr ? 'الاسم مطلوب' : 'Name is required' }}
+            } @if (form.controls['name'].errors?.['server']) {
+            {{ form.controls['name'].errors?.['server'] }}
+            }
           </div>
           }
         </div>
@@ -48,6 +52,10 @@
             } @if (form.controls['ipAddress'].errors?.['pattern']) {
             <span>
               {{ isAr ? 'صيغة IP غير صحيحة' : 'Invalid IP format' }}
+            </span>
+            } @if (form.controls['ipAddress'].errors?.['server']) {
+            <span>
+              {{ form.controls['ipAddress'].errors?.['server'] }}
             </span>
             }
           </div>
@@ -137,7 +145,11 @@
             </select>
             @if (form.controls['areaId'].invalid && form.controls['areaId'].touched) {
             <div class="text-danger small mt-1">
+              @if (form.controls['areaId'].errors?.['required']) {
               {{ isAr ? 'الحي مطلوب' : 'Area is required' }}
+              } @if (form.controls['areaId'].errors?.['server']) {
+              {{ form.controls['areaId'].errors?.['server'] }}
+              }
             </div>
             }
           </div>
@@ -167,6 +179,13 @@
                   [placeholder]="isAr ? 'اسم الاتجاه' : 'Direction name'"
                   [attr.dir]="isAr ? 'rtl' : 'ltr'"
                 />
+                @if (dir.get('name')?.invalid && dir.get('name')?.touched) {
+                <div class="text-danger small mt-1">
+                  @if (dir.get('name')?.errors?.['server']) {
+                  {{ dir.get('name')?.errors?.['server'] }}
+                  }
+                </div>
+                }
               </div>
 
               <div class="row g-2 align-items-end">
@@ -236,6 +255,7 @@
             type="button"
             class="btn btn-warning text-dark d-flex align-items-center gap-2"
             (click)="restartSignBox()"
+            [disabled]="isApplying"
             [title]="isAr ? 'إعادة تشغيل الكابينة' : 'Restart Cabinet'"
           >
             <i class="bi bi-arrow-clockwise"></i>
@@ -247,6 +267,7 @@
             type="button"
             class="btn btn-outline-danger d-flex align-items-center gap-2"
             (click)="deleteSignBox()"
+            [disabled]="isApplying"
             [title]="isAr ? 'حذف صندوق الإشارة' : 'Delete SignBox'"
           >
             <i class="bi bi-trash"></i>
@@ -254,13 +275,23 @@
           </button>
 
           <div class="actions-end ms-auto d-flex gap-2">
-            <button type="button" (click)="forceApply()" class="btn btn-danger text-white">
+            <button
+              type="button"
+              (click)="forceApply()"
+              class="btn btn-danger text-white"
+              [disabled]="isApplying"
+            >
               {{ isAr ? 'تطبيق إجباري' : 'Force Apply' }}
             </button>
-            <button type="submit" class="apply-button btn">
+            <button type="submit" class="apply-button btn" [disabled]="isApplying">
               {{ isAr ? 'تطبيق' : 'Apply' }}
             </button>
-            <button type="button" (click)="cancel()" class="cancel-button btn">
+            <button
+              type="button"
+              (click)="cancel()"
+              class="cancel-button btn"
+              [disabled]="isApplying"
+            >
               {{ isAr ? 'إلغاء' : 'Cancel' }}
             </button>
           </div>

@@ -123,6 +123,8 @@ export class Templatecomponent implements OnInit {
       patternSaveFail: 'Failed to save pattern',
       patternDeleted: 'Pattern deleted',
       patternDeleteFail: 'Failed to delete pattern',
+      govSaveSuccess: 'Governorate saved successfully',
+      areaSaveSuccess: 'Area saved successfully',
     },
     ar: {
       templateManager: 'إدارة القوالب',
@@ -191,6 +193,8 @@ export class Templatecomponent implements OnInit {
       patternSaveFail: 'فشل حفظ النمط',
       patternDeleted: 'تم حذف النمط',
       patternDeleteFail: 'فشل حذف النمط',
+      govSaveSuccess: 'تم حفظ المحافظة بنجاح',
+      areaSaveSuccess: 'تم حفظ المنطقة بنجاح',
     },
   } as const;
 
@@ -341,6 +345,7 @@ export class Templatecomponent implements OnInit {
   }
 
   saveGovernate() {
+    if (this.submitting) return;
     if (this.governateForm.invalid) {
       this.governateForm.markAllAsTouched();
       return;
@@ -349,9 +354,7 @@ export class Templatecomponent implements OnInit {
     this.submitting = true;
     this.governateService.create({ name, latitude: '0', longitude: '0' }).subscribe({
       next: (res) => {
-        this.submitting = true;
-        const { messages } = this.toaster.extractMessages(res);
-        if (messages.length) this.toaster.success(messages[0]);
+        this.toaster.successFromBackend(res, { fallback: this.tr('govSaveSuccess') });
         this.governateForm.reset();
         this.loadGovernates();
         this.submitting = false;
@@ -364,6 +367,7 @@ export class Templatecomponent implements OnInit {
   }
 
   saveArea() {
+    if (this.submitting) return;
     if (this.areaForm.invalid) {
       this.areaForm.markAllAsTouched();
       return;
@@ -380,8 +384,7 @@ export class Templatecomponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.submitting = false;
-          const { messages } = this.toaster.extractMessages(res);
-          if (messages.length) this.toaster.success(messages[0]);
+          this.toaster.successFromBackend(res, { fallback: this.tr('areaSaveSuccess') });
           this.areaForm.reset();
         },
         error: (err: any) => {
@@ -519,6 +522,7 @@ export class Templatecomponent implements OnInit {
   }
 
   saveTemplatePattern() {
+    if (this.submitting) return;
     if (!this.templateForm.valid || this.rows.length === 0) {
       this.templateForm.markAllAsTouched();
       this.toaster.warning(this.tr('completionReq'));
@@ -526,9 +530,14 @@ export class Templatecomponent implements OnInit {
     }
 
     const defaultRow = this.rows.controls.find((g) => !!g.get('isDefault')?.value);
-    const defaultLightPatternId = defaultRow
-      ? (defaultRow.get('lightPatternId')!.value as number)
-      : 0;
+    if (!defaultRow) {
+      this.toaster.warning(
+        this.isAr ? 'اختر نمط افتراضي واحد على الأقل' : 'Select one default pattern'
+      );
+      return;
+    }
+
+    const defaultLightPatternId = defaultRow.get('lightPatternId')!.value as number;
 
     const payload: TemplatePattern & { defaultLightPatternId?: number } = {
       templateId: this.templateForm.value.templateId as number,
@@ -552,24 +561,19 @@ export class Templatecomponent implements OnInit {
     this.templatePatternService.AddOrUpdateLightPattern(payload).subscribe({
       next: (resp: any) => {
         this.submitting = false;
+        this.toaster.successFromBackend(resp, { fallback: this.tr('saveSuccess') });
 
-        const { messages, isSuccess } = this.toaster.extractMessages(resp);
-
-        if (isSuccess || messages.length > 0) {
-          if (messages.length) this.toaster.success(messages[0]);
-
-          const currentId = payload.templateId || 0;
-          if (currentId > 0) {
-            const fakeEvent = { target: { value: String(currentId) } } as unknown as Event;
-            this.onTemplateChange(fakeEvent);
-          } else {
-            this.templateForm.reset({ templateId: 0, templateName: '' });
-            this.rows.clear();
-            this.loadTemplates();
-            this.showTemplateName = false;
-          }
-          return;
+        // Reload data
+        const currentId = payload.templateId || 0;
+        if (currentId > 0) {
+          const fakeEvent = { target: { value: String(currentId) } } as unknown as Event;
+          this.onTemplateChange(fakeEvent);
+        } else {
+          this.templateForm.reset({ templateId: 0, templateName: '' });
+          this.rows.clear();
+          this.showTemplateName = false;
         }
+        this.loadTemplates();
       },
       error: (err) => {
         this.submitting = false;
@@ -580,6 +584,7 @@ export class Templatecomponent implements OnInit {
   }
 
   deleteTemplate() {
+    if (this.submitting) return;
     const id = (this.templateForm.value.templateId as number) || 0;
     if (id <= 0) return;
 
@@ -590,17 +595,11 @@ export class Templatecomponent implements OnInit {
     this.templatePatternService.deleteTemplate(id).subscribe({
       next: (resp) => {
         this.submitting = false;
-        const { messages, isSuccess } = this.toaster.extractMessages(resp);
-
-        if (isSuccess) {
-          if (messages.length) this.toaster.success(messages[0]);
-          this.templateForm.reset({ templateId: 0, templateName: '' });
-          this.rows.clear();
-          this.loadTemplates();
-          this.showTemplateName = false;
-        } else if (messages.length) {
-          this.toaster.errorMany(messages);
-        }
+        this.toaster.successFromBackend(resp, { fallback: this.tr('deleteSuccess') });
+        this.templateForm.reset({ templateId: 0, templateName: '' });
+        this.rows.clear();
+        this.loadTemplates();
+        this.showTemplateName = false;
       },
       error: (err: any) => {
         this.submitting = false;
@@ -644,6 +643,7 @@ export class Templatecomponent implements OnInit {
   }
 
   createPattern(): void {
+    if (this.submitting) return;
     if (this.patternForm.invalid) {
       this.patternForm.markAllAsTouched();
       this.toaster.warning(this.tr('completionReq'));
@@ -687,21 +687,22 @@ export class Templatecomponent implements OnInit {
     this.lightPatternService.add(payload).subscribe({
       next: (resp: any) => {
         this.submitting = false;
-        const { messages, isSuccess } = this.toaster.extractMessages(resp);
 
-        if (isSuccess) {
-          if (messages.length) this.toaster.success(messages[0]);
+        if (resp?.isSuccess) {
+          this.toaster.successFromBackend(resp, { fallback: this.tr('patternSaved') });
           this.resetPatternEditor(true);
           this.loadLightPatterns();
-        } else {
-          const { fieldMap } = this.toaster.extractMessages(resp);
-          this.applyServerValidationErrors(fieldMap);
-          if (messages.length) this.toaster.errorMany(messages);
+          return;
         }
+
+        const { fieldMap, messages } = this.toaster.extractMessages(resp);
+        this.applyServerValidationErrors(fieldMap);
+        if (messages?.length) this.toaster.errorMany(messages);
+        else this.toaster.error(this.tr('patternSaveFail'));
       },
       error: (err) => {
         this.submitting = false;
-        const { messages, fieldMap } = this.toaster.extractMessages(err);
+        const { fieldMap } = this.toaster.extractMessages(err);
         this.applyServerValidationErrors(fieldMap);
         this.toaster.errorFromBackend(err, { durationMs: 4500 });
       },
@@ -735,14 +736,9 @@ export class Templatecomponent implements OnInit {
 
     this.lightPatternService.deletePattern(selected.id).subscribe({
       next: (resp) => {
-        const { messages, isSuccess } = this.toaster.extractMessages(resp);
-        if (isSuccess) {
-          if (messages.length) this.toaster.success(messages[0]);
-          this.resetPatternEditor(true);
-          this.loadLightPatterns();
-        } else if (messages.length) {
-          this.toaster.errorMany(messages);
-        }
+        this.toaster.successFromBackend(resp, { fallback: this.tr('patternDeleted') });
+        this.resetPatternEditor(true);
+        this.loadLightPatterns();
       },
       error: (err: any) => {
         this.toaster.errorFromBackend(err, { durationMs: 4500 });

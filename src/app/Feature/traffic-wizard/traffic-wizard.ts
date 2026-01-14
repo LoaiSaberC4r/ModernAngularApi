@@ -434,10 +434,11 @@ export class TrafficWizard implements OnInit, OnDestroy {
 
   //  APPLY (Save)
   onApply(): void {
+    if (this.isRefreshing) return;
     if (this.trafficForm.invalid) {
       this.trafficForm.markAllAsTouched();
       this.toaster.warning(
-        this.isAr ? '⚠️ من فضلك املأ جميع الحقول المطلوبة' : '⚠️ Please fill all required fields'
+        this.isAr ? 'من فضلك املأ جميع الحقول المطلوبة' : 'Please fill all required fields'
       );
       return;
     }
@@ -447,7 +448,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
     const areaId = Number(v.area);
     if (areaId <= 0) {
       this.toaster.warning(
-        this.isAr ? '⚠️ من فضلك اختر الحي قبل الحفظ' : '⚠️ Please select an area before saving'
+        this.isAr ? 'من فضلك اختر الحي قبل الحفظ' : 'Please select an area before saving'
       );
       return;
     }
@@ -470,8 +471,8 @@ export class TrafficWizard implements OnInit, OnDestroy {
     if (badDir !== -1) {
       this.toaster.warning(
         this.isAr
-          ? `⚠️ اختر القالب للاتجاه رقم ${badDir + 1}`
-          : `⚠️ Select a template for direction ${badDir + 1}`
+          ? `اختر القالب للاتجاه رقم ${badDir + 1}`
+          : `Select a template for direction ${badDir + 1}`
       );
       return;
     }
@@ -480,16 +481,14 @@ export class TrafficWizard implements OnInit, OnDestroy {
     const payloadTemplateId = formTpl > 0 ? formTpl : directions[0]?.templateId ?? 0;
 
     if (!(payloadTemplateId > 0)) {
-      this.toaster.warning(
-        this.isAr ? '⚠️ اختر قالبًا رئيسيًا' : '⚠️ Please select a main template'
-      );
+      this.toaster.warning(this.isAr ? 'اختر قالبًا رئيسيًا' : 'Please select a main template');
       return;
     }
 
     const cabinetId = Number(v.cabinetId);
     if (cabinetId <= 0) {
       this.toaster.warning(
-        this.isAr ? '⚠️ من فضلك اختر المخزن قبل الحفظ' : '⚠️ Please select a cabinet before saving'
+        this.isAr ? 'من فضلك اختر المخزن قبل الحفظ' : 'Please select a cabinet before saving'
       );
       return;
     }
@@ -506,9 +505,13 @@ export class TrafficWizard implements OnInit, OnDestroy {
       directions,
     };
 
+    this.isRefreshing = true;
     this.signBoxService.AddSignBox(payload).subscribe({
-      next: () => {
-        this.toaster.success(this.isAr ? 'تم الحفظ بنجاح' : 'Saved successfully!');
+      next: (resp) => {
+        this.isRefreshing = false;
+        this.toaster.successFromBackend(resp, {
+          fallback: this.isAr ? 'تم الحفظ بنجاح' : 'Saved successfully!',
+        });
 
         this.trafficForm.reset();
         this.clearAllPatternSyncSubs();
@@ -518,6 +521,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
         this.hardRefreshLists();
       },
       error: (err) => {
+        this.isRefreshing = false;
         this.toaster.errorFromBackend(err, { durationMs: 8000 });
         console.error('Save failed', err);
       },

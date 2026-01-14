@@ -83,61 +83,80 @@ export class ToasterService {
     }
   }
 
+  successFromBackend(resp: any, options: ToastOptions = {}): void {
+    const { messages, isSuccess } = this.extractMessages(resp);
+    const likelySuccess = isSuccess || resp === null || resp === undefined || resp === true;
+
+    if (messages.length > 0) {
+      messages.forEach((m) => this.success(m, options));
+    } else if (likelySuccess && options.fallback) {
+      this.success(options.fallback, options);
+    }
+  }
+
   extractMessages(data: any): BackendErrorResponse {
     const messages: string[] = [];
     const fieldMap: Record<string, string[]> = {};
     let isSuccess = false;
 
-    // Use .error for HttpErrorResponse if available
     const e = data?.error ?? data;
 
     console.log('🔍 Toaster: Extracting Backend Messages from:', { data, e });
 
     const targets = [data, e];
+
+    if (data === true || data === 'OK' || data === 'Success') isSuccess = true;
+
     targets.forEach((obj) => {
       if (obj && typeof obj === 'object') {
         if ('isSuccess' in obj) isSuccess = !!obj.isSuccess;
+        else if ('Success' in obj) isSuccess = !!obj.Success;
+        else if ('success' in obj) isSuccess = !!obj.success;
+        if (obj.status >= 200 && obj.status < 300) isSuccess = true;
+      }
+    });
 
+    targets.forEach((obj) => {
+      if (obj && typeof obj === 'object') {
         const m = obj.message || obj.description || obj.detail || obj.Title || obj.title;
         if (
           m &&
           typeof m === 'string' &&
           m !== 'Validation Error' &&
           !m.startsWith('Http failure response') &&
-          !m.includes('already in a transaction') // skip the raw stack trace line if it matches title
+          !m.includes('already in a transaction')
         ) {
-          messages.push(m);
+          messages.push(this.cleanMessage(m));
         }
       }
     });
 
-    // 1. Handle "errors" as an array or object
     if (Array.isArray(e?.errors)) {
       e.errors.forEach((err: any) => {
         if (err && typeof err === 'object') {
-          if (err.message) messages.push(String(err.message));
-          else {
+          if (err.message) {
+            messages.push(this.cleanMessage(String(err.message)));
+          } else {
             for (const [f, msgs] of Object.entries(err)) {
               const list = Array.isArray(msgs) ? msgs : [String(msgs)];
-              fieldMap[String(f)] = list.map(String);
-              list.forEach((m) => messages.push(String(m)));
+              fieldMap[String(f)] = list.map((m) => this.cleanMessage(String(m)));
+              list.forEach((m) => messages.push(this.cleanMessage(String(m))));
             }
           }
         } else if (typeof err === 'string') {
-          messages.push(err);
+          messages.push(this.cleanMessage(err));
         }
       });
     } else if (e?.errors && typeof e.errors === 'object') {
       for (const [field, arr] of Object.entries(e.errors)) {
         const list = Array.isArray(arr) ? arr : [String(arr)];
-        fieldMap[String(field)] = list.map(String);
-        list.forEach((m) => messages.push(String(m)));
+        fieldMap[String(field)] = list.map((m) => this.cleanMessage(String(m)));
+        list.forEach((m) => messages.push(this.cleanMessage(String(m))));
       }
     }
 
-    // 2. Handle "errorMessages" (legacy)
     if (Array.isArray(e?.errorMessages) && e.errorMessages.length) {
-      const errs = e.errorMessages.map((x: any) => String(x));
+      const errs = e.errorMessages.map((x: any) => this.cleanMessage(String(x)));
       const props = Array.isArray(e?.propertyNames)
         ? e.propertyNames.map((x: any) => String(x))
         : [];
@@ -154,13 +173,22 @@ export class ToasterService {
       }
     }
 
-    // Special case for technical exceptions in 'detail'
     if (messages.length === 0 && e?.detail && typeof e.detail === 'string') {
-      const cleanMsg = e.detail.split('\r\n')[0].split('\n')[0]; // first line only
-      messages.push(cleanMsg);
+      messages.push(this.cleanMessage(e.detail));
     }
 
     const uniq = Array.from(new Set(messages.map((x) => String(x).trim()).filter(Boolean)));
     return { messages: uniq, fieldMap, isSuccess };
+  }
+
+  private cleanMessage(m: string): string {
+    if (!m) return '';
+    if (m.includes('\n') || m.includes('\r')) {
+      return m.split('\n')[0].split('\r')[0].trim();
+    }
+    if (m.includes(': at ')) {
+      return m.split(': at ')[0].trim();
+    }
+    return m.trim();
   }
 }

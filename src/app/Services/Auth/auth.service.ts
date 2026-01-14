@@ -7,6 +7,7 @@ import { LoginRequest } from '../../Domain/Entity/Auth/LoginRequest';
 import { LoginResponse } from '../../Domain/Entity/Auth/LoginResponse';
 import { ChangePasswordRequest } from '../../Domain/Entity/Auth/ChangePasswordRequest';
 import { TokenData } from '../../Domain/Entity/Auth/TokenData';
+import { ToasterService } from '../Toster/toaster-service';
 
 interface UserData {
   email: string;
@@ -25,6 +26,20 @@ export class AuthService {
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
 
+  private toaster = inject(ToasterService);
+  private refreshTimer?: any;
+
+  constructor() {
+    this.initSession();
+  }
+
+  private initSession() {
+    const token = this.getToken();
+    if (token) {
+      this.scheduleRefresh(token);
+    }
+  }
+
   login(credentials: LoginRequest): Observable<LoginResponse> {
     this.isLoading.set(true);
     this.errorMessage.set(null);
@@ -33,6 +48,7 @@ export class AuthService {
       tap((response) => {
         // Store token
         localStorage.setItem('authToken', response.token.token);
+        this.scheduleRefresh(response.token.token);
 
         // Store user data
         const userData: UserData = {
@@ -54,8 +70,7 @@ export class AuthService {
       }),
       catchError((error) => {
         this.isLoading.set(false);
-        const errorMsg = error?.error?.message || 'فشل تسجيل الدخول / Login failed';
-        this.errorMessage.set(errorMsg);
+        this.toaster.errorFromBackend(error);
         console.error('Login error:', error);
         return of(null as any);
       })
@@ -74,8 +89,7 @@ export class AuthService {
       }),
       catchError((error) => {
         this.isLoading.set(false);
-        const errorMsg = error?.error?.message || 'فشل تغيير كلمة المرور / Password change failed';
-        this.errorMessage.set(errorMsg);
+        this.toaster.errorFromBackend(error);
         console.error('Change password error:', error);
         return of(null);
       })
@@ -83,6 +97,9 @@ export class AuthService {
   }
 
   logout(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
     this.currentUser.set(null);
@@ -101,6 +118,53 @@ export class AuthService {
   hasPermission(permission: string): boolean {
     const user = this.currentUser();
     return user?.permissions?.includes(permission) ?? false;
+  }
+
+  private refreshToken(): void {
+    this.http.post<any>(`${environment.baseUrl}/Auth/RefreshToken`, {}).subscribe({
+      next: (resp) => {
+        const newToken = resp.newToken;
+        if (newToken) {
+          localStorage.setItem('authToken', newToken);
+          this.scheduleRefresh(newToken);
+          console.log('[Auth] Token refreshed successfully');
+        }
+      },
+      error: (err) => {
+        console.error('[Auth] Refresh token failed', err);
+        this.logout();
+      },
+    });
+  }
+
+  private decodeToken(token: string): any {
+    try {
+      const payload = token.split('.')[1];
+      return JSON.parse(atob(payload));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  private scheduleRefresh(token: string): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
+
+    const decoded = this.decodeToken(token);
+    if (!decoded || !decoded.exp) return;
+
+    const expiryTime = decoded.exp * 1000; // to ms
+    const currentTime = Date.now();
+    const timeout = expiryTime - currentTime - 3 * 60 * 1000; // 3 minutes before
+
+    if (timeout > 0) {
+      console.log(`[Auth] Scheduling refresh in ${Math.round(timeout / 1000 / 60)} minutes`);
+      this.refreshTimer = setTimeout(() => this.refreshToken(), timeout);
+    } else {
+      // If already expired or less than 3 mins left, refresh now
+      this.refreshToken();
+    }
   }
 
   private getUserFromStorage(): UserData | null {
