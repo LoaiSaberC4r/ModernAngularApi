@@ -32,7 +32,7 @@ export class IGovernateService {
         catchError((err) => {
           const msg = this.extractErrorMessage(err, 'Governor:GetAll');
           console.error('[Governor:GetAll] failed:', err);
-          this.toast.error(msg);
+          // this.toast.error(msg);
           this.governates$ = undefined; // Reset cache on error
           return of([] as GetAllGovernate[]);
         }),
@@ -44,10 +44,9 @@ export class IGovernateService {
 
   create(command: CreateGovernateCommand): Observable<any> {
     return this.http.post(`${environment.baseUrl}/Governate`, command).pipe(
-      tap(() => this.toast.success('تمت الإضافة بنجاح')),
       catchError((err) => {
         const msg = this.extractErrorMessage(err, 'Add Governate');
-        this.toast.error(msg);
+        // this.toast.error(msg);
         return throwError(() => err);
       })
     );

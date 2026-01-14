@@ -47,10 +47,9 @@ export class IAreaService {
 
   create(command: CreateAreaCommand): Observable<any> {
     return this.http.post(`${environment.baseUrl}/Area`, command).pipe(
-      tap(() => this.toast.success('تمت الإضافة بنجاح')),
       catchError((err) => {
         const msg = this.extractErrorMessage(err, 'Add Area');
-        this.toast.error(msg);
+        // this.toast.error(msg);
         return throwError(() => err);
       })
     );

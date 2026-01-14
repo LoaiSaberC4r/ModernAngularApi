@@ -48,11 +48,10 @@ export class ITemplatePatternService {
         map((resp) => {
           return resp;
         }),
-        tap(() => this.toast.success('Success')),
         catchError((err) => {
           const msg = this.extractErrorMessage(err, 'TemplatePattern:AddOrUpdate');
           console.error('[TemplatePattern:AddOrUpdate] failed:', err);
-          this.toast.error(msg);
+          // Error is handled in component
           return of({} as TemplatePattern);
         }),
         shareReplay(1)
@@ -72,7 +71,7 @@ export class ITemplatePatternService {
         catchError((err) => {
           const msg = this.extractErrorMessage(err, 'TemplatePattern:GetAllByTemplateId');
           console.error('[TemplatePattern:GetAllByTemplateId] failed:', err);
-          this.toast.error(msg);
+          // Error is handled in component
           return of([] as LightPatternForTemplatePattern[]);
         }),
         shareReplay(1)
@@ -89,11 +88,10 @@ export class ITemplatePatternService {
           if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
           return resp;
         }),
-        tap(() => this.toast.success('Success')),
         catchError((err) => {
           const msg = this.extractErrorMessage(err, 'TemplatePattern:DeleteTemplate');
           console.error('[TemplatePattern:DeleteTemplate] failed:', err);
-          this.toast.error(msg);
+          // Error is handled in component
           return of({
             isSuccess: false,
             error: { description: 'Delete failed' },

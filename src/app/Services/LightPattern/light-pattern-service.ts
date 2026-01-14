@@ -18,7 +18,7 @@ export class LightPatternService {
     return (err: any): Observable<T> => {
       const msg = this.extractErrorMessage(err, op);
       console.error(`[${op}] failed:`, err);
-      this.toast.error(msg);
+      // this.toast.error(msg);
       if (rethrow) return throwError(() => err);
       return of((fallback as T) ?? ({} as T));
     };
@@ -102,12 +102,11 @@ export class LightPatternService {
         if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
         return resp;
       }),
-      tap(() => this.toast.success('Success')),
       catchError(this.handleError<Result>('LightPattern:Add', {} as any))
     );
   }
 
-  delete(lightPatternId: number): Observable<Result> {
+  deletePattern(lightPatternId: number): Observable<Result> {
     const params = new HttpParams().set('LightPatternId', String(lightPatternId));
 
     return this.http.delete<Result>(`${environment.baseUrl}/LightPattern/Delete`, { params }).pipe(
@@ -115,7 +114,6 @@ export class LightPatternService {
         if (!resp?.isSuccess) throw new Error(resp?.error?.description ?? 'Unknown error');
         return resp;
       }),
-      tap(() => this.toast.success('Success')),
       catchError(this.handleError<Result>('LightPattern:Delete', {} as any))
     );
   }

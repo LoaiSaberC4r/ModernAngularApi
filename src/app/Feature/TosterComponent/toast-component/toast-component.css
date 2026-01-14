@@ -317,3 +317,19 @@
     transition: none !important;
   }
 }
+/* =========================
+   Global Snackbar overrides
+   ========================= */
+::ng-deep .toast-shell {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-width: 0 !important;
+}
+
+::ng-deep .mdc-snackbar__surface {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-width: 0 !important;
+}

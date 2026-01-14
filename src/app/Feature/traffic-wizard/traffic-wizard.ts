@@ -518,73 +518,10 @@ export class TrafficWizard implements OnInit, OnDestroy {
         this.hardRefreshLists();
       },
       error: (err) => {
-        const { messages, fieldMap } = this.extractBackendMessages(err);
-
-        this.applyServerFieldErrors(fieldMap);
-
-        const text = this.formatToastList(
-          this.isAr ? 'حدث خطأ أثناء الحفظ:' : ' Failed to save:',
-          messages
-        );
-
-        this.toaster.error(text, { durationMs: 8000 });
-
+        this.toaster.errorFromBackend(err, { durationMs: 8000 });
         console.error('Save failed', err);
       },
     });
-  }
-
-  private extractBackendMessages(err: any): {
-    messages: string[];
-    fieldMap: Record<string, string[]>;
-  } {
-    const messages: string[] = [];
-    const fieldMap: Record<string, string[]> = {};
-
-    const e = err?.error ?? err;
-
-    if (e?.errors && typeof e.errors === 'object') {
-      for (const [field, arr] of Object.entries(e.errors)) {
-        const list = Array.isArray(arr) ? arr : [String(arr)];
-        fieldMap[field] = list.map(String);
-        list.forEach((m) => messages.push(String(m)));
-      }
-    }
-
-    if (Array.isArray(e?.errorMessages) && e.errorMessages.length) {
-      const errs = e.errorMessages.map((x: any) => String(x));
-      const props = Array.isArray(e?.propertyNames)
-        ? e.propertyNames.map((x: any) => String(x))
-        : [];
-
-      if (props.length === errs.length && props.length) {
-        for (let i = 0; i < props.length; i++) {
-          const field = props[i] || 'General';
-          const msg = errs[i] || '';
-          fieldMap[field] = [...(fieldMap[field] || []), msg];
-          messages.push(msg);
-        }
-      } else {
-        errs.forEach((m: string) => messages.push(m));
-      }
-    }
-
-    if (e?.title) messages.push(String(e.title));
-    if (e?.detail) messages.push(String(e.detail));
-    if (e?.message) messages.push(String(e.message));
-
-    if (e?.error?.description) messages.push(String(e.error.description));
-    if (!messages.length && typeof e === 'string') messages.push(e);
-    if (!messages.length && err?.message) messages.push(String(err.message));
-
-    const uniq = Array.from(new Set(messages.map((x) => x.trim()).filter(Boolean)));
-    return { messages: uniq, fieldMap };
-  }
-
-  private formatToastList(header: string, list: string[]): string {
-    if (!list.length) return header + '\n' + (this.isAr ? 'خطأ غير معروف' : 'Unknown error');
-    const bullet = '• ';
-    return header + '\n' + list.map((m) => `${bullet}${m}`).join('\n');
   }
 
   private dirAt(i: number): FormGroup {

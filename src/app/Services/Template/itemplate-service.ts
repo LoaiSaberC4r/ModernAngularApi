@@ -46,7 +46,7 @@ export class ITemplateService {
         catchError((err) => {
           const msg = this.extractErrorMessage(err, 'Template:GetAll');
           console.error('[Template:GetAll] failed:', err);
-          this.toast.error(msg);
+          // this.toast.error(msg);
           return of([] as GetAllTemplate[]);
         }),
         shareReplay(1)

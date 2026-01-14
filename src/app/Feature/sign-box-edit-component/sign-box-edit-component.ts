@@ -26,6 +26,7 @@ import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
 import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox';
 import { SignDirection } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
 import { LanguageService } from '../../Services/Language/language-service';
+import { ToasterService } from '../../Services/Toster/toaster-service';
 import { ITemplateService } from '../../Services/Template/itemplate-service';
 import { ITemplatePatternService } from '../../Services/TemplatePattern/itemplate-pattern-service';
 import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
@@ -63,6 +64,7 @@ export class SignBoxEditComponent implements OnInit {
   public langService = inject(LanguageService);
   private readonly templateService = inject(ITemplateService);
   private readonly templatePatternService = inject(ITemplatePatternService);
+  private readonly toaster = inject(ToasterService);
 
   get isAr() {
     return this.langService.current === 'ar';
@@ -96,19 +98,6 @@ export class SignBoxEditComponent implements OnInit {
     cabinetId: [{ value: null, disabled: false }],
     directions: this.fb.array<FormGroup>([]),
   });
-
-  toasts: Array<{
-    id: number;
-    message: string;
-    type: 'success' | 'error' | 'warn';
-    active: boolean;
-    duration?: number;
-    onClose?: () => void;
-  }> = [];
-  private toastSeq = 0;
-  private toastTimers = new Map<number, any>();
-  // NEW: promise resolvers to await toast dismissal
-  private toastResolvers = new Map<number, () => void>();
 
   get directions(): FormArray<FormGroup> {
     return this.form.get('directions') as FormArray<FormGroup>;
@@ -347,9 +336,8 @@ export class SignBoxEditComponent implements OnInit {
   apply(isForced: boolean = false): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.showPopup(
-        this.isAr ? '⚠️ يرجى ملء الحقول المطلوبة' : '⚠️ Please fill all required fields',
-        'warn'
+      this.toaster.warning(
+        this.isAr ? '⚠️ يرجى ملء الحقول المطلوبة' : '⚠️ Please fill all required fields'
       );
       return;
     }
@@ -376,18 +364,14 @@ export class SignBoxEditComponent implements OnInit {
     // 1) Update
     let process$: Observable<any> = this.service.Update(payload).pipe(
       catchError((err) => {
-        this.handleUpdateError(err);
+        this.toaster.errorFromBackend(err);
         this.isApplying = false;
         return EMPTY;
       }),
-      concatMap(() =>
-        from(
-          this.showPopupAsync(
-            this.isAr ? '✅ تم التحديث بنجاح' : '✅ Updated successfully!',
-            'success',
-            { duration: 1800 }
-          )
-        )
+      tap(() =>
+        this.toaster.success(this.isAr ? '✅ تم التحديث بنجاح' : '✅ Updated successfully!', {
+          durationMs: 1800,
+        })
       )
     );
 
@@ -400,21 +384,16 @@ export class SignBoxEditComponent implements OnInit {
             catchError((err) => of({ ok: false as const, err }))
           )
         ),
-        concatMap((res: { ok: boolean; err?: any }) =>
-          from(
-            this.showPopupAsync(
-              res.ok
-                ? this.isAr
-                  ? '✅ تم التطبيق بنجاح'
-                  : '✅ Applied successfully!'
-                : this.isAr
-                ? '❌ فشل تطبيق الإعدادات على الكابينة'
-                : '❌ Failed to apply settings to the cabinet',
-              res.ok ? 'success' : 'error',
-              { duration: 2200 }
-            )
-          ).pipe(map(() => res))
-        )
+        concatMap((res: { ok: boolean; err?: any }) => {
+          if (res.ok) {
+            this.toaster.success(this.isAr ? '✅ تم التطبيق بنجاح' : '✅ Applied successfully!', {
+              durationMs: 2200,
+            });
+          } else {
+            this.toaster.errorFromBackend(res.err);
+          }
+          return of(res);
+        })
       );
     }
 
@@ -478,66 +457,6 @@ export class SignBoxEditComponent implements OnInit {
       .replace(/^(\w)/, (c) => c.toUpperCase());
   }
 
-  // ====== Toasts ======
-  private showPopup(
-    message: string,
-    type: 'success' | 'error' | 'warn',
-    opts?: { duration?: number; onClose?: () => void }
-  ) {
-    const id = ++this.toastSeq;
-    const duration = Math.max(0, opts?.duration ?? 4000);
-    this.toasts = [
-      ...this.toasts,
-      { id, message, type, active: false, duration, onClose: opts?.onClose },
-    ];
-    // animate in
-    setTimeout(() => {
-      this.toasts = this.toasts.map((t) => (t.id === id ? { ...t, active: true } : t));
-    }, 0);
-    const timer = setTimeout(() => this.dismissToast(id), duration);
-    this.toastTimers.set(id, timer);
-    return id;
-  }
-
-  // NEW: awaitable popup
-  private showPopupAsync(
-    message: string,
-    type: 'success' | 'error' | 'warn',
-    opts?: { duration?: number; onClose?: () => void }
-  ): Promise<void> {
-    return new Promise<void>((resolve) => {
-      const id = this.showPopup(message, type, opts);
-      this.toastResolvers.set(id, resolve);
-    });
-  }
-
-  dismissToast(id: number) {
-    const timer = this.toastTimers.get(id);
-    if (timer) {
-      clearTimeout(timer);
-      this.toastTimers.delete(id);
-    }
-    let onClose: (() => void) | undefined;
-    this.toasts = this.toasts.map((t) => {
-      if (t.id === id) onClose = t.onClose;
-      return t.id === id ? { ...t, active: false } : t;
-    });
-    setTimeout(() => {
-      this.toasts = this.toasts.filter((t) => t.id !== id);
-      try {
-        onClose && onClose();
-      } catch {}
-      // resolve awaiting promise (if any)
-      const resolver = this.toastResolvers.get(id);
-      if (resolver) {
-        this.toastResolvers.delete(id);
-        try {
-          resolver();
-        } catch {}
-      }
-    }, 500);
-  }
-
   private createRow(p: LightPatternForTemplatePattern): FormGroup {
     return this.fb.group({
       lightPatternId: new FormControl<number>(p.lightPatternId, { nonNullable: true }),
@@ -581,31 +500,6 @@ export class SignBoxEditComponent implements OnInit {
     });
   }
 
-  // ====== Error helpers ======
-  private handleUpdateError = (err: any) => {
-    console.error('update failed', err);
-    const ipTyped = this.form?.value?.ipAddress ?? '';
-    const msgs: string[] = Array.isArray(err?.error?.errorMessages)
-      ? (err.error.errorMessages as string[]).map((m: string, i: number) => {
-          const rawProp: string = err.error?.propertyNames?.[i] || '';
-          const prop = this.prettifyField(rawProp);
-          let text = String(m || '').replace(/ip\s*address|ipaddress/gi, 'IP Address');
-          if (prop) text += `: ${prop}`;
-          const isIpError = rawProp?.toLowerCase() === 'ipaddress' || /ip\s*address/i.test(text);
-          if (isIpError && ipTyped) text += `: ${ipTyped}`;
-          return text;
-        })
-      : [this.isAr ? 'حدث خطأ أثناء التحديث' : 'Update failed'];
-    this.showPopup(msgs.join('\n'), 'error');
-  };
-
-  private handleApplyError = (err: any) => {
-    console.error('apply sign box failed', err);
-    const msg = this.isAr
-      ? 'تم الحفظ، لكن فشل تطبيق الإعدادات على الكابينة'
-      : 'Saved, but failed to apply settings to the cabinet';
-    this.showPopup(msg, 'error');
-  };
   forceApply(): void {
     this.apply(true);
   }

@@ -348,15 +348,17 @@ export class Templatecomponent implements OnInit {
     const name = this.governateForm.value.name!;
     this.submitting = true;
     this.governateService.create({ name, latitude: '0', longitude: '0' }).subscribe({
-      next: () => {
-        this.submitting = false;
-        this.toaster.success(this.isAr ? 'تم حفظ المحافظة' : 'Governorate saved');
+      next: (res) => {
+        this.submitting = true;
+        const { messages } = this.toaster.extractMessages(res);
+        if (messages.length) this.toaster.success(messages[0]);
         this.governateForm.reset();
         this.loadGovernates();
+        this.submitting = false;
       },
       error: (err: any) => {
         this.submitting = false;
-        // Error is handled in service toast, but we stop loading state
+        this.toaster.errorFromBackend(err);
       },
     });
   }
@@ -376,13 +378,15 @@ export class Templatecomponent implements OnInit {
         longitude: '0',
       })
       .subscribe({
-        next: () => {
+        next: (res) => {
           this.submitting = false;
-          this.toaster.success(this.isAr ? 'تم حفظ المنطقة' : 'Area saved');
+          const { messages } = this.toaster.extractMessages(res);
+          if (messages.length) this.toaster.success(messages[0]);
           this.areaForm.reset();
         },
         error: (err: any) => {
           this.submitting = false;
+          this.toaster.errorFromBackend(err);
         },
       });
   }
@@ -393,9 +397,7 @@ export class Templatecomponent implements OnInit {
         this.templates = resp ?? [];
       },
       error: (err) => {
-        const { messages } = this.extractApiErrors(err);
-        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.tr('loadTemplateFail'));
+        this.toaster.errorFromBackend(err, { durationMs: 4500 });
       },
     });
   }
@@ -406,9 +408,7 @@ export class Templatecomponent implements OnInit {
         this.lightPatterns = resp ?? [];
       },
       error: (err) => {
-        const { messages } = this.extractApiErrors(err);
-        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.tr('loadPatternFail'));
+        this.toaster.errorFromBackend(err, { durationMs: 4500 });
       },
     });
   }
@@ -462,9 +462,7 @@ export class Templatecomponent implements OnInit {
         setTimeout(() => this.templateNameRef?.nativeElement?.focus(), 0);
       },
       error: (err) => {
-        const { messages } = this.extractApiErrors(err);
-        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.tr('loadScheduleFail'));
+        this.toaster.errorFromBackend(err, { durationMs: 4500 });
       },
     });
   }
@@ -500,6 +498,20 @@ export class Templatecomponent implements OnInit {
         isDefault: false,
       } as any)
     );
+  }
+
+  onDefaultChange(index: number): void {
+    const rows = this.rows;
+    const isNewValue = rows.at(index).get('isDefault')?.value;
+
+    if (isNewValue) {
+      // Uncheck others
+      rows.controls.forEach((g, i) => {
+        if (i !== index) {
+          g.get('isDefault')?.setValue(false, { emitEvent: false });
+        }
+      });
+    }
   }
 
   removeRow(index: number) {
@@ -538,12 +550,13 @@ export class Templatecomponent implements OnInit {
     this.submitting = true;
 
     this.templatePatternService.AddOrUpdateLightPattern(payload).subscribe({
-      next: (resp) => {
+      next: (resp: any) => {
         this.submitting = false;
 
-        // Check if resp is a valid object (not empty)
-        if (resp && Object.keys(resp).length > 0) {
-          this.toaster.success(this.tr('saveSuccess'));
+        const { messages, isSuccess } = this.toaster.extractMessages(resp);
+
+        if (isSuccess || messages.length > 0) {
+          if (messages.length) this.toaster.success(messages[0]);
 
           const currentId = payload.templateId || 0;
           if (currentId > 0) {
@@ -557,21 +570,10 @@ export class Templatecomponent implements OnInit {
           }
           return;
         }
-
-        const { messages } = this.extractApiErrors(resp);
-        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.tr('saveFailed'));
       },
       error: (err) => {
         this.submitting = false;
-        const { messages } = this.extractApiErrors(err);
-
-        if (messages.length) {
-          this.toaster.error(this.tr('saveFailed'), { durationMs: 2800 });
-          this.toaster.errorMany(messages, { durationMs: 4500 });
-        } else {
-          this.toaster.error(this.tr('saveFailed'));
-        }
+        this.toaster.errorFromBackend(err, { durationMs: 4500 });
         console.error('Save template failed', err);
       },
     });
@@ -588,26 +590,21 @@ export class Templatecomponent implements OnInit {
     this.templatePatternService.deleteTemplate(id).subscribe({
       next: (resp) => {
         this.submitting = false;
+        const { messages, isSuccess } = this.toaster.extractMessages(resp);
 
-        if (resp?.isSuccess) {
-          this.toaster.success(this.tr('deleteSuccess'));
-
+        if (isSuccess) {
+          if (messages.length) this.toaster.success(messages[0]);
           this.templateForm.reset({ templateId: 0, templateName: '' });
           this.rows.clear();
           this.loadTemplates();
           this.showTemplateName = false;
-          return;
+        } else if (messages.length) {
+          this.toaster.errorMany(messages);
         }
-
-        const { messages } = this.extractApiErrors(resp);
-        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.tr('deleteFail'));
       },
-      error: (err) => {
+      error: (err: any) => {
         this.submitting = false;
-        const { messages } = this.extractApiErrors(err);
-        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.tr('deleteFail'));
+        this.toaster.errorFromBackend(err, { durationMs: 4500 });
       },
     });
   }
@@ -688,29 +685,25 @@ export class Templatecomponent implements OnInit {
     console.log('📤 Sending Light Pattern Payload:', payload);
 
     this.lightPatternService.add(payload).subscribe({
-      next: (resp) => {
+      next: (resp: any) => {
         this.submitting = false;
+        const { messages, isSuccess } = this.toaster.extractMessages(resp);
 
-        if (resp?.isSuccess) {
-          this.toaster.success(this.tr('patternSaved'));
+        if (isSuccess) {
+          if (messages.length) this.toaster.success(messages[0]);
           this.resetPatternEditor(true);
           this.loadLightPatterns();
-          return;
+        } else {
+          const { fieldMap } = this.toaster.extractMessages(resp);
+          this.applyServerValidationErrors(fieldMap);
+          if (messages.length) this.toaster.errorMany(messages);
         }
-
-        const { messages, fieldMap } = this.extractApiErrors(resp);
-        this.applyServerValidationErrors(fieldMap);
-
-        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.tr('patternSaveFail'));
       },
       error: (err) => {
         this.submitting = false;
-        const { messages, fieldMap } = this.extractApiErrors(err);
+        const { messages, fieldMap } = this.toaster.extractMessages(err);
         this.applyServerValidationErrors(fieldMap);
-
-        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.tr('patternSaveFail'));
+        this.toaster.errorFromBackend(err, { durationMs: 4500 });
       },
     });
   }
@@ -740,23 +733,19 @@ export class Templatecomponent implements OnInit {
 
     if (!confirm(this.isAr ? `حذف "${selected.name}"؟` : `Delete "${selected.name}"?`)) return;
 
-    this.lightPatternService.delete(selected.id).subscribe({
+    this.lightPatternService.deletePattern(selected.id).subscribe({
       next: (resp) => {
-        if (resp?.isSuccess) {
-          this.toaster.success(this.tr('patternDeleted'));
+        const { messages, isSuccess } = this.toaster.extractMessages(resp);
+        if (isSuccess) {
+          if (messages.length) this.toaster.success(messages[0]);
           this.resetPatternEditor(true);
           this.loadLightPatterns();
-          return;
+        } else if (messages.length) {
+          this.toaster.errorMany(messages);
         }
-
-        const { messages } = this.extractApiErrors(resp);
-        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.tr('patternDeleteFail'));
       },
-      error: (err) => {
-        const { messages } = this.extractApiErrors(err);
-        if (messages.length) this.toaster.errorMany(messages, { durationMs: 4500 });
-        else this.toaster.error(this.tr('patternDeleteFail'));
+      error: (err: any) => {
+        this.toaster.errorFromBackend(err, { durationMs: 4500 });
       },
     });
   }
@@ -790,60 +779,7 @@ export class Templatecomponent implements OnInit {
     const [h = '00', m = '00'] = s.split(':');
     return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:00`;
   }
-
   get hasDefaultSelected(): boolean {
     return this.rows.controls.some((g) => !!g.get('isDefault')?.value);
-  }
-
-  onDefaultChange(index: number): void {
-    const nowChecked = !!this.rows.at(index).get('isDefault')?.value;
-    if (nowChecked) {
-      for (let i = 0; i < this.rows.length; i++) {
-        if (i !== index) {
-          this.rows.at(i).get('isDefault')!.setValue(false, { emitEvent: false });
-        }
-      }
-    }
-  }
-
-  private extractApiErrors(err: any): { messages: string[]; fieldMap: Record<string, string[]> } {
-    const messages: string[] = [];
-    const fieldMap: Record<string, string[]> = {};
-
-    const e = err?.error ?? err;
-
-    if (e?.errors && typeof e.errors === 'object') {
-      for (const [field, arr] of Object.entries(e.errors)) {
-        const list = Array.isArray(arr) ? arr : [String(arr)];
-        fieldMap[String(field)] = list.map(String);
-        list.forEach((m) => messages.push(String(m)));
-      }
-    }
-
-    if (Array.isArray(e?.errorMessages) && e.errorMessages.length) {
-      const errs = e.errorMessages.map((x: unknown) => String(x));
-      const props = Array.isArray(e?.propertyNames)
-        ? e.propertyNames.map((x: unknown) => String(x))
-        : [];
-
-      if (props.length === errs.length && props.length) {
-        for (let i = 0; i < props.length; i++) {
-          const field = props[i] || 'General';
-          const msg = errs[i] || '';
-          fieldMap[field] = [...(fieldMap[field] || []), msg];
-          messages.push(msg);
-        }
-      } else {
-        errs.forEach((m: string) => messages.push(m));
-      }
-    }
-
-    if (e?.title && !messages.length) messages.push(String(e.title));
-    if (e?.detail) messages.push(String(e.detail));
-    if (!messages.length && typeof e === 'string') messages.push(e);
-    if (!messages.length && err?.message) messages.push(String(err.message));
-
-    const uniq = Array.from(new Set(messages.map((x) => String(x).trim()).filter(Boolean)));
-    return { messages: uniq, fieldMap };
   }
 }
