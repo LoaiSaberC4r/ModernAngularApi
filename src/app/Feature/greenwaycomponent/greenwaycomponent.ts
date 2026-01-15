@@ -75,6 +75,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
   // Routing properties
   private worker?: Worker;
+  private updateLinesTimeout?: any;
   isLoadingRoads = false;
   routingEnabled = false;
 
@@ -324,7 +325,8 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     this.markers.push(marker);
 
     // Update lines if marker is dragged
-    marker.on('drag', () => this.updateLines());
+    marker.on('drag', () => this.updateLinesDebounced());
+    marker.on('dragend', () => this.updateLines());
 
     // Connect every two markers
     if (this.markers.length % 2 === 0) {
@@ -369,6 +371,15 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
     // Rebuild lines
     this.rebuildLines();
+    this.updateLines();
+  }
+
+  updateMarkerCoords(index: number, lat: number, lng: number) {
+    const marker = this.markers[index];
+    if (marker) {
+      marker.setLatLng([lat, lng]);
+      this.updateLinesDebounced();
+    }
   }
 
   private rebuildLines() {
@@ -396,6 +407,11 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     });
   }
 
+  public updateLinesDebounced() {
+    if (this.updateLinesTimeout) clearTimeout(this.updateLinesTimeout);
+    this.updateLinesTimeout = setTimeout(() => this.updateLines(), 50);
+  }
+
   public updateLines() {
     if (!this.routingEnabled || !this.worker) {
       this.updateLinesStraight();
@@ -410,14 +426,16 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
         const end = m2.getLatLng();
 
         // Send request to worker
-        this.worker!.postMessage({
-          type: 'findPath',
-          payload: {
-            index: i,
-            start: { lat: start.lat, lng: start.lng },
-            end: { lat: end.lat, lng: end.lng },
-          },
-        });
+        if (this.worker) {
+          this.worker.postMessage({
+            type: 'findPath',
+            payload: {
+              index: i,
+              start: { lat: start.lat, lng: start.lng },
+              end: { lat: end.lat, lng: end.lng },
+            },
+          });
+        }
       }
     });
   }
@@ -494,6 +512,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
               this.isLoadingRoads = false;
               this.routingEnabled = true;
               console.log('Road network loaded and worker initialized');
+              this.updateLines(); // Initial calculation
             });
           } else if (type === 'path-found') {
             const { index, path } = payload;

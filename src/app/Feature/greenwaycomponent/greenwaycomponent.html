@@ -152,8 +152,24 @@
                     @for (marker of getMarkerCoordinates(); track marker.index) {
                     <tr>
                       <td>{{ marker.index + 1 }}</td>
-                      <td>{{ marker.lat.toFixed(6) }}</td>
-                      <td>{{ marker.lng.toFixed(6) }}</td>
+                      <td>
+                        <input
+                          type="number"
+                          class="form-control form-control-sm"
+                          [ngModel]="marker.lat"
+                          (ngModelChange)="updateMarkerCoords(marker.index, $event, marker.lng)"
+                          step="0.000001"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          class="form-control form-control-sm"
+                          [ngModel]="marker.lng"
+                          (ngModelChange)="updateMarkerCoords(marker.index, marker.lat, $event)"
+                          step="0.000001"
+                        />
+                      </td>
                       <td>
                         <button
                           class="btn btn-sm btn-danger"

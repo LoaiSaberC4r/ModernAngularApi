@@ -5,6 +5,7 @@ import * as turf from '@turf/turf';
 
 let pathFinder: any;
 let roadNetwork: any;
+let nodesCache: number[][] = [];
 
 addEventListener('message', async ({ data }) => {
   const { type, payload } = data;
@@ -14,8 +15,21 @@ addEventListener('message', async ({ data }) => {
       try {
         roadNetwork = payload.roadNetwork;
         pathFinder = new PathFinder(roadNetwork);
+
+        // Build a cache of all unique nodes to speed up snapping
+        const nodes = new Set<string>();
+        roadNetwork.features.forEach((f: any) => {
+          if (f.geometry.type === 'LineString') {
+            f.geometry.coordinates.forEach((c: number[]) => {
+              nodes.add(`${c[0]},${c[1]}`);
+            });
+          }
+        });
+        nodesCache = Array.from(nodes).map((s) => s.split(',').map(Number));
+
         postMessage({ type: 'init-complete' });
       } catch (err) {
+        console.error('Worker Init Error:', err);
         postMessage({ type: 'error', payload: 'Failed to initialize routing engine' });
       }
       break;
@@ -46,6 +60,7 @@ addEventListener('message', async ({ data }) => {
           },
         });
       } catch (err) {
+        console.error('Pathfinding Error:', err);
         postMessage({ type: 'error', payload: 'Pathfinding error' });
       }
       break;
@@ -53,25 +68,26 @@ addEventListener('message', async ({ data }) => {
 });
 
 function getSnapPoint(latLng: { lat: number; lng: number }): number[] {
-  if (!roadNetwork || !roadNetwork.features) return [latLng.lng, latLng.lat];
+  if (nodesCache.length === 0) return [latLng.lng, latLng.lat];
 
-  const point = turf.point([latLng.lng, latLng.lat]);
-  let minDistance = Infinity;
-  let closestPoint = [latLng.lng, latLng.lat];
+  let minDistanceSq = Infinity;
+  let closestPoint = nodesCache[0];
 
-  // Snapping to the nearest node in the network
-  // In the worker, we can afford more detailed Turf operations
-  roadNetwork.features.forEach((feature: any) => {
-    if (feature.geometry.type === 'LineString') {
-      feature.geometry.coordinates.forEach((coord: number[]) => {
-        const dist = turf.distance(point, turf.point(coord));
-        if (dist < minDistance) {
-          minDistance = dist;
-          closestPoint = coord;
-        }
-      });
+  const targetLng = latLng.lng;
+  const targetLat = latLng.lat;
+
+  // Use squared distance for performance in the loop
+  for (let i = 0; i < nodesCache.length; i++) {
+    const node = nodesCache[i];
+    const dlng = node[0] - targetLng;
+    const dlat = node[1] - targetLat;
+    const distSq = dlng * dlng + dlat * dlat;
+
+    if (distSq < minDistanceSq) {
+      minDistanceSq = distSq;
+      closestPoint = node;
     }
-  });
+  }
 
   return closestPoint;
 }
