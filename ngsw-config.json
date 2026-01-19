@@ -1,0 +1,40 @@
+{
+  "$schema": "./node_modules/@angular/service-worker/config/schema.json",
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "resources": {
+        "files": [
+          "/favicon.ico",
+          "/index.csr.html",
+          "/index.html",
+          "/manifest.webmanifest",
+          "/*.css",
+          "/*.js"
+        ]
+      }
+    },
+    {
+      "name": "greenway-assets",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": ["/assets/roads.geojson", "/assets/tiles/**", "/assets/img/**"]
+      }
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "roads-network-cache",
+      "urls": ["/assets/roads.geojson"],
+      "cacheConfig": {
+        "strategy": "cache",
+        "maxSize": 100,
+        "maxAge": "90d"
+      }
+    }
+  ]
+}
+

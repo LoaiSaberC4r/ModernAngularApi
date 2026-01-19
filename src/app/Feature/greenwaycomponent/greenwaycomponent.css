@@ -138,16 +138,37 @@
   opacity: 0.8;
 }
 
+
 /* Road Editor Specifics */
 .border-warning {
   border-width: 2px !important;
 }
 
 .card-header.bg-warning {
-  border-bottom: 2px solid #856404;
+  border-bottom: 2px solid #ffc107;
 }
 
 .map-container.editing-roads {
   cursor: crosshair !important;
   border: 4px solid #ffc107;
+}
+
+/* Nearby Cabinets List */
+.nearby-cabinets-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.cabinet-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cabinet-row:hover {
+  background-color: #e3f2fd !important;
+}
+
+.cabinet-row:hover td {
+  color: #1976d2;
+  font-weight: 500;
 }

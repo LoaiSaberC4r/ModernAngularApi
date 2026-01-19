@@ -5,17 +5,17 @@
       <div class="col-lg-8 position-relative">
         <div class="map-container">
           @if (isLoading) {
-          <div class="map-loading">
-            <div class="spinner-border text-primary"></div>
-            <p>{{ isAr ? 'جارِ تحميل الخريطة...' : 'Loading map...' }}</p>
-          </div>
+            <div class="map-loading">
+              <div class="spinner-border text-primary"></div>
+              <p>{{ isAr ? 'جارِ تحميل الخريطة...' : 'Loading map...' }}</p>
+            </div>
           } @else if (mapError) {
-          <div class="alert alert-danger">
-            {{ mapError }}
-            <button class="btn btn-sm btn-primary" (click)="initMap()">
-              {{ isAr ? 'إعادة المحاولة' : 'Retry' }}
-            </button>
-          </div>
+            <div class="alert alert-danger">
+              {{ mapError }}
+              <button class="btn btn-sm btn-primary" (click)="initMap()">
+                {{ isAr ? 'إعادة المحاولة' : 'Retry' }}
+              </button>
+            </div>
           }
 
           <div #mapContainer id="map"></div>
@@ -23,19 +23,19 @@
           <!-- Coordinates Overlay -->
           <div class="coords-overlay">
             @if (currentCoords) {
-            <div class="coords-box">
-              <span class="fw-bold">{{ isAr ? 'عرض:' : 'Lat:' }}</span>
-              {{ currentCoords.lat.toFixed(6) }}
-              <span class="fw-bold ms-2">{{ isAr ? 'طول:' : 'Lng:' }}</span>
-              {{ currentCoords.lng.toFixed(6) }}
-              <button
-                class="btn btn-xs btn-outline-dark ms-2"
-                (click)="copyCoordinates()"
-                [title]="isAr ? 'نسخ' : 'Copy to clipboard'"
-              >
-                <i class="bi bi-clipboard"></i>
-              </button>
-            </div>
+              <div class="coords-box">
+                <span class="fw-bold">{{ isAr ? 'عرض:' : 'Lat:' }}</span>
+                {{ currentCoords.lat.toFixed(6) }}
+                <span class="fw-bold ms-2">{{ isAr ? 'طول:' : 'Lng:' }}</span>
+                {{ currentCoords.lng.toFixed(6) }}
+                <button
+                  class="btn btn-xs btn-outline-dark ms-2"
+                  (click)="copyCoordinates()"
+                  [title]="isAr ? 'نسخ' : 'Copy to clipboard'"
+                >
+                  <i class="bi bi-clipboard"></i>
+                </button>
+              </div>
             }
           </div>
 
@@ -95,32 +95,95 @@
             <div class="card-header bg-success text-white">
               <h6 class="mb-0">{{ isAr ? 'تفعيل المسارات' : 'Road Routing' }}</h6>
             </div>
+
             <div class="card-body">
               @if (isLoadingRoads) {
-              <div class="text-center py-2">
-                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
-                <small>{{ isAr ? 'جاري تحميل بيانات الطرق...' : 'Loading road data...' }}</small>
-              </div>
+                <div class="text-center py-2">
+                  <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                  <small>
+                    {{
+                      roadLoadingMessage
+                        ? roadLoadingMessage
+                        : isAr
+                          ? 'جاري تحميل بيانات الطرق...'
+                          : 'Loading road data...'
+                    }}
+                  </small>
+                </div>
               } @else {
-              <div class="form-check form-switch">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  id="routingToggle"
-                  [(ngModel)]="routingEnabled"
-                  (change)="updateLines()"
-                />
-                <label class="form-check-label" for="routingToggle">
-                  {{ isAr ? 'استخدام routing على الطرق' : 'Enable road routing' }}
-                </label>
-              </div>
-              <small class="text-muted d-block mt-2">
-                {{
-                  isAr
-                    ? 'عند التفعيل: الخط الأخضر = مسار على الطرق، الخط الأحمر المنقط = لا يوجد مسار'
-                    : 'When enabled: Green = route found, Red dashed = no route'
-                }}
-              </small>
+                <div class="form-check form-switch">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="routingToggle"
+                    [(ngModel)]="routingEnabled"
+                    (change)="updateLines()"
+                  />
+                  <label class="form-check-label" for="routingToggle">
+                    {{ isAr ? 'استخدام routing على الطرق' : 'Enable road routing' }}
+                  </label>
+                </div>
+
+                <small class="text-muted d-block mt-2">
+                  {{
+                    isAr
+                      ? 'عند التفعيل: الخط الأخضر = مسار على الطرق، الخط الأحمر المنقط = لا يوجد مسار'
+                      : 'When enabled: Green = route found, Red dashed = no route'
+                  }}
+                </small>
+
+                <!-- Debug buttons -->
+                <button class="btn btn-outline-secondary btn-sm mt-2" (click)="debugCacheInfo()">
+                  {{ isAr ? 'معلومات الكاش' : 'Cache Info' }}
+                </button>
+                <button class="btn btn-outline-danger btn-sm mt-2 ms-2" (click)="clearRoadCache()">
+                  {{ isAr ? 'مسح كاش الطرق' : 'Clear Roads Cache' }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Nearby Cabinets Section -->
+          <div class="card mb-3">
+            <div class="card-header bg-info text-white">
+              <h6 class="mb-0">
+                {{ isAr ? 'الكباين القريبة من المسار' : 'Nearby Cabinets' }} 
+                @if (nearByCabinets.length > 0) {
+                  <span class="badge bg-light text-dark">{{ nearByCabinets.length }}</span>
+                }
+              </h6>
+            </div>
+
+            <div class="card-body p-0">
+              @if (nearByCabinets.length === 0) {
+                <div class="p-3 text-muted text-center">
+                  {{ isAr ? 'أضف نقطتين لعرض الكباين القريبة' : 'Add route to show nearby cabinets' }}
+                </div>
+              } @else {
+                <div class="nearby-cabinets-list">
+                  <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th>#</th>
+                        <th>{{ isAr ? 'الاسم' : 'Name' }}</th>
+                        <th>{{ isAr ? 'المسافة' : 'Distance' }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (cabinet of nearByCabinets; track cabinet.id) {
+                        <tr class="cabinet-row" (click)="cabinetMarkersMap.get(cabinet.id)?.openPopup()">
+                          <td class="text-center"><small class="badge bg-primary">{{ cabinet.sequence }}</small></td>
+                          <td>
+                            <small>{{ cabinet.name || (isAr ? 'كابينة' : 'Cabinet') }}</small>
+                          </td>
+                          <td>
+                            <small class="text-success fw-bold">{{ cabinet.distance }}m</small>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
               }
             </div>
           </div>
@@ -132,63 +195,66 @@
                 {{ isAr ? 'العلامات المضافة' : 'Added Markers' }} ({{ markers.length }})
               </h6>
             </div>
+
             <div class="card-body p-0">
               <div class="markers-list">
                 @if (markers.length === 0) {
-                <div class="p-3 text-muted text-center">
-                  {{ isAr ? 'لا توجد علامات بعد' : 'No markers added yet' }}
-                </div>
+                  <div class="p-3 text-muted text-center">
+                    {{ isAr ? 'لا توجد علامات بعد' : 'No markers added yet' }}
+                  </div>
                 } @else {
-                <table class="table table-sm table-hover mb-0">
-                  <thead class="table-light">
-                    <tr>
-                      <th>#</th>
-                      <th>{{ isAr ? 'خط العرض' : 'Lat' }}</th>
-                      <th>{{ isAr ? 'خط الطول' : 'Lng' }}</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (marker of getMarkerCoordinates(); track marker.index) {
-                    <tr>
-                      <td>{{ marker.index + 1 }}</td>
-                      <td>
-                        <input
-                          type="number"
-                          class="form-control form-control-sm"
-                          [ngModel]="marker.lat"
-                          (ngModelChange)="updateMarkerCoords(marker.index, $event, marker.lng)"
-                          step="0.000001"
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          class="form-control form-control-sm"
-                          [ngModel]="marker.lng"
-                          (ngModelChange)="updateMarkerCoords(marker.index, marker.lat, $event)"
-                          step="0.000001"
-                        />
-                      </td>
-                      <td>
-                        <button
-                          class="btn btn-sm btn-danger"
-                          (click)="removeMarker(marker.index)"
-                          [title]="isAr ? 'حذف' : 'Delete'"
-                        >
-                          <i class="bi bi-trash"></i>
-                        </button>
-                      </td>
-                    </tr>
-                    }
-                  </tbody>
-                </table>
+                  <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th>#</th>
+                        <th>{{ isAr ? 'خط العرض' : 'Lat' }}</th>
+                        <th>{{ isAr ? 'خط الطول' : 'Lng' }}</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      @for (marker of getMarkerCoordinates(); track marker.index) {
+                        <tr>
+                          <td>{{ marker.index + 1 }}</td>
+                          <td>
+                            <input
+                              type="number"
+                              class="form-control form-control-sm"
+                              [ngModel]="marker.lat"
+                              (ngModelChange)="updateMarkerCoords(marker.index, $event, marker.lng)"
+                              step="0.000001"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              class="form-control form-control-sm"
+                              [ngModel]="marker.lng"
+                              (ngModelChange)="updateMarkerCoords(marker.index, marker.lat, $event)"
+                              step="0.000001"
+                            />
+                          </td>
+                          <td>
+                            <button
+                              class="btn btn-sm btn-danger"
+                              (click)="removeMarker(marker.index)"
+                              [title]="isAr ? 'حذف' : 'Delete'"
+                            >
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
                 }
               </div>
             </div>
           </div>
         </div>
       </div>
+      <!-- End Sidebar -->
     </div>
   </div>
 </div>

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of, BehaviorSubject } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import * as L from 'leaflet';
+import { openDB, IDBPDatabase } from 'idb';
 
 interface GraphNode {
   id: string;
@@ -20,24 +21,45 @@ export class StreetRoutingService {
   private graph = new Map<string, GraphNode>();
   private isGraphReady = new BehaviorSubject<boolean>(false);
   public isReady$ = this.isGraphReady.asObservable();
+  private db: IDBPDatabase | null = null;
 
   constructor() {
-    this.loadGraph();
+    this.initDB().then(() => this.loadGraph());
   }
 
-  private loadGraph() {
-    this.http.get<any>('assets/data/roads.geojson').subscribe({
-      next: (data) => {
-        this.buildGraph(data);
-        this.isGraphReady.next(true);
-        console.log('Road Graph Loaded. Nodes:', this.graph.size);
-      },
-      error: (err) => {
-        console.error('Failed to load road network', err);
-        // Even if file fails, we want to allow manual roads
-        this.isGraphReady.next(true);
+  private async initDB() {
+    this.db = await openDB('RoadGraphDB', 1, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains('graph')) {
+          db.createObjectStore('graph');
+        }
       },
     });
+  }
+
+  private async loadGraph() {
+    if (!this.db) return;
+
+    const cachedGraph = await this.loadGraphFromIndexedDB();
+    if (cachedGraph) {
+      this.graph = cachedGraph;
+      this.isGraphReady.next(true);
+      console.log('Road Graph Loaded from IndexedDB. Nodes:', this.graph.size);
+    } else {
+      this.http.get<any>('assets/data/roads.geojson').subscribe({
+        next: (data) => {
+          this.buildGraph(data);
+          this.saveGraphToIndexedDB();
+          this.isGraphReady.next(true);
+          console.log('Road Graph Loaded from file. Nodes:', this.graph.size);
+        },
+        error: (err) => {
+          console.error('Failed to load road network', err);
+          // Even if file fails, we want to allow manual roads
+          this.isGraphReady.next(true);
+        },
+      });
+    }
   }
 
   private buildGraph(geoJson: any) {
@@ -61,6 +83,25 @@ export class StreetRoutingService {
         }
       }
     });
+  }
+
+  private async saveGraphToIndexedDB() {
+    if (!this.db) return;
+    const graphArray = Array.from(this.graph.entries());
+    await this.db.put('graph', graphArray, 'roadGraph');
+  }
+
+  private async loadGraphFromIndexedDB(): Promise<Map<string, GraphNode> | null> {
+    if (!this.db) return null;
+    try {
+      const graphArray: [string, GraphNode][] = await this.db.get('graph', 'roadGraph');
+      if (graphArray) {
+        return new Map(graphArray);
+      }
+    } catch (e) {
+      console.error('Failed to load graph from IndexedDB', e);
+    }
+    return null;
   }
 
   private addNode(lat: number, lng: number): GraphNode {
@@ -123,7 +164,7 @@ export class StreetRoutingService {
     return of([start, end]);
   }
 
-  public addManualRoad(points: L.LatLng[]) {
+  public async addManualRoad(points: L.LatLng[]) {
     if (points.length < 2) return;
 
     for (let i = 0; i < points.length - 1; i++) {
@@ -142,6 +183,7 @@ export class StreetRoutingService {
         n2.neighbors.push({ nodeId: n1.id, weight: dist });
       }
     }
+    await this.saveGraphToIndexedDB();
   }
 
   public getCurrentGeoJSON(): string {

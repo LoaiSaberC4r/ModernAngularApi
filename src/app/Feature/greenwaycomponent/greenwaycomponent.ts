@@ -19,8 +19,8 @@ import { CabinetStatusMessage } from '../../Domain/SignalR/cabinet-status-messag
 import { FormsModule } from '@angular/forms';
 import { ISignalrService } from '../../Services/Signalr/isignalr-service';
 import { HttpClient } from '@angular/common/http';
-import PathFinder from 'geojson-path-finder';
-import * as turf from '@turf/turf';
+import { firstValueFrom } from 'rxjs';
+import { MapCacheService } from './map-cache.service';
 
 const defaultIcon = L.icon({
   iconUrl: 'assets/img/marker-green-40.png',
@@ -46,9 +46,12 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   private destroyRef = inject(DestroyRef);
   private http = inject(HttpClient);
 
+  private mapCache = inject(MapCacheService);
+
   private signBoxService = inject(ISignBoxControlService);
   private signalrService = inject(CabinetSignalrService);
   private globalSignalR = inject(ISignalrService);
+  roadLoadingMessage = '';
 
   get isAr() {
     return this.langService.current === 'ar';
@@ -70,14 +73,19 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   cars: L.Marker[] = [];
   cabinetMarkers: L.Marker[] = [];
 
-  // Map for O(1) access to markers by ID
-  private cabinetMarkersMap = new Map<number, L.Marker>();
+  cabinetMarkersMap = new Map<number, L.Marker>();
+  private cabinetLocationsMap = new Map<number, any>(); // Store cabinet data
 
-  // Routing properties
   private worker?: Worker;
   private updateLinesTimeout?: any;
+
   isLoadingRoads = false;
   routingEnabled = false;
+  private isFromCache = false;
+
+  // Near-by cabinets on route
+  nearByCabinets: any[] = [];
+  readonly NEARBY_DISTANCE_KM = 0.03; // 30 meters
 
   readonly defaultCenter: L.LatLngExpression = [30.0444, 31.2357];
   readonly defaultZoom = 13;
@@ -129,13 +137,12 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
         }
       });
 
-    // 2. Listen to Global Traffic Broadcast (Broad) - proven to work in SignBoxComponent
+    // 2. Listen to Global Traffic Broadcast
     toObservable(this.globalSignalR.trafficBroadcast)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((msg) => {
         if (msg?.message) {
           const broadcast = msg.message;
-          // Map broadcast to our status format
           this.updateMarkerStatus({
             id: broadcast.ID,
             l1: broadcast.L1,
@@ -155,11 +162,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     const marker = this.cabinetMarkersMap.get(msg.id);
     if (!marker) return;
 
-    // Normalize and determine color from L1
     const color = this.normalizeColor(msg.l1);
-
-    // Debug log to confirm update
-    // console.log(`Traffic Update: ID=${msg.id}, Color=${color}`);
 
     let newIcon = this.iconGray;
     if (color === 'R') newIcon = this.iconRed;
@@ -185,7 +188,6 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   }
 
   async loadCabinetLocations() {
-    // Connect to BOTH services to ensure we get updates
     try {
       await this.signalrService.connect();
       await this.globalSignalR.connect();
@@ -217,17 +219,12 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
                 .bindPopup(popupContent)
                 .addTo(this.map);
 
-              // Map by Database ID
-              if (loc.id) {
-                this.cabinetMarkersMap.set(loc.id, marker);
-                this.signalrService.monitorCabinet(loc.id).catch(() => {});
-              }
-
-              // Map by Cabinet ID (Hardware ID) if available
-              const cabId = Number(loc.cabinetId);
-              if (Number.isFinite(cabId) && cabId > 0) {
-                this.cabinetMarkersMap.set(cabId, marker);
-                this.signalrService.monitorCabinet(cabId).catch(() => {});
+              // Use primary ID (prefer loc.id, fallback to cabinetId)
+              const primaryId = loc.id || Number(loc.cabinetId);
+              if (primaryId) {
+                this.cabinetMarkersMap.set(primaryId, marker);
+                this.cabinetLocationsMap.set(primaryId, { lat, lng, ...loc });
+                this.signalrService.monitorCabinet(primaryId).catch(() => {});
               }
 
               this.cabinetMarkers.push(marker);
@@ -241,6 +238,11 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.signalrService.disconnect();
+
+    if (this.worker) {
+      this.worker.terminate();
+      this.worker = undefined;
+    }
 
     if (this.map) this.map.remove();
     if (this.resizeObserver) this.resizeObserver.disconnect();
@@ -285,7 +287,6 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
       this.map.on('click', (e: L.LeafletMouseEvent) => this.addMarker(e.latlng));
 
-      // move => update coordinates display to map center
       const updateCenter = () => {
         this.ngZone.run(() => {
           const center = this.map.getCenter();
@@ -294,10 +295,8 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
       };
 
       this.map.on('move', updateCenter);
-      // Initialize with start center
       updateCenter();
 
-      // fix tile loading
       this.map.whenReady(() => {
         this.isLoading = false;
         setTimeout(() => this.map.invalidateSize(), 200);
@@ -324,17 +323,14 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     const marker = L.marker(latLng, { draggable: true }).addTo(this.map);
     this.markers.push(marker);
 
-    // Update lines if marker is dragged
     marker.on('drag', () => this.updateLinesDebounced());
     marker.on('dragend', () => this.updateLines());
 
-    // Connect every two markers
     if (this.markers.length % 2 === 0) {
       const lastTwo = this.markers.slice(-2).map((m) => m.getLatLng());
       const line = L.polyline(lastTwo, { color: 'blue', weight: 3 }).addTo(this.map);
       this.lines.push(line);
 
-      // Immediately apply routing if enabled
       this.updateLines();
     }
   }
@@ -357,7 +353,6 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     this.addMarker(latLng);
     this.map.setView(latLng, this.map.getZoom());
 
-    // Clear input
     this.inputLat = '';
     this.inputLng = '';
   }
@@ -369,7 +364,6 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     this.map.removeLayer(marker);
     this.markers.splice(index, 1);
 
-    // Rebuild lines
     this.rebuildLines();
     this.updateLines();
   }
@@ -383,17 +377,15 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   }
 
   private rebuildLines() {
-    // Remove all lines
     this.lines.forEach((line) => this.map.removeLayer(line));
     this.lines = [];
 
-    // Recreate lines for every two markers
     for (let i = 0; i < this.markers.length - 1; i += 2) {
       const m1 = this.markers[i];
       const m2 = this.markers[i + 1];
       if (m1 && m2) {
         const line = L.polyline([m1.getLatLng(), m2.getLatLng()], { color: 'blue' }).addTo(
-          this.map
+          this.map,
         );
         this.lines.push(line);
       }
@@ -425,22 +417,17 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
         const start = m1.getLatLng();
         const end = m2.getLatLng();
 
-        // Send request to worker
-        if (this.worker) {
-          this.worker.postMessage({
-            type: 'findPath',
-            payload: {
-              index: i,
-              start: { lat: start.lat, lng: start.lng },
-              end: { lat: end.lat, lng: end.lng },
-            },
-          });
-        }
+        this.worker!.postMessage({
+          type: 'findPath',
+          payload: {
+            index: i,
+            start: { lat: start.lat, lng: start.lng },
+            end: { lat: end.lat, lng: end.lng },
+          },
+        });
       }
     });
   }
-
-  // Removed getSnapPoint as it's now in the worker
 
   private updateLinesStraight() {
     this.lines.forEach((line, i) => {
@@ -451,6 +438,115 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
         line.setStyle({ color: 'blue', weight: 2, dashArray: '' });
       }
     });
+
+    // Find nearby cabinets on all routes
+    this.findNearbyCabinets();
+  }
+
+  /**
+   * Find all cabinets within NEARBY_DISTANCE_KM of any route line
+   */
+  private findNearbyCabinets() {
+    if (this.lines.length === 0 || this.cabinetLocationsMap.size === 0) {
+      this.nearByCabinets = [];
+      console.log('No lines or cabinets:', { lines: this.lines.length, cabinets: this.cabinetLocationsMap.size });
+      return;
+    }
+
+    const nearby = new Map<number, { cabinet: any; distance: number }>();
+
+    // For each line (route)
+    this.lines.forEach((line, lineIdx) => {
+      const routeCoords = line.getLatLngs() as L.LatLng[];
+      console.log(`Line ${lineIdx}: ${routeCoords.length} coordinates`);
+      
+      if (routeCoords.length < 2) return;
+
+      // For each cabinet
+      this.cabinetLocationsMap.forEach((cabData, cabId) => {
+        const cabPoint = { lat: cabData.lat, lng: cabData.lng };
+        
+        // Find minimum distance from cabinet to any point on the route
+        let minDistance = Infinity;
+        
+        for (let i = 0; i < routeCoords.length - 1; i++) {
+          const p1 = routeCoords[i];
+          const p2 = routeCoords[i + 1];
+          const dist = this.distancePointToLineSegment(
+            cabPoint,
+            { lat: p1.lat, lng: p1.lng },
+            { lat: p2.lat, lng: p2.lng }
+          );
+          minDistance = Math.min(minDistance, dist);
+        }
+
+        console.log(`Cabinet ${cabId} (${cabData.name}): distance = ${(minDistance * 1000).toFixed(0)}m, threshold = ${this.NEARBY_DISTANCE_KM * 1000}m`);
+
+        // If within range and not already recorded with a smaller distance
+        if (minDistance <= this.NEARBY_DISTANCE_KM) {
+          if (!nearby.has(cabId) || nearby.get(cabId)!.distance > minDistance) {
+            nearby.set(cabId, { cabinet: cabData, distance: minDistance });
+          }
+        }
+      });
+    });
+
+    // Convert to sorted array
+    this.nearByCabinets = Array.from(nearby.values())
+      .sort((a, b) => a.distance - b.distance)
+      .map((item, index) => ({
+        ...item.cabinet,
+        distance: (item.distance * 1000).toFixed(0), // Convert to meters
+        sequence: index + 1,
+      }));
+
+    console.log('Found nearby cabinets:', this.nearByCabinets.length, this.nearByCabinets);
+  }
+
+  /**
+   * Calculate distance from a point to a line segment (in km)
+   */
+  private distancePointToLineSegment(
+    point: { lat: number; lng: number },
+    lineStart: { lat: number; lng: number },
+    lineEnd: { lat: number; lng: number }
+  ): number {
+    const dx = lineEnd.lng - lineStart.lng;
+    const dy = lineEnd.lat - lineStart.lat;
+    const denom = dx * dx + dy * dy;
+
+    if (denom === 0) {
+      // Line segment is a point
+      return this.distanceInKm(point, lineStart);
+    }
+
+    let t = ((point.lng - lineStart.lng) * dx + (point.lat - lineStart.lat) * dy) / denom;
+    t = Math.max(0, Math.min(1, t));
+
+    const closestPoint = {
+      lng: lineStart.lng + t * dx,
+      lat: lineStart.lat + t * dy,
+    };
+
+    return this.distanceInKm(point, closestPoint);
+  }
+
+  /**
+   * Calculate distance between two points in km using Haversine formula
+   */
+  private distanceInKm(
+    point1: { lat: number; lng: number },
+    point2: { lat: number; lng: number }
+  ): number {
+    const R = 6371; // Earth radius in km
+    const dLat = (point2.lat - point1.lat) * Math.PI / 180;
+    const dLng = (point2.lng - point1.lng) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   }
 
   clearMarkers() {
@@ -458,36 +554,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     this.lines.forEach((l) => this.map.removeLayer(l));
     this.markers = [];
     this.lines = [];
-  }
-
-  getCurrentLocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          const latLng: L.LatLngExpression = [lat, lng];
-
-          // Add marker
-          const marker = L.marker(latLng, {
-            draggable: false,
-            icon: L.icon({
-              iconUrl: 'assets/img/marker-green.png',
-              iconSize: [32, 32],
-            }),
-          }).addTo(this.map);
-
-          this.map.setView(latLng, 15);
-          this.markers.push(marker);
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-          this.mapError = 'Unable to fetch location';
-        }
-      );
-    } else {
-      this.mapError = 'Geolocation is not supported by this browser.';
-    }
+    this.nearByCabinets = [];
   }
 
   copyCoordinates() {
@@ -498,67 +565,131 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   }
 
   async loadRoadNetwork() {
-    if (typeof Worker !== 'undefined') {
-      this.isLoadingRoads = true;
-      try {
-        // Initialize Worker
-        this.worker = new Worker(new URL('./routing.worker', import.meta.url));
+    if (typeof Worker === 'undefined') {
+      console.warn('Web Workers are not supported in this environment.');
+      return;
+    }
 
-        this.worker.onmessage = ({ data }) => {
-          const { type, payload } = data;
+    this.isLoadingRoads = true;
 
-          if (type === 'init-complete') {
-            this.ngZone.run(() => {
-              this.isLoadingRoads = false;
-              this.routingEnabled = true;
-              console.log('Road network loaded and worker initialized');
-              this.updateLines(); // Initial calculation
-            });
-          } else if (type === 'path-found') {
-            const { index, path } = payload;
-            const line = this.lines[index];
-            if (line) {
-              this.ngZone.run(() => {
-                if (path && path.length > 0) {
-                  const routeCoords = path.map((coord: number[]) => L.latLng(coord[1], coord[0]));
-                  line.setLatLngs(routeCoords);
-                  line.setStyle({ color: 'green', weight: 4, opacity: 0.8, dashArray: '' });
-                } else {
-                  // Fallback to straight line
-                  const m1 = this.markers[index * 2];
-                  const m2 = this.markers[index * 2 + 1];
-                  if (m1 && m2) {
-                    line.setLatLngs([m1.getLatLng(), m2.getLatLng()]);
-                  }
-                  line.setStyle({ color: 'red', weight: 3, opacity: 0.6, dashArray: '10, 10' });
-                }
-              });
-            }
-          } else if (type === 'error') {
-            console.error('Worker error:', payload);
-            this.ngZone.run(() => {
-              this.isLoadingRoads = false;
-            });
-          }
-        };
+    // Init worker
+    if (this.worker) {
+      this.worker.terminate();
+    }
+    this.worker = new Worker(new URL('./routing.worker', import.meta.url));
 
-        // Load data and send to worker
-        const roadNetwork = await this.http.get('assets/roads.geojson').toPromise();
-        this.worker.postMessage({ type: 'init', payload: { roadNetwork } });
-      } catch (err) {
-        console.error('Failed to initialize road network worker', err);
+    this.worker.onmessage = ({ data }) => {
+      const { type, payload } = data;
+
+      if (type === 'init-complete') {
         this.ngZone.run(() => {
           this.isLoadingRoads = false;
-          this.mapError = 'فشل تحميل بيانات الطرق / Failed to load road data';
+          this.routingEnabled = true;
+          this.roadLoadingMessage = this.isAr ? 'جاهز ✅' : 'Ready ✅';
+          this.updateLines();
+        });
+
+        // If this is from fresh load (not cache), save the processed data
+        if (payload && payload.roadNetwork && payload.nodesCache && !payload.isFromCache) {
+          console.log('Saving processed road data to cache, roadNetwork size:', payload.roadNetwork?.features?.length || 'unknown', 'nodesCache size:', payload.nodesCache?.length || 'unknown');
+          this.mapCache.saveProcessedRoadNetwork({
+            roadNetwork: payload.roadNetwork,
+            nodesCache: payload.nodesCache,
+          }).then(({ savedTo }) => {
+            console.log('Processed road data saved to:', savedTo);
+          });
+        }
+      } else if (type === 'path-found') {
+        const { index, path } = payload;
+        const line = this.lines[index];
+        if (!line) return;
+
+        this.ngZone.run(() => {
+          if (path && path.length > 0) {
+            const routeCoords = path.map((coord: number[]) => L.latLng(coord[1], coord[0]));
+            line.setLatLngs(routeCoords);
+            line.setStyle({ color: 'green', weight: 4, opacity: 0.8, dashArray: '' });
+          } else {
+            const m1 = this.markers[index * 2];
+            const m2 = this.markers[index * 2 + 1];
+            if (m1 && m2) line.setLatLngs([m1.getLatLng(), m2.getLatLng()]);
+            line.setStyle({ color: 'red', weight: 3, opacity: 0.6, dashArray: '10, 10' });
+          }
+
+          // Re-calculate nearby cabinets after route update
+          this.findNearbyCabinets();
+        });
+      } else if (type === 'error') {
+        console.error('Worker error:', payload);
+        this.ngZone.run(() => {
+          this.isLoadingRoads = false;
+          this.roadLoadingMessage = this.isAr
+            ? 'خطأ أثناء تجهيز المسارات'
+            : 'Error while preparing routing';
         });
       }
-    } else {
-      console.warn('Web Workers are not supported in this environment.');
+    };
+
+    try {
+      // 1) Try cache (localStorage OR IndexedDB)
+      this.ngZone.run(() => {
+        this.roadLoadingMessage = this.isAr ? 'تحميل من الكاش...' : 'Loading from cache...';
+      });
+
+      console.log('Attempting to get processed road network from cache...');
+      const cached = await this.mapCache.getProcessedRoadNetwork();
+      if (cached) {
+        console.log('Processed road network found in cache, roadNetwork size:', cached.roadNetwork?.features?.length || 'unknown', 'nodesCache size:', cached.nodesCache?.length || 'unknown');
+        this.isFromCache = true;
+        this.worker.postMessage({ type: 'init-from-cache', payload: { roadNetwork: cached.roadNetwork, nodesCache: cached.nodesCache } });
+        return;
+      }
+      console.log('Processed road network NOT found in cache. Proceeding to download.');
+
+      // 2) Cache miss -> download (Service Worker handles HTTP caching)
+      this.ngZone.run(() => {
+        this.roadLoadingMessage = this.isAr ? 'تنزيل بيانات الطرق...' : 'Downloading road data...';
+      });
+
+      const roadNetwork = await firstValueFrom(this.http.get<any>('assets/roads.geojson'));
+      console.log('Road network downloaded, features:', roadNetwork?.features?.length);
+
+      // 3) Process in Worker (no main thread blocking)
+      this.ngZone.run(() => {
+        this.roadLoadingMessage = this.isAr ? 'معالجة البيانات...' : 'Processing data...';
+      });
+
+      this.isFromCache = false;
+      this.worker.postMessage({ type: 'init-raw', payload: { roadNetwork } });
+
+      // 4) Cache processed data for next reload
+      setTimeout(() => {
+        // Save processed data after worker starts (fire & forget)
+        if (this.worker) {
+          // We'll save in the worker message handler when init-complete is received
+        }
+      }, 0);
+    } catch (err) {
+      console.error('Failed to initialize road network worker', err);
+      this.ngZone.run(() => {
+        this.isLoadingRoads = false;
+        this.mapError = 'فشل تحميل بيانات الطرق / Failed to load road data';
+        this.roadLoadingMessage = this.isAr ? 'فشل تحميل بيانات الطرق' : 'Failed to load road data';
+      });
     }
   }
 
   toggleRouting() {
     this.routingEnabled = !this.routingEnabled;
     this.updateLines();
+  }
+
+  // Optional debug helpers (uncomment in HTML if needed)
+  debugCacheInfo() {
+    console.log(this.mapCache.getCacheInfo());
+  }
+  clearRoadCache() {
+    this.mapCache.clearCache();
+    console.log('Road cache cleared');
   }
 }
