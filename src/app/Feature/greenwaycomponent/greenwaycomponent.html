@@ -58,6 +58,27 @@
         <div class="sidebar-content">
           <h5 class="sidebar-title">{{ isAr ? 'إدارة العلامات' : 'Marker Management' }}</h5>
 
+          <!-- Governorate Selection -->
+          <div class="card mb-3">
+            <div class="card-header bg-dark text-white">
+              <h6 class="mb-0">{{ isAr ? 'اختر محافظة' : 'Select Governorate' }}</h6>
+            </div>
+            <div class="card-body">
+              <select
+                class="form-select"
+                [(ngModel)]="selectedGovernateId"
+                (change)="onGovernateChange()"
+              >
+                <option [value]="null" disabled selected>
+                  {{ isAr ? 'اختر المحافظة...' : 'Choose governorate...' }}
+                </option>
+                @for (gov of governates; track gov.governateId) {
+                  <option [value]="gov.governateId">{{ gov.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
           <!-- Add Marker Form -->
           <div class="card mb-3">
             <div class="card-header bg-primary text-white">
@@ -147,7 +168,7 @@
           <div class="card mb-3">
             <div class="card-header bg-info text-white">
               <h6 class="mb-0">
-                {{ isAr ? 'الكباين القريبة من المسار' : 'Nearby Cabinets' }} 
+                {{ isAr ? 'الكباين القريبة من المسار' : 'Nearby Cabinets' }}
                 @if (nearByCabinets.length > 0) {
                   <span class="badge bg-light text-dark">{{ nearByCabinets.length }}</span>
                 }
@@ -157,7 +178,9 @@
             <div class="card-body p-0">
               @if (nearByCabinets.length === 0) {
                 <div class="p-3 text-muted text-center">
-                  {{ isAr ? 'أضف نقطتين لعرض الكباين القريبة' : 'Add route to show nearby cabinets' }}
+                  {{
+                    isAr ? 'أضف نقطتين لعرض الكباين القريبة' : 'Add route to show nearby cabinets'
+                  }}
                 </div>
               } @else {
                 <div class="nearby-cabinets-list">
@@ -171,8 +194,13 @@
                     </thead>
                     <tbody>
                       @for (cabinet of nearByCabinets; track cabinet.id) {
-                        <tr class="cabinet-row" (click)="cabinetMarkersMap.get(cabinet.id)?.openPopup()">
-                          <td class="text-center"><small class="badge bg-primary">{{ cabinet.sequence }}</small></td>
+                        <tr
+                          class="cabinet-row"
+                          (click)="cabinetMarkersMap.get(cabinet.id)?.openPopup()"
+                        >
+                          <td class="text-center">
+                            <small class="badge bg-primary">{{ cabinet.sequence }}</small>
+                          </td>
                           <td>
                             <small>{{ cabinet.name || (isAr ? 'كابينة' : 'Cabinet') }}</small>
                           </td>

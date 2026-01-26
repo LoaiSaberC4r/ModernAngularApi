@@ -1,4 +1,13 @@
-import { Component, OnInit, inject, OnDestroy } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  OnDestroy,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
+  NgZone,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -9,12 +18,13 @@ import {
   AbstractControl,
   FormControl,
 } from '@angular/forms';
-import { MatStep, MatStepperModule } from '@angular/material/stepper';
+import { MatStep, MatStepperModule, MatStepper } from '@angular/material/stepper';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
 import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
@@ -26,8 +36,6 @@ import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
-
-import { RoundaboutComponent } from '../roundabout-component/roundabout-component';
 
 import { LanguageService } from '../../Services/Language/language-service';
 import { Subscription, Subject, fromEvent, interval } from 'rxjs';
@@ -42,6 +50,15 @@ import {
 } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
 import { Router } from '@angular/router';
 import { ToasterService } from '../../Services/Toster/toaster-service';
+import { ITrafficDepartmentService } from '../../Services/TrafficDepartment/itraffic-department-service';
+import { TrafficDepartment } from '../../Domain/Entity/TrafficDepartment/TrafficDepartment';
+import {
+  IMapAdminService,
+  NearestRoadNode,
+  RoadSegment,
+} from '../../Services/MapAdmin/map-admin.service';
+import * as L from 'leaflet';
+import { MatProgressSpinner } from '@angular/material/progress-spinner';
 
 type RoundDirection = {
   name?: string;
@@ -50,8 +67,8 @@ type RoundDirection = {
   right: boolean;
 };
 
-// Simple IPv4 regex
 const IPV4_REGEX = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/;
+const STORAGE_KEY = 'TRAFFIC_WIZARD_PERSISTENCE';
 
 @Component({
   selector: 'app-traffic-wizard',
@@ -68,13 +85,13 @@ const IPV4_REGEX = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}
     MatCardModule,
     MatIconModule,
     MatDividerModule,
-    RoundaboutComponent,
     MatStep,
+    MatProgressSpinnerModule,
   ],
   templateUrl: './traffic-wizard.html',
   styleUrl: './traffic-wizard.css',
 })
-export class TrafficWizard implements OnInit, OnDestroy {
+export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   private readonly governateService = inject(IGovernateService);
   private readonly signBoxService = inject(ISignBoxControlService);
   private readonly areaService = inject(IAreaService);
@@ -83,8 +100,14 @@ export class TrafficWizard implements OnInit, OnDestroy {
   private readonly templateService = inject(ITemplateService);
   private readonly templatePatternService = inject(ITemplatePatternService);
   private readonly router = inject(Router);
-
+  private readonly trafficDeptService = inject(ITrafficDepartmentService);
+  private readonly mapAdminService = inject(IMapAdminService);
+  private readonly ngZone = inject(NgZone);
   private readonly toaster = inject(ToasterService);
+
+  @ViewChild('wizardMap') wizardMapContainer?: ElementRef;
+  @ViewChild('step4MapContainer') step4MapContainer?: ElementRef;
+  @ViewChild('stepper') private stepper!: MatStepper;
 
   get isAr() {
     return this.langService.current === 'ar';
@@ -93,25 +116,41 @@ export class TrafficWizard implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly softRefresh$ = interval(30000);
   private isRefreshing = false;
+  isSavingStep2 = false;
+
+  // New state for 5-step flow
+  savedCabinetId: number | null = null;
+  savedDirectionIds: { directionId: number; name: string; order: number }[] = [];
+  incomingSegments: RoadSegment[] = [];
+  selectedDirectionId: number | null = null;
+  directionalBindings = new Map<number, string>(); // directionId -> roadSegmentId
 
   templates: GetAllTemplate[] = [];
-
   governates: GetAllGovernate[] = [];
   areas: GetAllArea[] = [];
+  trafficDepartments: TrafficDepartment[] = [];
 
   trafficForm: FormGroup;
-
   private patternSyncSubs = new Map<string, Subscription>();
+
+  // Map step state (Step 3)
+  nearestNodes: NearestRoadNode[] = [];
+  selectedNodeId: string | null = null;
+  isLoadingNodes = false;
+  wizardMap: L.Map | null = null;
+  cabinetMarker: L.Marker | null = null;
+  nodeMarkers: L.Marker[] = [];
+
+  // Step 4 Map State
+  step4Map: L.Map | null = null;
+  segmentLayers = new Map<string, L.Polyline>();
 
   constructor() {
     this.trafficForm = this.fb.group({
-      // Step 1
       governorate: [null, Validators.required],
       area: [null, Validators.required],
-
-      // Step 2
+      trafficDepartment: [null, Validators.required],
       name: ['', Validators.required],
-
       cabinetId: [
         null,
         [
@@ -121,14 +160,10 @@ export class TrafficWizard implements OnInit, OnDestroy {
           Validators.pattern(/^[1-9]\d*$/),
         ],
       ],
-
       ipAddress: ['', [Validators.required, Validators.pattern(IPV4_REGEX)]],
-
       latitude: ['', Validators.required],
       longitude: ['', Validators.required],
-
       directions: this.fb.array([this.buildDirectionGroup(1)]),
-
       templateForm: this.fb.group({
         templateId: new FormControl<number>(0, { nonNullable: true }),
         templateName: new FormControl<string>('', { nonNullable: true }),
@@ -140,6 +175,8 @@ export class TrafficWizard implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadGovernate();
     this.loadTemplates();
+    this.loadTrafficDepartments();
+    this.reconcileConflicts();
 
     this.directions.valueChanges
       .pipe(takeUntil(this.destroy$))
@@ -149,7 +186,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
       .pipe(
         takeUntil(this.destroy$),
         filter(() => document.visibilityState === 'visible'),
-        debounceTime(150)
+        debounceTime(150),
       )
       .subscribe(() => this.hardRefreshLists());
 
@@ -167,25 +204,42 @@ export class TrafficWizard implements OnInit, OnDestroy {
       .get('templateId')!
       .valueChanges.pipe(takeUntil(this.destroy$), distinctUntilChanged())
       .subscribe((id) => this.onTemplateChange(Number(id || 0)));
+
+    // Load persisted state
+    this.loadPersistence();
+
+    // Auto-save on form change
+    this.trafficForm.valueChanges
+      .pipe(takeUntil(this.destroy$), debounceTime(1000))
+      .subscribe(() => this.savePersistence());
+  }
+
+  ngAfterViewInit(): void {
+    // Restore stepper index after view init if needed
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (saved && this.stepper) {
+      const data = JSON.parse(saved);
+      if (data.stepIndex != null) {
+        setTimeout(() => (this.stepper.selectedIndex = data.stepIndex), 200);
+      }
+    }
   }
 
   ngOnDestroy(): void {
     this.clearAllPatternSyncSubs();
+    this.clearMapMarkersAndState();
+    this.clearStep4Map();
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  // ======= Data loading =======
   private loadTemplates(): void {
     if (this.isRefreshing) return;
     this.isRefreshing = true;
     this.templateService.GetAll().subscribe({
       next: (res) => {
         const incoming = res || [];
-        const sameLen = this.templates.length === incoming.length;
-        const sameIds =
-          sameLen && this.templates.every((t, i) => Number(t.id) === Number(incoming[i]?.id));
-        this.templates = sameIds ? this.templates : incoming;
+        this.templates = incoming;
       },
       complete: () => (this.isRefreshing = false),
       error: () => (this.isRefreshing = false),
@@ -204,15 +258,29 @@ export class TrafficWizard implements OnInit, OnDestroy {
     });
   }
 
+  private loadTrafficDepartments() {
+    this.trafficDeptService.getAll().subscribe((data) => {
+      this.trafficDepartments = data || [];
+    });
+  }
+
   private hardRefreshLists() {
     this.loadTemplates();
     this.loadGovernate();
+    this.loadTrafficDepartments();
     const govId = Number(this.trafficForm.get('governorate')?.value || 0);
     if (govId > 0) this.getAreas(govId);
   }
 
   private softRefreshLists() {
     this.loadTemplates();
+  }
+
+  onGovernorateChangeValue(id: number | null): void {
+    this.trafficForm.patchValue({ governorate: id, area: null });
+    if (id != null && !Number.isNaN(id)) {
+      this.getAreas(Number(id));
+    }
   }
 
   get directions(): FormArray<FormGroup> {
@@ -241,35 +309,14 @@ export class TrafficWizard implements OnInit, OnDestroy {
 
   removeDirection(index: number) {
     if (this.directions.length <= 1) return;
-
-    const removedOrder = Number(this.getDir(index).get('order')?.value ?? index + 1);
-
-    for (let i = 0; i < this.directions.length; i++) {
-      if (i === index) continue;
-      const g = this.getDir(i);
-      const cwLane = g.get('conflictWith')?.value as number | null;
-      if (cwLane === removedOrder) {
-        g.get('conflictWith')?.setValue(null, { emitEvent: false });
-      }
-    }
-
     this.directions.removeAt(index);
-
     this.reindexOrders();
-    for (let i = 0; i < this.directions.length; i++) {
-      const g = this.getDir(i);
-      const cwLane = g.get('conflictWith')?.value as number | null;
-      if (cwLane != null && cwLane > removedOrder) {
-        g.get('conflictWith')?.setValue(cwLane - 1, { emitEvent: false });
-      }
-    }
-
     this.reconcileConflicts();
   }
 
   private reindexOrders() {
     this.directions.controls.forEach((g, i) =>
-      g.get('order')?.setValue(i + 1, { emitEvent: false })
+      g.get('order')?.setValue(i + 1, { emitEvent: false }),
     );
   }
 
@@ -283,14 +330,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
     return this.areas.find((a) => a.areaId === id)?.name ?? '';
   }
 
-  templateName(id: number | null | undefined): string {
-    const notSet = this.isAr ? 'غير محدد' : 'Not set';
-    const n = Number(id || 0);
-    if (!n) return notSet;
-    const t = this.templates?.find((t) => t.id === n);
-    return t?.name ?? notSet;
-  }
-
   conflictTargetName(lane: number | null | undefined): string {
     if (!lane) return '';
     const n = Number(lane);
@@ -299,58 +338,22 @@ export class TrafficWizard implements OnInit, OnDestroy {
     return raw || (this.isAr ? `اتجاه ${n}` : `Direction ${n}`);
   }
 
-  getDirectionsForRoundabout(): RoundDirection[] {
-    const raw = (this.directions.getRawValue() || []) as Array<{
-      name?: string;
-      order?: number;
-      left?: boolean;
-      right?: boolean;
-    }>;
-
-    const sorted = [...raw]
-      .filter(Boolean)
-      .sort((a, b) => (a.order || 0) - (b.order || 0))
-      .slice(0, 4);
-
-    return sorted.map((d, i) => ({
-      name: d.name ?? (this.isAr ? `اتجاه ${i + 1}` : `Direction ${i + 1}`),
-      order: d.order ?? i + 1,
-      left: !!d.left,
-      right: !!d.right,
-    }));
+  getTrafficDepartmentName(id: string | null): string {
+    if (!id) return '';
+    const dept = this.trafficDepartments.find((d) => d.id === id);
+    return this.isAr ? (dept?.nameAr ?? '') : (dept?.nameEn ?? '');
   }
 
-  onRoundaboutChanged(updated: any[]): void {
-    const count = Math.min(this.directions.length, (updated ?? []).length);
-    for (let i = 0; i < count; i++) {
-      const u = updated[i] ?? {};
-      const g = this.directions.at(i) as FormGroup;
-      const name = (u?.name ?? (this.isAr ? `اتجاه ${i + 1}` : `Direction ${i + 1}`)).toString();
-
-      const order = Number(u?.order ?? i + 1);
-      g.get('name')?.setValue(name);
-      g.get('order')?.setValue(order, { emitEvent: false });
-      g.get('left')?.setValue(!!u?.left, { emitEvent: false });
-      g.get('right')?.setValue(!!u?.right, { emitEvent: false });
-    }
-    this.reconcileConflicts();
+  templateName(id: number | null | undefined): string {
+    const notSet = this.isAr ? 'غير محدد' : 'Not set';
+    const n = Number(id || 0);
+    if (!n) return notSet;
+    const t = this.templates?.find((t) => t.id === n);
+    return t?.name ?? notSet;
   }
 
   onConflictSelected(currentIndex: number, selectedLane: number | null) {
     const current = this.getDir(currentIndex);
-    const oldLane = current.get('conflictWith')?.value as number | null;
-
-    if (oldLane != null) {
-      const oldIdx = this.findIndexByLane(oldLane);
-      if (oldIdx !== null) this.releaseConflict(oldIdx);
-    }
-
-    if (selectedLane == null) {
-      current.get('conflictWith')?.setValue(null, { emitEvent: false });
-      this.reconcileConflicts();
-      return;
-    }
-
     current.get('conflictWith')?.setValue(selectedLane, { emitEvent: false });
     this.reconcileConflicts();
   }
@@ -358,13 +361,7 @@ export class TrafficWizard implements OnInit, OnDestroy {
   private getDir(i: number): FormGroup {
     return this.directions.at(i) as FormGroup;
   }
-  private existsDir(i: number): boolean {
-    return i >= 0 && i < this.directions.length;
-  }
 
-  private key(i: number, j: number) {
-    return `${i}->${j}`;
-  }
   private clearAllPatternSyncSubs() {
     this.patternSyncSubs.forEach((s) => s.unsubscribe());
     this.patternSyncSubs.clear();
@@ -372,8 +369,6 @@ export class TrafficWizard implements OnInit, OnDestroy {
 
   private reconcileConflicts() {
     this.clearAllPatternSyncSubs();
-
-    // reset
     for (let i = 0; i < this.directions.length; i++) {
       const g = this.getDir(i);
       g.get('isConflict')?.setValue(false, { emitEvent: false });
@@ -384,225 +379,118 @@ export class TrafficWizard implements OnInit, OnDestroy {
     for (let i = 0; i < this.directions.length; i++) {
       const primary = this.getDir(i);
       const lane = primary.get('conflictWith')?.value as number | null;
-
-      if (lane == null) {
-        primary.get('conflictWith')?.setValue(null, { emitEvent: false });
-        continue;
-      }
-
+      if (lane == null) continue;
       const j = this.findIndexByLane(lane);
-      if (j === null || j === i) {
-        primary.get('conflictWith')?.setValue(null, { emitEvent: false });
-        continue;
-      }
-
-      if (usedAsConflictLane.has(lane)) {
-        primary.get('conflictWith')?.setValue(null, { emitEvent: false });
-        continue;
-      }
+      if (j === null || j === i || usedAsConflictLane.has(lane)) continue;
       usedAsConflictLane.add(lane);
-
       const conflict = this.getDir(j);
-
       this.copyValue(primary.get('templateId'), conflict.get('templateId'));
-
       conflict.get('isConflict')?.setValue(true, { emitEvent: false });
       this.disableCtrl(conflict.get('templateId'));
-
-      const sub2 = primary.get('templateId')?.valueChanges.subscribe(() => {
+      const sub = primary.get('templateId')?.valueChanges.subscribe(() => {
         this.copyValue(primary.get('templateId'), conflict.get('templateId'));
       });
-      if (sub2) this.patternSyncSubs.set(this.key(i, j) + '/tp', sub2);
+      if (sub) this.patternSyncSubs.set(`${i}->${j}`, sub);
     }
-  }
-
-  private releaseConflict(conflictIndex: number) {
-    if (!this.existsDir(conflictIndex)) return;
-    const conflict = this.getDir(conflictIndex);
-    conflict.get('isConflict')?.setValue(false, { emitEvent: false });
-    this.enableCtrl(conflict.get('templateId'));
   }
 
   private findIndexByLane(lane: number | null): number | null {
     if (lane == null) return null;
     for (let i = 0; i < this.directions.length; i++) {
-      const g = this.getDir(i);
-      if (Number(g.get('order')?.value) === Number(lane)) return i;
+      if (Number(this.getDir(i).get('order')?.value) === Number(lane)) return i;
     }
     return null;
   }
 
-  //  APPLY (Save)
-  onApply(): void {
-    if (this.isRefreshing) return;
+  // Step 2 Save Logic
+  onStep2Next(stepper: any): void {
+    if (this.isSavingStep2) return;
     if (this.trafficForm.invalid) {
       this.trafficForm.markAllAsTouched();
-      this.toaster.warning(
-        this.isAr ? 'من فضلك املأ جميع الحقول المطلوبة' : 'Please fill all required fields'
-      );
+      this.toaster.warning(this.isAr ? 'من فضلك املأ جميع الحقول' : 'Please fill all fields');
       return;
     }
 
     const v = this.trafficForm.getRawValue();
 
-    const areaId = Number(v.area);
-    if (areaId <= 0) {
-      this.toaster.warning(
-        this.isAr ? 'من فضلك اختر الحي قبل الحفظ' : 'Please select an area before saving'
-      );
-      return;
-    }
+    // 1. Initialize directions with false/0 defaults
+    const directions: DirectionWithPatternDto[] = v.directions.map((d: any, idx: number) => ({
+      name: d.name.trim(),
+      order: Number(d.order || idx + 1),
+      left: !!d.left,
+      right: !!d.right,
+      isConflict: false,
+      templateId: Number(d.templateId),
+      conflictWith: 0,
+    }));
 
-    const directions: DirectionWithPatternDto[] = (v.directions as any[]).map(
-      (d: any, idx: number) => ({
-        name: (d.name || '').trim(),
-        order: Number(d.order || idx + 1),
-        lightPatternId: 0,
-        left: !!d.left,
-        right: !!d.right,
-        isConflict: !!d.isConflict,
-        templateId: Number(d.templateId || 0),
-      })
-    );
-
-    const badDir = directions.findIndex(
-      (x) => !(Number.isFinite(x.templateId) && x.templateId! > 0)
-    );
-    if (badDir !== -1) {
-      this.toaster.warning(
-        this.isAr
-          ? `اختر القالب للاتجاه رقم ${badDir + 1}`
-          : `Select a template for direction ${badDir + 1}`
-      );
-      return;
-    }
-
-    const formTpl = Number(this.templateForm.get('templateId')?.value || 0);
-    const payloadTemplateId = formTpl > 0 ? formTpl : directions[0]?.templateId ?? 0;
-
-    if (!(payloadTemplateId > 0)) {
-      this.toaster.warning(this.isAr ? 'اختر قالبًا رئيسيًا' : 'Please select a main template');
-      return;
-    }
+    // 2. Map conflicts from the form to the server's expected orientation
+    // Form: Direction A (isConflict:false) has conflictWith: B
+    // Server: Direction B (isConflict:true) must have conflictWith: A
+    v.directions.forEach((formDir: any) => {
+      const targetLane = Number(formDir.conflictWith);
+      if (targetLane > 0) {
+        const slave = directions.find((resDir) => resDir.order === targetLane);
+        if (slave) {
+          slave.isConflict = true;
+          slave.conflictWith = Number(formDir.order);
+        }
+      }
+    });
 
     const cabinetId = Number(v.cabinetId);
-    if (cabinetId <= 0) {
-      this.toaster.warning(
-        this.isAr ? 'من فضلك اختر المخزن قبل الحفظ' : 'Please select a cabinet before saving'
-      );
-      return;
-    }
-
     const payload: AddSignBoxCommandDto = {
-      ...v,
-      name: (v.name || '').trim(),
+      name: v.name.trim(),
       areaId: Number(v.area),
-      ipAddress: (v.ipAddress || '').trim(),
+      ipAddress: v.ipAddress.trim(),
       latitude: String(v.latitude),
       longitude: String(v.longitude),
       cabinetId: cabinetId,
-      templateId: payloadTemplateId,
+      trafficDepartmentId: v.trafficDepartment,
       directions,
     };
 
-    this.isRefreshing = true;
+    this.isSavingStep2 = true;
     this.signBoxService.AddSignBox(payload).subscribe({
       next: (resp) => {
-        this.isRefreshing = false;
-        this.toaster.successFromBackend(resp, {
-          fallback: this.isAr ? 'تم الحفظ بنجاح' : 'Saved successfully!',
-        });
+        this.isSavingStep2 = false;
+        if (resp.isSuccess) {
+          this.savedCabinetId = cabinetId;
+          this.toaster.success(this.isAr ? 'تم الحفظ' : 'Saved');
+          this.fetchDirectionIds(cabinetId);
 
-        this.trafficForm.reset();
-        this.clearAllPatternSyncSubs();
-        this.directions.clear();
-        this.addDirection();
-
-        this.hardRefreshLists();
+          // Force step navigation
+          setTimeout(() => {
+            if (this.stepper) {
+              this.stepper.selectedIndex = 2; // Jump to Step 3 (0-indexed)
+            } else if (stepper) {
+              stepper.selectedIndex = 2;
+            }
+          }, 100);
+        } else {
+          this.toaster.errorFromBackend(resp);
+        }
       },
       error: (err) => {
-        this.isRefreshing = false;
-        this.toaster.errorFromBackend(err, { durationMs: 8000 });
-        console.error('Save failed', err);
+        this.isSavingStep2 = false;
+        this.toaster.errorFromBackend(err);
       },
     });
   }
 
-  private dirAt(i: number): FormGroup {
-    return this.directions.at(i) as FormGroup;
-  }
-
-  isConflict(i: number): boolean {
-    return this.dirAt(i).get('isConflict')?.value === true;
-  }
-
-  getDirectionDisplayName(i: number): string {
-    const g = this.dirAt(i);
-    const name = (g.get('name')?.value || '').toString().trim();
-    if (name) return name;
-    return this.isAr ? `اتجاه ${i + 1}` : `Direction ${i + 1}`;
-  }
-
-  getDirectionOrder(i: number): number {
-    return Number(this.dirAt(i).get('order')?.value ?? i + 1);
-  }
-
-  getConflictWithIndex(i: number): number | null {
-    const lane = this.dirAt(i).get('conflictWith')?.value as number | null;
-    return this.findIndexByLane(lane);
-  }
-
-  get templateForm(): FormGroup {
-    return this.trafficForm.get('templateForm') as FormGroup;
-  }
-  get rows(): FormArray<FormGroup> {
-    return this.templateForm.get('rows') as FormArray<FormGroup>;
-  }
-
-  private createRow(p: LightPatternForTemplatePattern): FormGroup {
-    return this.fb.group({
-      lightPatternId: new FormControl<number>(p.lightPatternId, { nonNullable: true }),
-      lightPatternName: new FormControl<string>(p.lightPatternName ?? `#${p.lightPatternId}`, {
-        nonNullable: true,
-      }),
-      startFrom: new FormControl<string>(this.toHHmm(p.startFrom), { nonNullable: true }),
-      finishBy: new FormControl<string>(this.toHHmm(p.finishBy), { nonNullable: true }),
+  private fetchDirectionIds(cabinetId: number) {
+    this.mapAdminService.getDirectionIds(cabinetId).subscribe((res) => {
+      this.savedDirectionIds = res.directions || [];
+      if (this.savedDirectionIds.length > 0 && !this.selectedDirectionId) {
+        this.selectedDirectionId = this.savedDirectionIds[0].directionId;
+      }
     });
   }
 
-  onTemplateChange(id: number | null) {
-    const templateId = Number(id || 0);
-
-    if (!templateId) {
-      this.templateForm.reset({ templateId: 0, templateName: '' });
-      this.rows.clear();
-      return;
-    }
-
-    this.templatePatternService
-      .GetAllTemplatePatternByTemplateId(templateId)
-      .subscribe((resp: LightPatternForTemplatePattern[]) => {
-        const list = resp || [];
-        const patterns: LightPatternForTemplatePattern[] = list.map((p: any) => ({
-          ...p,
-          isDefault: !!p.isDefault || !!p.IsDefault,
-          lightPatternName: p.lightPatternName || `#${p.lightPatternId}`,
-        }));
-
-        this.templateForm.patchValue({
-          templateId,
-          templateName: this.templates.find((t) => t.id === templateId)?.name ?? '',
-        });
-
-        this.rows.clear();
-        patterns.forEach((p) => this.rows.push(this.createRow(p)));
-      });
-  }
-
-  private toHHmm(s?: string | null): string {
-    if (!s) return '00:00';
-    const [h = '00', m = '00'] = s.split(':');
-    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+  onApply(): void {
+    this.toaster.success(this.isAr ? 'تم الإعداد' : 'Configured');
+    sessionStorage.removeItem(STORAGE_KEY);
+    this.router.navigate(['/']);
   }
 
   isStep2Invalid(): boolean {
@@ -614,23 +502,21 @@ export class TrafficWizard implements OnInit, OnDestroy {
       this.trafficForm.get('longitude')?.invalid;
 
     const anyDirInvalid = this.directions.controls.some(
-      (g) => g.get('name')?.invalid || g.get('order')?.invalid
+      (g) => g.get('name')?.invalid || g.get('order')?.invalid,
     );
 
     return !!(baseInvalid || anyDirInvalid);
   }
 
-  private enableCtrl(ctrl: AbstractControl | null) {
-    if (ctrl && ctrl.disabled) ctrl.enable({ emitEvent: false });
+  isConflict(i: number): boolean {
+    return this.getDir(i).get('isConflict')?.value === true;
   }
-  private disableCtrl(ctrl: AbstractControl | null) {
-    if (ctrl && ctrl.enabled) ctrl.disable({ emitEvent: false });
-  }
-  private copyValue(src: AbstractControl | null, dst: AbstractControl | null) {
-    const wasDisabled = !!dst && (dst as any).disabled;
-    if (wasDisabled) dst?.enable({ emitEvent: false });
-    dst?.setValue(src?.value ?? null, { emitEvent: false });
-    if (wasDisabled) dst?.disable({ emitEvent: false });
+
+  getDirectionDisplayName(i: number): string {
+    const g = this.getDir(i);
+    const name = (g.get('name')?.value || '').toString().trim();
+    if (name) return name;
+    return this.isAr ? `اتجاه ${i + 1}` : `Direction ${i + 1}`;
   }
 
   onDirectionTemplateChange(index: number, templateId: number | null) {
@@ -643,78 +529,342 @@ export class TrafficWizard implements OnInit, OnDestroy {
     return this.isAr ? `اسم الاتجاه ${i + 1}` : `Direction ${i + 1} Name`;
   }
 
-  // ==== Server field mapping ====
-  private mapApiFieldToControlName(apiField: string): string | null {
-    const f = apiField?.toLowerCase();
-
-    if (f.includes('ip')) return 'ipAddress';
-    if (f.includes('cabinet')) return 'cabinetId';
-    if (f.includes('name')) return 'name';
-    if (f.includes('latitude') || f.includes('lat')) return 'latitude';
-    if (f.includes('longitude') || f.includes('lng') || f.includes('long')) return 'longitude';
-    if (f.includes('governorate') || f.includes('governate')) return 'governorate';
-    if (f.includes('area')) return 'area';
-
-    if (f.startsWith('directions[')) {
-      const m = f.match(/directions\[(\d+)\]\.(.+)/i);
-      if (m) {
-        const idx = Number(m[1]);
-        const field = m[2];
-        const ctrl = this.directions.at(idx) as FormGroup;
-        if (ctrl?.get(field)) return `__dir__${idx}__${field}`;
-      }
-    }
-
-    return null;
-  }
-
-  private applyServerFieldErrors(fieldMap: Record<string, string[]>) {
-    for (const [apiField, msgs] of Object.entries(fieldMap)) {
-      const ctrlName = this.mapApiFieldToControlName(apiField);
-      if (!ctrlName) continue;
-
-      if (ctrlName.startsWith('__dir__')) {
-        const [, idxStr, field] = ctrlName.split('__');
-        const idx = Number(idxStr);
-        const g = this.directions.at(idx) as FormGroup;
-        const c = g?.get(field);
-        if (c) {
-          const prev = c.errors || {};
-          c.setErrors({ ...prev, server: true });
-          c.markAsTouched();
-        }
-      } else {
-        const c = this.trafficForm.get(ctrlName);
-        if (c) {
-          const prev = c.errors || {};
-          c.setErrors({ ...prev, server: true });
-          c.markAsTouched();
-        }
-      }
-    }
-  }
-
-  onGovernorateChangeValue(id: number | null): void {
-    this.trafficForm.patchValue({ governorate: id, area: null });
-    if (id != null && !Number.isNaN(id)) {
-      this.getAreas(Number(id));
-    }
-  }
-
   forceSpaceAtCaret(event: any, group: AbstractControl) {
     const input = event.target as HTMLInputElement;
     const start = input.selectionStart ?? 0;
     const end = input.selectionEnd ?? 0;
     const oldValue = input.value;
-
     const newValue = oldValue.substring(0, start) + ' ' + oldValue.substring(end);
-
     group.get('name')?.setValue(newValue);
-
     setTimeout(() => {
       input.selectionStart = input.selectionEnd = start + 1;
     }, 0);
-
     event.preventDefault();
+  }
+
+  // ========= Step 3: Map Methods =========
+  loadNearestNodesOnStep3(): void {
+    const cabinetId = Number(this.trafficForm.get('cabinetId')?.value);
+    const lat = Number(this.trafficForm.get('latitude')?.value);
+    const lng = Number(this.trafficForm.get('longitude')?.value);
+
+    this.isLoadingNodes = true;
+    setTimeout(() => this.initWizardMap(lat, lng), 100);
+
+    this.mapAdminService.getNearestNodes(cabinetId, 2000, 15).subscribe({
+      next: (nodes) => {
+        this.ngZone.run(() => {
+          this.nearestNodes = nodes || [];
+          this.isLoadingNodes = false;
+          this.displayNodesOnMap();
+        });
+      },
+      error: (err) => {
+        this.isLoadingNodes = false;
+        this.toaster.errorFromBackend(err);
+      },
+    });
+  }
+
+  initWizardMap(lat: number, lng: number): void {
+    if (!this.wizardMapContainer) return;
+    if (this.wizardMap) this.wizardMap.remove();
+    this.wizardMap = L.map(this.wizardMapContainer.nativeElement).setView([lat, lng], 16);
+    L.tileLayer('http://localhost:8081/tiles/{z}/{x}/{y}.png').addTo(this.wizardMap);
+    L.marker([lat, lng]).addTo(this.wizardMap).bindPopup('Cabinet').openPopup();
+  }
+
+  displayNodesOnMap(): void {
+    if (!this.wizardMap) return;
+    this.nodeMarkers.forEach((m) => this.wizardMap?.removeLayer(m));
+    this.nodeMarkers = [];
+
+    this.nearestNodes.forEach((node, index) => {
+      const marker = L.marker([node.latitude, node.longitude]).addTo(this.wizardMap!);
+      marker.bindPopup(
+        `Node #${index + 1}<br><button onclick="window.selectNode(${index})">Select</button>`,
+      );
+      this.nodeMarkers.push(marker);
+      (window as any).selectNode = (i: number) => this.onNodeSelected(this.nearestNodes[i]);
+    });
+  }
+
+  onNodeSelected(node: NearestRoadNode): void {
+    const cabinetId = this.savedCabinetId || Number(this.trafficForm.get('cabinetId')?.value);
+    this.selectedNodeId = node.roadNodeId;
+
+    if (cabinetId > 0) {
+      this.mapAdminService.bindCabinetToNode(cabinetId, node.roadNodeId).subscribe({
+        next: () => this.toaster.success(this.isAr ? 'تم الربط بنجاح' : 'Bound successfully'),
+        error: (err) => this.toaster.errorFromBackend(err),
+      });
+    } else {
+      this.toaster.warning(
+        this.isAr ? 'برجاء حفظ بيانات الكبينة أولاً' : 'Please save cabinet data first',
+      );
+    }
+  }
+
+  clearMapMarkersAndState(): void {
+    if (this.wizardMap) this.wizardMap.remove();
+    this.nearestNodes = [];
+    this.selectedNodeId = null;
+  }
+
+  // ========= Step 4: Step 4 Methods =========
+  loadIncomingSegmentsOnStep4(): void {
+    const cabinetId = this.savedCabinetId || Number(this.trafficForm.get('cabinetId')?.value);
+    if (!cabinetId || cabinetId <= 0) {
+      this.toaster.warning(
+        this.isAr
+          ? 'برجاء إدخال رقم الكبينة وحفظها أولاً'
+          : 'Please enter and save Cabinet ID first',
+      );
+      return;
+    }
+
+    this.isLoadingNodes = true;
+
+    // Proactively fetch direction IDs if they are missing
+    if (this.savedDirectionIds.length === 0) {
+      this.fetchDirectionIds(cabinetId);
+    }
+
+    this.mapAdminService.getIncomingSegments(cabinetId).subscribe({
+      next: (res) => {
+        this.ngZone.run(() => {
+          this.incomingSegments = res || [];
+          this.isLoadingNodes = false;
+          const lat = Number(this.trafficForm.get('latitude')?.value);
+          const lng = Number(this.trafficForm.get('longitude')?.value);
+          if (lat && lng) {
+            setTimeout(() => {
+              this.initStep4Map(lat, lng);
+              this.displaySegmentsOnMap();
+            }, 100);
+          }
+        });
+      },
+      error: (err) => {
+        this.isLoadingNodes = false;
+        this.toaster.errorFromBackend(err);
+      },
+    });
+  }
+
+  displaySegmentsOnMap(): void {
+    if (!this.step4Map) return;
+    this.segmentLayers.forEach((layer) => this.step4Map?.removeLayer(layer));
+    this.segmentLayers.clear();
+
+    this.incomingSegments.forEach((seg) => {
+      const points = this.parseSegmentGeometry(seg.externalSegmentId);
+      if (points.length < 2) return;
+
+      const polyline = L.polyline(points, {
+        color: '#3f51b5',
+        weight: 6,
+        opacity: 0.6,
+        lineJoin: 'round',
+      }).addTo(this.step4Map!);
+
+      polyline.on('mouseover', () => {
+        polyline.setStyle({ color: '#ff4081', opacity: 1, weight: 8 });
+        polyline.bringToFront();
+      });
+
+      polyline.on('mouseout', () => {
+        if (this.directionalBindings.get(this.selectedDirectionId!) !== seg.roadSegmentId) {
+          polyline.setStyle({ color: '#3f51b5', opacity: 0.6, weight: 6 });
+        }
+      });
+
+      polyline.on('click', () => {
+        if (this.selectedDirectionId) {
+          this.onDirectionSegmentSelected(this.selectedDirectionId, seg.roadSegmentId);
+        }
+      });
+
+      polyline.bindTooltip(seg.name, { sticky: true });
+      this.segmentLayers.set(seg.roadSegmentId, polyline);
+    });
+
+    if (this.incomingSegments.length > 0) {
+      const allPoints = this.incomingSegments
+        .flatMap((s) => this.parseSegmentGeometry(s.externalSegmentId))
+        .filter((p) => p.length === 2);
+      if (allPoints.length > 0) {
+        this.step4Map.fitBounds(L.latLngBounds(allPoints as L.LatLngExpression[]), {
+          padding: [50, 50],
+        });
+      }
+    }
+  }
+
+  private parseSegmentGeometry(externalId: string): L.LatLngTuple[] {
+    const matches = [...externalId.matchAll(/_(\d+\.\d+)_(\d+\.\d+)/g)];
+    return matches.map((m) => [Number(m[1]), Number(m[2])] as L.LatLngTuple);
+  }
+
+  highlightSegmentOnMap(segId: string): void {
+    this.segmentLayers.forEach((layer, id) => {
+      if (id === segId) {
+        layer.setStyle({ color: '#ff4081', opacity: 1, weight: 10 });
+        layer.bringToFront();
+      } else {
+        const isBound = [...this.directionalBindings.values()].includes(id);
+        layer.setStyle({
+          color: isBound ? '#4caf50' : '#3f51b5',
+          opacity: isBound ? 0.8 : 0.6,
+          weight: 6,
+        });
+      }
+    });
+  }
+
+  initStep4Map(lat: number, lng: number): void {
+    if (!this.step4MapContainer) return;
+    if (this.step4Map) this.step4Map.remove();
+    this.step4Map = L.map(this.step4MapContainer.nativeElement).setView([lat, lng], 16);
+    L.tileLayer('http://localhost:8081/tiles/{z}/{x}/{y}.png').addTo(this.step4Map);
+
+    // Initial draw if segments exist
+    if (this.incomingSegments.length > 0) this.displaySegmentsOnMap();
+  }
+
+  onDirectionSegmentSelected(dirId: number, segId: string): void {
+    this.mapAdminService.bindDirectionToSegment(dirId, segId).subscribe({
+      next: () => {
+        this.directionalBindings.set(dirId, segId);
+        this.highlightSegmentOnMap(segId);
+        this.toaster.success(this.isAr ? 'تم الربط' : 'Bound');
+      },
+      error: (err) => this.toaster.errorFromBackend(err),
+    });
+  }
+
+  isDirectionBound(id: number): boolean {
+    return this.directionalBindings.has(id);
+  }
+
+  allDirectionsBound(): boolean {
+    return (
+      this.savedDirectionIds.length > 0 &&
+      this.savedDirectionIds.every((d) => this.directionalBindings.has(d.directionId))
+    );
+  }
+
+  clearStep4Map(): void {
+    if (this.step4Map) this.step4Map.remove();
+  }
+
+  // ========= Template Helpers =========
+  get templateForm(): FormGroup {
+    return this.trafficForm.get('templateForm') as FormGroup;
+  }
+  get rows(): FormArray<FormGroup> {
+    return this.templateForm.get('rows') as FormArray<FormGroup>;
+  }
+  onTemplateChange(id: number) {
+    if (!id) {
+      this.rows.clear();
+      return;
+    }
+    this.templatePatternService.GetAllTemplatePatternByTemplateId(id).subscribe((resp) => {
+      this.rows.clear();
+      (resp || []).forEach((p: any) => this.rows.push(this.createRow(p)));
+    });
+  }
+  private createRow(p: any): FormGroup {
+    return this.fb.group({
+      lightPatternId: [p.lightPatternId],
+      lightPatternName: [p.lightPatternName || `#${p.lightPatternId}`],
+      startFrom: [this.toHHmm(p.startFrom)],
+      finishBy: [this.toHHmm(p.finishBy)],
+    });
+  }
+  private toHHmm(s: any): string {
+    if (!s) return '00:00';
+    const [h = '00', m = '00'] = s.split(':');
+    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+  }
+  private enableCtrl(c: any) {
+    if (c && c.disabled) c.enable({ emitEvent: false });
+  }
+  private disableCtrl(c: any) {
+    if (c && c.enabled) c.disable({ emitEvent: false });
+  }
+  private copyValue(s: any, d: any) {
+    if (!s || !d) return;
+    const was = d.disabled;
+    if (was) d.enable({ emitEvent: false });
+    d.setValue(s.value, { emitEvent: false });
+    if (was) d.disable({ emitEvent: false });
+  }
+
+  getSelectedNodeId(): string {
+    return (
+      this.nearestNodes.find((n) => n.roadNodeId === this.selectedNodeId)?.externalNodeId || ''
+    );
+  }
+  getSelectedNodeDistance(): number {
+    return this.nearestNodes.find((n) => n.roadNodeId === this.selectedNodeId)?.distanceMeters || 0;
+  }
+
+  getBoundSegmentName(directionId: number): string {
+    const segmentId = this.directionalBindings.get(directionId);
+    if (!segmentId) return '';
+    return this.incomingSegments.find((s) => s.roadSegmentId === segmentId)?.name || segmentId;
+  }
+
+  // Persistence Logic
+  public savePersistence(): void {
+    const state = {
+      formData: this.trafficForm.getRawValue(),
+      stepIndex: this.stepper?.selectedIndex || 0,
+      savedCabinetId: this.savedCabinetId,
+      savedDirectionIds: this.savedDirectionIds,
+      bindings: Array.from(this.directionalBindings.entries()),
+      selectedNodeId: this.selectedNodeId,
+    };
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  private loadPersistence(): void {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+
+    try {
+      const data = JSON.parse(saved);
+      if (!data) return;
+
+      // 1. Rebuild Directions FormArray
+      if (data.formData?.directions) {
+        this.directions.clear({ emitEvent: false });
+        data.formData.directions.forEach((_: any, i: number) => {
+          this.directions.push(this.buildDirectionGroup(i + 1), { emitEvent: false });
+        });
+      }
+
+      // 2. Patch values
+      this.trafficForm.patchValue(data.formData, { emitEvent: false });
+
+      // 3. Restore IDs and bindings
+      this.savedCabinetId = data.savedCabinetId;
+      this.savedDirectionIds = data.savedDirectionIds || [];
+      this.selectedNodeId = data.selectedNodeId;
+
+      if (data.bindings) {
+        this.directionalBindings = new Map(data.bindings);
+      }
+
+      // 4. Trigger child data loads
+      if (data.formData.governorate) this.getAreas(data.formData.governorate);
+
+      // Reconcile visuals if we have directions
+      this.reconcileConflicts();
+    } catch (e) {
+      console.warn('Failed to load persistence', e);
+    }
   }
 }

@@ -99,7 +99,7 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
       center: [30.0444, 31.2357],
       zoom: 13,
       minZoom: 6,
-      maxZoom: 14,
+      maxZoom: 19,
       maxBounds: [
         [22.0, 24.0],
         [32.0, 37.0],
@@ -108,10 +108,11 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
     });
 
     // Offline Map Implementation
-    L.tileLayer('assets/tiles/{z}/{x}/{y}.png', {
-      minZoom: 6,
-      maxZoom: 14,
-      attribution: 'Offline Map',
+    L.tileLayer('http://localhost:8081/tiles/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      minZoom: 5,
+      attribution:
+        'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       errorTileUrl: 'assets/tiles/no_tile.png',
     }).addTo(this.map);
 
@@ -201,7 +202,11 @@ export class Mapviewcomponent implements OnInit, OnDestroy {
         {
           name: this.isAr ? 'اتجاه 1' : 'Direction 1',
           order: 1,
-          lightPatternId: this.selectedLightPatternId!,
+          templateId: this.selectedLightPatternId!,
+          left: false,
+          right: false,
+          isConflict: false,
+          conflictWith: 0,
         },
       ],
     };

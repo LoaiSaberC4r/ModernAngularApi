@@ -56,3 +56,8 @@ Thumbs.db
 /src.rar
 /src_backup.rar
 
+# Local Database & Map Data
+/map-data/
+/run-map-server.bat
+/src/assets/egypt-governorates.geojson
+

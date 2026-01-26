@@ -501,7 +501,9 @@ input[dir='ltr'],
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
 }
 
 .popup-close:hover {
@@ -666,7 +668,9 @@ input[dir='ltr'],
   padding: 0 0.75rem;
   font-weight: 600;
   background: #fff;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 .time-input:focus {
   outline: none;
@@ -746,4 +750,171 @@ input[dir='ltr'] {
 .popup-msg {
   color: var(--text);
   white-space: pre-line;
+}
+
+/* ===========================
+   Step 4 (Direction Binding) – Catchy UI
+   =========================== */
+.segments-section {
+  animation: fadeInSlideUp 0.5s ease-out;
+}
+
+.segments-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.segment-card {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background: #ffffff;
+  border: 1.5px solid #edf2f7;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.segment-card:hover {
+  border-color: #4d99b3;
+  background: #f0f9ff;
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(77, 153, 179, 0.1);
+}
+
+[dir='rtl'] .segment-card:hover {
+  transform: translateX(-5px);
+}
+
+.segment-card.active {
+  border-color: #4d99b3;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+  box-shadow: 0 10px 20px rgba(77, 153, 179, 0.15);
+}
+
+.segment-card.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  background: #4d99b3;
+}
+
+[dir='rtl'] .segment-card.active::before {
+  left: auto;
+  right: 0;
+}
+
+.segment-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7fafc;
+  border-radius: 10px;
+  color: #4d99b3;
+  margin-right: 1rem;
+  transition: all 0.3s ease;
+}
+
+[dir='rtl'] .segment-icon {
+  margin-right: 0;
+  margin-left: 1rem;
+}
+
+.segment-card:hover .segment-icon,
+.segment-card.active .segment-icon {
+  background: #4d99b3;
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+.segment-info {
+  flex: 1;
+}
+
+.segment-name {
+  font-weight: 700;
+  color: #2d3748;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.segment-meta {
+  display: flex;
+  gap: 1rem;
+  color: #718096;
+  font-size: 0.85rem;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.meta-item mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.segment-status {
+  display: flex;
+  align-items: center;
+}
+
+.bound-text {
+  background: #c6f6d5;
+  color: #22543d;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.empty-segments {
+  text-align: center;
+  padding: 3rem 1rem;
+  background: #f8fafc;
+  border-radius: 20px;
+  border: 2px dashed #cbd5e0;
+  color: #718096;
+  margin-top: 1.5rem;
+}
+
+.empty-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+@keyframes fadeInSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Glassmorphism Badge Override */
+.badge.bg-success-subtle {
+  background: rgba(198, 246, 213, 0.5) !important;
+  backdrop-filter: blur(4px);
+  padding: 0.5rem 1rem;
+  font-weight: 600;
 }

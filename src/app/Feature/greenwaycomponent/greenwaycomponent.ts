@@ -21,6 +21,8 @@ import { ISignalrService } from '../../Services/Signalr/isignalr-service';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { MapCacheService } from './map-cache.service';
+import { IGovernateService } from '../../Services/Governate/igovernate-service';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
 
 const defaultIcon = L.icon({
   iconUrl: 'assets/img/marker-green-40.png',
@@ -40,6 +42,9 @@ L.Marker.prototype.options.icon = defaultIcon;
 export class Greenwaycomponent implements OnInit, OnDestroy {
   @ViewChild('mapContainer', { static: true }) mapContainer!: ElementRef;
 
+  //.\run-map-server.bat
+  // to run map server
+
   private ngZone = inject(NgZone);
   private clipboard = inject(Clipboard);
   private langService = inject(LanguageService);
@@ -51,6 +56,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   private signBoxService = inject(ISignBoxControlService);
   private signalrService = inject(CabinetSignalrService);
   private globalSignalR = inject(ISignalrService);
+  private governateService = inject(IGovernateService);
   roadLoadingMessage = '';
 
   get isAr() {
@@ -74,7 +80,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   cabinetMarkers: L.Marker[] = [];
 
   cabinetMarkersMap = new Map<number, L.Marker>();
-  private cabinetLocationsMap = new Map<number, any>(); // Store cabinet data
+  private cabinetLocationsMap = new Map<number, any>();
 
   private worker?: Worker;
   private updateLinesTimeout?: any;
@@ -86,6 +92,13 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   // Near-by cabinets on route
   nearByCabinets: any[] = [];
   readonly NEARBY_DISTANCE_KM = 0.03; // 30 meters
+
+  governates: GetAllGovernate[] = [];
+  selectedGovernateId: number | null = null;
+  private governatesLayer?: L.GeoJSON;
+  private selectedFeatureLayer?: L.Layer;
+
+  // Fallback coordinates for Egyptian Governorates
 
   readonly defaultCenter: L.LatLngExpression = [30.0444, 31.2357];
   readonly defaultZoom = 13;
@@ -185,6 +198,142 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     this.observeResize();
     this.loadCabinetLocations();
     this.loadRoadNetwork();
+    this.loadGovernates();
+  }
+
+  loadGovernates() {
+    // Hardcoded list of all 27 Egyptian Governorates for consistent selection
+    this.governates = [
+      { governateId: 1, name: 'Cairo', latitude: '30.0444', longitude: '31.2357', areas: [] },
+      { governateId: 2, name: 'Alexandria', latitude: '31.2001', longitude: '29.9187', areas: [] },
+      { governateId: 3, name: 'Giza', latitude: '30.0131', longitude: '31.2089', areas: [] },
+      { governateId: 4, name: 'Port Said', latitude: '31.2653', longitude: '32.3019', areas: [] },
+      { governateId: 5, name: 'Suez', latitude: '29.9668', longitude: '32.5498', areas: [] },
+      { governateId: 6, name: 'Luxor', latitude: '25.6872', longitude: '32.6396', areas: [] },
+      { governateId: 7, name: 'Aswan', latitude: '24.0889', longitude: '32.8998', areas: [] },
+      { governateId: 8, name: 'Sohag', latitude: '26.5592', longitude: '31.6957', areas: [] },
+      { governateId: 9, name: 'Qena', latitude: '26.1551', longitude: '32.716', areas: [] },
+      { governateId: 10, name: 'Asyut', latitude: '27.181', longitude: '31.1837', areas: [] },
+      { governateId: 11, name: 'Minya', latitude: '28.0991', longitude: '30.75', areas: [] },
+      { governateId: 12, name: 'Beni Suef', latitude: '29.0744', longitude: '31.0978', areas: [] },
+      { governateId: 13, name: 'Fayyum', latitude: '29.3084', longitude: '30.8428', areas: [] },
+      { governateId: 14, name: 'Damietta', latitude: '31.4172', longitude: '31.8144', areas: [] },
+      { governateId: 15, name: 'Dakahlia', latitude: '31.0422', longitude: '31.3785', areas: [] },
+      { governateId: 16, name: 'Gharbia', latitude: '30.7865', longitude: '31.0004', areas: [] },
+      { governateId: 17, name: 'Sharqia', latitude: '30.5877', longitude: '31.502', areas: [] },
+      { governateId: 18, name: 'Monufia', latitude: '30.55', longitude: '30.9833', areas: [] },
+      {
+        governateId: 19,
+        name: 'Kafr El Sheikh',
+        latitude: '31.1042',
+        longitude: '30.9401',
+        areas: [],
+      },
+      { governateId: 20, name: 'Beheira', latitude: '31.0364', longitude: '30.4694', areas: [] },
+      { governateId: 21, name: 'Ismailia', latitude: '30.5965', longitude: '32.2715', areas: [] },
+      { governateId: 22, name: 'Qalyubia', latitude: '30.41', longitude: '31.15', areas: [] },
+      { governateId: 23, name: 'Red Sea', latitude: '26.7292', longitude: '33.9365', areas: [] },
+      { governateId: 24, name: 'New Valley', latitude: '25.439', longitude: '30.5586', areas: [] },
+      { governateId: 25, name: 'Matrouh', latitude: '31.3543', longitude: '27.2373', areas: [] },
+      {
+        governateId: 26,
+        name: 'North Sinai',
+        latitude: '30.5982',
+        longitude: '33.7828',
+        areas: [],
+      },
+      { governateId: 27, name: 'South Sinai', latitude: '28.5', longitude: '34.0', areas: [] },
+    ];
+
+    // Localized names based on language
+    if (this.isAr) {
+      const arNames: Record<string, string> = {
+        Cairo: 'القاهرة',
+        Alexandria: 'الإسكندرية',
+        Giza: 'الجيزة',
+        'Port Said': 'بورسعيد',
+        Suez: 'السويس',
+        Luxor: 'الأقصر',
+        Aswan: 'أسوان',
+        Sohag: 'سوهاج',
+        Qena: 'قنا',
+        Asyut: 'أسيوط',
+        Minya: 'المنيا',
+        'Beni Suef': 'بني سويف',
+        Fayyum: 'الفيوم',
+        Damietta: 'دمياط',
+        Dakahlia: 'الدقهلية',
+        Gharbia: 'الغربية',
+        Sharqia: 'الشرقية',
+        Monufia: 'المنوفية',
+        'Kafr El Sheikh': 'كفر الشيخ',
+        Beheira: 'البحيرة',
+        Ismailia: 'الإسماعيلية',
+        Qalyubia: 'القليوبية',
+        'Red Sea': 'البحر الأحمر',
+        'New Valley': 'الوادي الجديد',
+        Matrouh: 'مطروح',
+        'North Sinai': 'شمال سيناء',
+        'South Sinai': 'جنوب سيناء',
+      };
+      this.governates.forEach((g) => (g.name = arNames[g.name] || g.name));
+    }
+  }
+
+  onGovernateChange() {
+    if (!this.selectedGovernateId) return;
+
+    const gov = this.governates.find((g) => g.governateId === Number(this.selectedGovernateId));
+    if (!gov) return;
+
+    // 1. Highlight on map and zoom using boundaries if layer exists
+    if (this.governatesLayer) {
+      let found = false;
+      this.governatesLayer.eachLayer((layer: any) => {
+        const feature = layer.feature;
+        const nameEn = feature.properties.name_en;
+
+        // Match using name mapping
+        const isMatch =
+          nameEn.toLowerCase() === gov.name.toLowerCase() || this.isArabicMatch(gov.name, nameEn);
+
+        if (isMatch) {
+          this.applySelectionEffect(layer);
+          this.map?.fitBounds(layer.getBounds(), { padding: [50, 50] });
+          found = true;
+        }
+      });
+
+      if (!found) {
+        // Fallback to center coordinates if polygon match fails
+        const lat = parseFloat(gov.latitude);
+        const lng = parseFloat(gov.longitude);
+        if (lat && lng && this.map) {
+          this.map.setView([lat, lng], 13);
+        }
+      }
+    } else {
+      // Fallback if layer is not yet loaded
+      const lat = parseFloat(gov.latitude);
+      const lng = parseFloat(gov.longitude);
+      if (lat && lng && this.map) {
+        this.map.setView([lat, lng], 13);
+      }
+    }
+  }
+
+  private applySelectionEffect(layer: L.Layer) {
+    if (this.selectedFeatureLayer) {
+      this.governatesLayer?.resetStyle(this.selectedFeatureLayer);
+    }
+    this.selectedFeatureLayer = layer;
+    (layer as L.Path).setStyle({
+      weight: 3,
+      color: '#ff7800',
+      fillOpacity: 0.5,
+      fillColor: '#ff7800',
+    });
+    (layer as L.Path).bringToFront();
   }
 
   async loadCabinetLocations() {
@@ -262,7 +411,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
         center: this.defaultCenter,
         zoom: this.defaultZoom,
         minZoom: 6,
-        maxZoom: 14,
+        maxZoom: 19,
         maxBounds: [
           [22.0, 24.0],
           [32.0, 37.0],
@@ -270,8 +419,8 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
         maxBoundsViscosity: 1.0,
       });
 
-      const tileLayer = L.tileLayer('assets/tiles/{z}/{x}/{y}.png', {
-        maxZoom: 14,
+      const tileLayer = L.tileLayer('http://localhost:8081/tiles/{z}/{x}/{y}.png', {
+        maxZoom: 19,
         minZoom: 6,
         attribution: 'Offline Map',
         errorTileUrl: 'assets/img/no-tile.png',
@@ -311,6 +460,57 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   private observeResize() {
     this.resizeObserver = new ResizeObserver(() => this.invalidateSize());
     this.resizeObserver.observe(this.mapContainer.nativeElement);
+  }
+
+  private selectGovernate(e: L.LeafletMouseEvent, feature: any) {
+    const layer = e.target;
+    // The GeoJSON has name_en.
+    const nameEn = feature.properties.name_en;
+
+    // Find governorate in our hardcoded list
+    const gov = this.governates.find((g) => {
+      return g.name.toLowerCase() === nameEn.toLowerCase() || this.isArabicMatch(g.name, nameEn);
+    });
+
+    if (gov) {
+      this.selectedGovernateId = gov.governateId;
+      this.applySelectionEffect(layer);
+      this.map?.fitBounds((layer as L.Polyline).getBounds(), { padding: [50, 50] });
+    }
+  }
+
+  private isArabicMatch(dbName: string, geoNameEn: string): boolean {
+    // Mapping of GeoJSON name_en to Arabic for selection synchronization
+    const mapping: Record<string, string> = {
+      Cairo: 'القاهرة',
+      Alexandria: 'الإسكندرية',
+      Giza: 'الجيزة',
+      'Port Said': 'بورسعيد',
+      Suez: 'السويس',
+      Luxor: 'الأقصر',
+      Aswan: 'أسوان',
+      Sohag: 'سوهاج',
+      Qena: 'قنا',
+      Asyut: 'أسيوط',
+      Minya: 'المنيا',
+      'Beni Suef': 'بني سويف',
+      Fayyum: 'الفيوم',
+      Damietta: 'دمياط',
+      Dakahlia: 'الدقهلية',
+      Gharbia: 'الغربية',
+      Sharqia: 'الشرقية',
+      Monufia: 'المنوفية',
+      'Kafr el-Sheikh': 'كفر الشيخ',
+      Beheira: 'البحيرة',
+      Ismailia: 'الإسماعيلية',
+      Qalyubia: 'القليوبية',
+      'Red Sea': 'البحر الأحمر',
+      'New Valley': 'الوادي الجديد',
+      Matrouh: 'مطروح',
+      'North Sinai': 'شمال سيناء',
+      'South Sinai': 'جنوب سيناء',
+    };
+    return mapping[geoNameEn] === dbName;
   }
 
   private invalidateSize() {
@@ -449,7 +649,10 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   private findNearbyCabinets() {
     if (this.lines.length === 0 || this.cabinetLocationsMap.size === 0) {
       this.nearByCabinets = [];
-      console.log('No lines or cabinets:', { lines: this.lines.length, cabinets: this.cabinetLocationsMap.size });
+      console.log('No lines or cabinets:', {
+        lines: this.lines.length,
+        cabinets: this.cabinetLocationsMap.size,
+      });
       return;
     }
 
@@ -459,28 +662,30 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     this.lines.forEach((line, lineIdx) => {
       const routeCoords = line.getLatLngs() as L.LatLng[];
       console.log(`Line ${lineIdx}: ${routeCoords.length} coordinates`);
-      
+
       if (routeCoords.length < 2) return;
 
       // For each cabinet
       this.cabinetLocationsMap.forEach((cabData, cabId) => {
         const cabPoint = { lat: cabData.lat, lng: cabData.lng };
-        
+
         // Find minimum distance from cabinet to any point on the route
         let minDistance = Infinity;
-        
+
         for (let i = 0; i < routeCoords.length - 1; i++) {
           const p1 = routeCoords[i];
           const p2 = routeCoords[i + 1];
           const dist = this.distancePointToLineSegment(
             cabPoint,
             { lat: p1.lat, lng: p1.lng },
-            { lat: p2.lat, lng: p2.lng }
+            { lat: p2.lat, lng: p2.lng },
           );
           minDistance = Math.min(minDistance, dist);
         }
 
-        console.log(`Cabinet ${cabId} (${cabData.name}): distance = ${(minDistance * 1000).toFixed(0)}m, threshold = ${this.NEARBY_DISTANCE_KM * 1000}m`);
+        console.log(
+          `Cabinet ${cabId} (${cabData.name}): distance = ${(minDistance * 1000).toFixed(0)}m, threshold = ${this.NEARBY_DISTANCE_KM * 1000}m`,
+        );
 
         // If within range and not already recorded with a smaller distance
         if (minDistance <= this.NEARBY_DISTANCE_KM) {
@@ -509,7 +714,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   private distancePointToLineSegment(
     point: { lat: number; lng: number },
     lineStart: { lat: number; lng: number },
-    lineEnd: { lat: number; lng: number }
+    lineEnd: { lat: number; lng: number },
   ): number {
     const dx = lineEnd.lng - lineStart.lng;
     const dy = lineEnd.lat - lineStart.lat;
@@ -536,15 +741,17 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
    */
   private distanceInKm(
     point1: { lat: number; lng: number },
-    point2: { lat: number; lng: number }
+    point2: { lat: number; lng: number },
   ): number {
     const R = 6371; // Earth radius in km
-    const dLat = (point2.lat - point1.lat) * Math.PI / 180;
-    const dLng = (point2.lng - point1.lng) * Math.PI / 180;
+    const dLat = ((point2.lat - point1.lat) * Math.PI) / 180;
+    const dLng = ((point2.lng - point1.lng) * Math.PI) / 180;
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      Math.cos((point1.lat * Math.PI) / 180) *
+        Math.cos((point2.lat * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
@@ -591,13 +798,20 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
         // If this is from fresh load (not cache), save the processed data
         if (payload && payload.roadNetwork && payload.nodesCache && !payload.isFromCache) {
-          console.log('Saving processed road data to cache, roadNetwork size:', payload.roadNetwork?.features?.length || 'unknown', 'nodesCache size:', payload.nodesCache?.length || 'unknown');
-          this.mapCache.saveProcessedRoadNetwork({
-            roadNetwork: payload.roadNetwork,
-            nodesCache: payload.nodesCache,
-          }).then(({ savedTo }) => {
-            console.log('Processed road data saved to:', savedTo);
-          });
+          console.log(
+            'Saving processed road data to cache, roadNetwork size:',
+            payload.roadNetwork?.features?.length || 'unknown',
+            'nodesCache size:',
+            payload.nodesCache?.length || 'unknown',
+          );
+          this.mapCache
+            .saveProcessedRoadNetwork({
+              roadNetwork: payload.roadNetwork,
+              nodesCache: payload.nodesCache,
+            })
+            .then(({ savedTo }) => {
+              console.log('Processed road data saved to:', savedTo);
+            });
         }
       } else if (type === 'path-found') {
         const { index, path } = payload;
@@ -639,9 +853,17 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
       console.log('Attempting to get processed road network from cache...');
       const cached = await this.mapCache.getProcessedRoadNetwork();
       if (cached) {
-        console.log('Processed road network found in cache, roadNetwork size:', cached.roadNetwork?.features?.length || 'unknown', 'nodesCache size:', cached.nodesCache?.length || 'unknown');
+        console.log(
+          'Processed road network found in cache, roadNetwork size:',
+          cached.roadNetwork?.features?.length || 'unknown',
+          'nodesCache size:',
+          cached.nodesCache?.length || 'unknown',
+        );
         this.isFromCache = true;
-        this.worker.postMessage({ type: 'init-from-cache', payload: { roadNetwork: cached.roadNetwork, nodesCache: cached.nodesCache } });
+        this.worker.postMessage({
+          type: 'init-from-cache',
+          payload: { roadNetwork: cached.roadNetwork, nodesCache: cached.nodesCache },
+        });
         return;
       }
       console.log('Processed road network NOT found in cache. Proceeding to download.');

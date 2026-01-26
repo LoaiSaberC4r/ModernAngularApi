@@ -4,20 +4,19 @@ export interface AddSignBoxCommandDto {
   ipAddress: string;
   latitude: string;
   longitude: string;
-  templateId: number;
   cabinetId: number;
+  trafficDepartmentId: string;
   directions: DirectionWithPatternDto[];
 }
 
 export interface DirectionWithPatternDto {
   name: string;
   order: number;
-  lightPatternId: number;
-  left?: boolean;
-  right?: boolean;
-  isConflict?: boolean;
-  templateId?: number;
-  cabinetId?: number;
+  templateId: number;
+  left: boolean;
+  right: boolean;
+  isConflict: boolean;
+  conflictWith: number;
 }
 
 export interface AddSignBoxWithUpdateLightPattern {

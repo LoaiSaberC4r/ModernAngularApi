@@ -72,12 +72,11 @@ addEventListener('message', async ({ data }) => {
       }
       break;
 
-    case 'init-from-cache': // Load pre-processed data from cache
+    case 'init-from-cache':  
       try {
         roadNetwork = payload.roadNetwork;
-        nodesCache = payload.nodesCache; // Use cached nodesCache directly
-        pathFinder = new PathFinder(roadNetwork); // Still need to instantiate PathFinder
-        // Send completion without payload since data is already cached
+        nodesCache = payload.nodesCache; 
+        pathFinder = new PathFinder(roadNetwork); 
         postMessage({ type: 'init-complete', payload: { isFromCache: true } });
       } catch (err) {
         console.error('Worker Init From Cache Error:', err);

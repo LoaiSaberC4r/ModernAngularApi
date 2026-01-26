@@ -9,6 +9,8 @@ export interface GetAllSignControlBox {
   cabinetId?: number;
   governorateId?: number;
   areaId?: number;
+  trafficDepartmentNameAr?: string;
+  trafficDepartmentNameEn?: string;
   directions?: DirectionDto[];
 }
 

@@ -120,7 +120,7 @@ export class TrafficPointConfigComponent implements OnInit {
         yellow: clampByte((selected as any).yellow),
         red: clampByte((selected as any).red),
       },
-      { emitEvent: true }
+      { emitEvent: true },
     );
   }
   getAreas(id: number) {
@@ -156,7 +156,11 @@ export class TrafficPointConfigComponent implements OnInit {
         {
           name: 'Direction 1',
           order: 1,
-          lightPatternId: Number(pattern?.id ?? 0),
+          templateId: Number(pattern?.id ?? 0),
+          left: false,
+          right: false,
+          isConflict: false,
+          conflictWith: 0,
         },
       ],
     };
