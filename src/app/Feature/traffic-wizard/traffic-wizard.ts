@@ -47,6 +47,8 @@ import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePatt
 import {
   AddSignBoxCommandDto,
   DirectionWithPatternDto,
+  AddDirectionsDto,
+  DirectionWithSegmentDto,
 } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
 import { Router } from '@angular/router';
 import { ToasterService } from '../../Services/Toster/toaster-service';
@@ -117,12 +119,13 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   private readonly softRefresh$ = interval(30000);
   private isRefreshing = false;
   isSavingStep2 = false;
+  isSavingDirections = false;
 
   // New state for 5-step flow
   savedCabinetId: number | null = null;
   savedDirectionIds: { directionId: number; name: string; order: number }[] = [];
   incomingSegments: RoadSegment[] = [];
-  selectedDirectionId: number | null = null;
+  selectedDirectionIndex: number | null = null;
   directionalBindings = new Map<number, string>(); // directionId -> roadSegmentId
 
   templates: GetAllTemplate[] = [];
@@ -163,7 +166,7 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
       ipAddress: ['', [Validators.required, Validators.pattern(IPV4_REGEX)]],
       latitude: ['', Validators.required],
       longitude: ['', Validators.required],
-      directions: this.fb.array([this.buildDirectionGroup(1)]),
+      directions: this.fb.array([]), // Initialized empty
       templateForm: this.fb.group({
         templateId: new FormControl<number>(0, { nonNullable: true }),
         templateName: new FormControl<string>('', { nonNullable: true }),
@@ -296,6 +299,7 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
       right: [false],
       isConflict: [false],
       conflictWith: [null],
+      incomingSegmentId: [''],
     });
   }
 
@@ -405,40 +409,28 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   // Step 2 Save Logic
   onStep2Next(stepper: any): void {
     if (this.isSavingStep2) return;
-    if (this.trafficForm.invalid) {
-      this.trafficForm.markAllAsTouched();
+
+    // Validate only Step 2 fields
+    const step2Invalid =
+      !this.trafficForm.get('name')?.valid ||
+      !this.trafficForm.get('cabinetId')?.valid ||
+      !this.trafficForm.get('ipAddress')?.valid ||
+      !this.trafficForm.get('latitude')?.valid ||
+      !this.trafficForm.get('longitude')?.valid;
+
+    if (step2Invalid) {
+      this.trafficForm.get('name')?.markAsTouched();
+      this.trafficForm.get('cabinetId')?.markAsTouched();
+      this.trafficForm.get('ipAddress')?.markAsTouched();
+      this.trafficForm.get('latitude')?.markAsTouched();
+      this.trafficForm.get('longitude')?.markAsTouched();
       this.toaster.warning(this.isAr ? 'من فضلك املأ جميع الحقول' : 'Please fill all fields');
       return;
     }
 
     const v = this.trafficForm.getRawValue();
-
-    // 1. Initialize directions with false/0 defaults
-    const directions: DirectionWithPatternDto[] = v.directions.map((d: any, idx: number) => ({
-      name: d.name.trim(),
-      order: Number(d.order || idx + 1),
-      left: !!d.left,
-      right: !!d.right,
-      isConflict: false,
-      templateId: Number(d.templateId),
-      conflictWith: 0,
-    }));
-
-    // 2. Map conflicts from the form to the server's expected orientation
-    // Form: Direction A (isConflict:false) has conflictWith: B
-    // Server: Direction B (isConflict:true) must have conflictWith: A
-    v.directions.forEach((formDir: any) => {
-      const targetLane = Number(formDir.conflictWith);
-      if (targetLane > 0) {
-        const slave = directions.find((resDir) => resDir.order === targetLane);
-        if (slave) {
-          slave.isConflict = true;
-          slave.conflictWith = Number(formDir.order);
-        }
-      }
-    });
-
     const cabinetId = Number(v.cabinetId);
+
     const payload: AddSignBoxCommandDto = {
       name: v.name.trim(),
       areaId: Number(v.area),
@@ -447,24 +439,27 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
       longitude: String(v.longitude),
       cabinetId: cabinetId,
       trafficDepartmentId: v.trafficDepartment,
-      directions,
+      directions: [], // Empty directions - will be added in Step 4
     };
 
     this.isSavingStep2 = true;
     this.signBoxService.AddSignBox(payload).subscribe({
       next: (resp) => {
         this.isSavingStep2 = false;
-        if (resp.isSuccess) {
+        // resp can be null if API returns 204
+        if (!resp || resp.isSuccess) {
           this.savedCabinetId = cabinetId;
           this.toaster.success(this.isAr ? 'تم الحفظ' : 'Saved');
-          this.fetchDirectionIds(cabinetId);
 
-          // Force step navigation
+          // Navigate to next step
           setTimeout(() => {
-            if (this.stepper) {
-              this.stepper.selectedIndex = 2; // Jump to Step 3 (0-indexed)
-            } else if (stepper) {
-              stepper.selectedIndex = 2;
+            const st = stepper || this.stepper;
+            if (st) {
+              st.next();
+              // Fallback if next() is blocked by linear mode or validation
+              if (st.selectedIndex === 1) {
+                st.selectedIndex = 2;
+              }
             }
           }, 100);
         } else {
@@ -478,12 +473,87 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
+  onSaveDirections(stepper?: any): void {
+    if (this.isSavingDirections) return;
+    if (this.directions.invalid) {
+      this.directions.markAllAsTouched();
+      this.toaster.warning(this.isAr ? 'من فضلك املأ جميع الحقول' : 'Please fill all fields');
+      return;
+    }
+
+    const cabinetId = this.savedCabinetId || Number(this.trafficForm.get('cabinetId')?.value);
+    if (!cabinetId) {
+      this.toaster.warning(this.isAr ? 'لم يتم العثور على الكابينة' : 'Cabinet ID not found');
+      return;
+    }
+
+    const v = this.trafficForm.getRawValue();
+    const directionsMapped: DirectionWithSegmentDto[] = v.directions.map((d: any, idx: number) => {
+      const orderVal = Number(d.order || idx + 1);
+      const conflictVal = Number(d.conflictWith || 0);
+      const isConflictVal = !!d.isConflict;
+
+      return {
+        name: d.name.trim(),
+        templateId: Number(d.templateId),
+        order: orderVal,
+        left: !!d.left,
+        right: !!d.right,
+        isConflict: isConflictVal,
+        conflictWith: conflictVal,
+        incomingSegmentId: d.incomingSegmentId || '',
+
+        // PascalCase for backend binding
+        Name: d.name.trim(),
+        TemplateId: Number(d.templateId),
+        Order: orderVal,
+        Left: !!d.left,
+        Right: !!d.right,
+        IsConflict: isConflictVal,
+        ConflictWith: conflictVal,
+        IncomingSegmentId: d.incomingSegmentId || '',
+      };
+    });
+
+    const payload: AddDirectionsDto = {
+      cabinetId: cabinetId,
+      directions: directionsMapped,
+      CabinetId: cabinetId,
+      Directions: directionsMapped,
+    };
+
+    this.isSavingDirections = true;
+    this.signBoxService.AddDirections(payload).subscribe({
+      next: (resp) => {
+        this.isSavingDirections = false;
+        if (!resp || resp.isSuccess) {
+          this.toaster.success(this.isAr ? 'تم حفظ بيانات الخطوة الرابعة' : 'Step 4 data saved');
+          // Navigate to final step (Review)
+          setTimeout(() => {
+            const st = stepper || this.stepper;
+            if (st) {
+              st.next();
+              // Fallback for linear mode
+              if (st.selectedIndex === 3) {
+                st.selectedIndex = 4;
+              }
+            }
+          }, 100);
+        } else {
+          this.toaster.errorFromBackend(resp);
+        }
+      },
+      error: (err) => {
+        this.isSavingDirections = false;
+        this.toaster.errorFromBackend(err);
+      },
+    });
+  }
+
   private fetchDirectionIds(cabinetId: number) {
     this.mapAdminService.getDirectionIds(cabinetId).subscribe((res) => {
       this.savedDirectionIds = res.directions || [];
-      if (this.savedDirectionIds.length > 0 && !this.selectedDirectionId) {
-        this.selectedDirectionId = this.savedDirectionIds[0].directionId;
-      }
+      // selection logic moved to index-based management
     });
   }
 
@@ -674,14 +744,21 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
       });
 
       polyline.on('mouseout', () => {
-        if (this.directionalBindings.get(this.selectedDirectionId!) !== seg.roadSegmentId) {
+        if (this.selectedDirectionIndex !== null) {
+          const currentBind = this.directions
+            .at(this.selectedDirectionIndex)
+            .get('incomingSegmentId')?.value;
+          if (currentBind !== seg.roadSegmentId) {
+            polyline.setStyle({ color: '#3f51b5', opacity: 0.6, weight: 6 });
+          }
+        } else {
           polyline.setStyle({ color: '#3f51b5', opacity: 0.6, weight: 6 });
         }
       });
 
       polyline.on('click', () => {
-        if (this.selectedDirectionId) {
-          this.onDirectionSegmentSelected(this.selectedDirectionId, seg.roadSegmentId);
+        if (this.selectedDirectionIndex !== null) {
+          this.onDirectionSegmentSelected(this.selectedDirectionIndex, seg.roadSegmentId);
         }
       });
 
@@ -732,25 +809,28 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
     if (this.incomingSegments.length > 0) this.displaySegmentsOnMap();
   }
 
-  onDirectionSegmentSelected(dirId: number, segId: string): void {
-    this.mapAdminService.bindDirectionToSegment(dirId, segId).subscribe({
-      next: () => {
-        this.directionalBindings.set(dirId, segId);
-        this.highlightSegmentOnMap(segId);
-        this.toaster.success(this.isAr ? 'تم الربط' : 'Bound');
-      },
-      error: (err) => this.toaster.errorFromBackend(err),
-    });
+  onDirectionSegmentSelected(index: number, segId: string): void {
+    const dirGroup = this.directions.at(index) as FormGroup;
+    if (!dirGroup) return;
+
+    const currentBinding = dirGroup.get('incomingSegmentId')?.value;
+    if (currentBinding === segId) {
+      dirGroup.get('incomingSegmentId')?.setValue('');
+    } else {
+      dirGroup.get('incomingSegmentId')?.setValue(segId);
+    }
+    this.highlightSegmentOnMap(segId);
   }
 
-  isDirectionBound(id: number): boolean {
-    return this.directionalBindings.has(id);
+  isDirectionBound(index: number): boolean {
+    const dirGroup = this.directions.at(index);
+    return !!dirGroup?.get('incomingSegmentId')?.value;
   }
 
   allDirectionsBound(): boolean {
     return (
-      this.savedDirectionIds.length > 0 &&
-      this.savedDirectionIds.every((d) => this.directionalBindings.has(d.directionId))
+      this.directions.length > 0 &&
+      this.directions.controls.every((d) => !!d.get('incomingSegmentId')?.value)
     );
   }
 

@@ -33,6 +33,7 @@
   <form [formGroup]="trafficForm" class="wizard-form">
     <mat-horizontal-stepper
       #stepper
+      [linear]="false"
       labelPosition="bottom"
       class="modern-stepper"
       (selectionChange)="savePersistence()"
@@ -234,132 +235,6 @@
               </mat-form-field>
             </div>
           </div>
-
-          <!-- Directions -->
-          <div class="directions-section" formArrayName="directions">
-            <div class="section-title">
-              <h4>{{ isAr ? 'اتجاهات الحركة' : 'Traffic Directions' }}</h4>
-              <span class="direction-count">{{ directions.length }}/4</span>
-            </div>
-
-            <div
-              class="direction-card"
-              *ngFor="let dir of directions.controls; let i = index"
-              [formGroupName]="i"
-            >
-              <div class="direction-number">{{ i + 1 }}</div>
-
-              <div class="direction-fields">
-                <!-- Direction Name -->
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ directionLabel(i) }}</mat-label>
-
-                  <input
-                    matInput
-                    formControlName="name"
-                    (keypress.space.capture)="forceSpaceAtCaret($event, dir)"
-                    [placeholder]="isAr ? 'مثال: اتجاه السويس' : 'e.g. Direction: Suez'"
-                  />
-
-                  <mat-error *ngIf="dir.get('name')?.hasError('required')">
-                    {{ isAr ? 'اسم الاتجاه مطلوب.' : 'Direction name is required.' }}
-                  </mat-error>
-                </mat-form-field>
-
-                <!-- Template per direction -->
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ isAr ? 'القالب' : 'Template' }}</mat-label>
-                  <mat-select
-                    formControlName="templateId"
-                    (selectionChange)="onDirectionTemplateChange(i, $event.value)"
-                  >
-                    <mat-option [value]="0">{{
-                      isAr ? '-- اختر القالب --' : '-- Select Template --'
-                    }}</mat-option>
-                    <mat-option *ngFor="let t of templates" [value]="t.id">{{ t.name }}</mat-option>
-                  </mat-select>
-                </mat-form-field>
-
-                <!-- Lane / Order -->
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ isAr ? 'المسار' : 'Lane' }}</mat-label>
-                  <input matInput type="number" formControlName="order" min="1" />
-                  <mat-error
-                    *ngIf="
-                      dir.get('order')?.hasError('required') || dir.get('order')?.hasError('min')
-                    "
-                  >
-                    {{
-                      isAr ? 'المسار يجب أن يكون رقمًا موجبًا.' : 'Lane must be a positive number.'
-                    }}
-                  </mat-error>
-                </mat-form-field>
-
-                <!-- Conflict With -->
-                <mat-form-field
-                  appearance="outline"
-                  class="full-width"
-                  *ngIf="directions.length > 1"
-                >
-                  <mat-label>{{
-                    isAr ? 'يتقاطع مع (رقم المسار)' : 'Conflicts with (Lane #)'
-                  }}</mat-label>
-                  <mat-select
-                    formControlName="conflictWith"
-                    (selectionChange)="onConflictSelected(i, $event.value)"
-                  >
-                    <mat-option [value]="null">{{
-                      isAr ? '-- اختر --' : '-- Select --'
-                    }}</mat-option>
-                    <mat-option
-                      *ngFor="let other of directions.controls; let j = index"
-                      [value]="other.get('order')?.value"
-                      [disabled]="j === i || other.get('isConflict')?.value === true"
-                    >
-                      {{
-                        other.value?.name || (isAr ? 'اتجاه ' + (j + 1) : 'Direction ' + (j + 1))
-                      }}
-                      — {{ isAr ? 'مسار' : 'Lane' }} {{ other.get('order')?.value }}
-                    </mat-option>
-                  </mat-select>
-                  <mat-hint>
-                    {{
-                      isAr
-                        ? 'اختر رقم مسار يتقاطع مع هذا المسار ليشارك نفس القالب'
-                        : 'Pick a lane number that conflicts to share the same template'
-                    }}
-                  </mat-hint>
-                </mat-form-field>
-
-                <!-- Hidden fields (managed by code) -->
-                <input type="hidden" formControlName="left" />
-                <input type="hidden" formControlName="right" />
-                <input type="hidden" formControlName="isConflict" />
-              </div>
-
-              <button
-                mat-icon-button
-                color="warn"
-                class="btn-remove"
-                (click)="removeDirection(i)"
-                [disabled]="directions.length === 1"
-                [attr.aria-label]="isAr ? 'حذف الاتجاه' : 'Remove direction'"
-              >
-                <mat-icon>delete</mat-icon>
-              </button>
-            </div>
-
-            <button
-              mat-stroked-button
-              color="primary"
-              class="btn-add-direction"
-              (click)="addDirection()"
-              [disabled]="directions.length >= 4"
-            >
-              <mat-icon>add_circle_outline</mat-icon>
-              {{ isAr ? 'إضافة اتجاه' : 'Add Direction' }}
-            </button>
-          </div>
         </div>
 
         <div class="step-footer">
@@ -371,7 +246,14 @@
             mat-flat-button
             color="primary"
             class="btn-next"
-            [disabled]="isStep2Invalid() || isSavingStep2"
+            [disabled]="
+              !trafficForm.get('name')?.valid ||
+              !trafficForm.get('cabinetId')?.valid ||
+              !trafficForm.get('ipAddress')?.valid ||
+              !trafficForm.get('latitude')?.valid ||
+              !trafficForm.get('longitude')?.valid ||
+              isSavingStep2
+            "
             (click)="onStep2Next(stepper)"
           >
             <span *ngIf="!isSavingStep2">
@@ -571,6 +453,128 @@
             </p>
           </div>
 
+          <!-- Traffic Directions Management Section -->
+          <div class="directions-management mb-4" formArrayName="directions">
+            <div class="section-header d-flex justify-content-between align-items-center mb-3">
+              <h5>{{ isAr ? 'إدارة الاتجاهات' : 'Manage Directions' }}</h5>
+              <span class="badge bg-primary">{{ directions.length }}/4</span>
+            </div>
+
+            <!-- Directions List -->
+            <div class="row g-3 mb-3">
+              <div
+                class="col-md-6"
+                *ngFor="let dir of directions.controls; let i = index"
+                [formGroupName]="i"
+              >
+                <div class="card direction-card h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h6 class="mb-0">{{ isAr ? 'اتجاه' : 'Direction' }} {{ i + 1 }}</h6>
+                      <button
+                        mat-icon-button
+                        color="warn"
+                        (click)="removeDirection(i)"
+                        [disabled]="directions.length === 1"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+
+                    <!-- Direction Name -->
+                    <mat-form-field appearance="outline" class="full-width compact-field mb-2">
+                      <mat-label>{{ isAr ? 'اسم الاتجاه' : 'Direction Name' }}</mat-label>
+                      <input
+                        matInput
+                        formControlName="name"
+                        [placeholder]="isAr ? 'مثال: اتجاه السويس' : 'e.g. Direction: Suez'"
+                      />
+                    </mat-form-field>
+
+                    <!-- Template -->
+                    <mat-form-field appearance="outline" class="full-width compact-field mb-2">
+                      <mat-label>{{ isAr ? 'القالب' : 'Template' }}</mat-label>
+                      <mat-select
+                        formControlName="templateId"
+                        (selectionChange)="onDirectionTemplateChange(i, $event.value)"
+                      >
+                        <mat-option [value]="0">{{
+                          isAr ? '-- اختر القالب --' : '-- Select Template --'
+                        }}</mat-option>
+                        <mat-option *ngFor="let t of templates" [value]="t.id">{{
+                          t.name
+                        }}</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+
+                    <div class="row g-2">
+                      <!-- Order/Lane -->
+                      <div class="col-6">
+                        <mat-form-field appearance="outline" class="full-width compact-field">
+                          <mat-label>{{ isAr ? 'المسار' : 'Lane' }}</mat-label>
+                          <input matInput type="number" formControlName="order" min="1" />
+                        </mat-form-field>
+                      </div>
+
+                      <!-- Conflict With -->
+                      <div class="col-6" *ngIf="directions.length > 1">
+                        <mat-form-field appearance="outline" class="full-width compact-field">
+                          <mat-label>{{ isAr ? 'تقاطع' : 'Conflict' }}</mat-label>
+                          <mat-select
+                            formControlName="conflictWith"
+                            (selectionChange)="onConflictSelected(i, $event.value)"
+                          >
+                            <mat-option [value]="null">None</mat-option>
+                            <mat-option
+                              *ngFor="let other of directions.controls; let j = index"
+                              [value]="other.get('order')?.value"
+                              [disabled]="j === i || other.get('isConflict')?.value === true"
+                            >
+                              L-{{ other.get('order')?.value }}
+                            </mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                    </div>
+
+                    <!-- Hidden fields -->
+                    <input type="hidden" formControlName="left" />
+                    <input type="hidden" formControlName="right" />
+                    <input type="hidden" formControlName="isConflict" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Add Direction Button -->
+            <div class="text-center mb-4">
+              <button
+                mat-stroked-button
+                color="primary"
+                (click)="addDirection()"
+                [disabled]="directions.length >= 4"
+                class="btn-add-action"
+              >
+                <mat-icon>add_circle_outline</mat-icon>
+                {{ isAr ? 'إضافة اتجاه' : 'Add Direction' }}
+              </button>
+            </div>
+          </div>
+
+          <mat-divider class="my-4"></mat-divider>
+
+          <!-- Segment Binding Section -->
+          <div *ngIf="directions.length > 0" class="segment-binding-section">
+            <div class="section-header mb-3">
+              <h5>{{ isAr ? 'ربط المقاطع' : 'Segment Binding' }}</h5>
+              <p class="text-muted">
+                {{
+                  isAr ? 'اختر كل اتجاه وحدد مقطع الطريق' : 'Bind each direction to a road segment'
+                }}
+              </p>
+            </div>
+          </div>
+
           <!-- Load Segments Button -->
           <div class="text-center mb-3" *ngIf="incomingSegments.length === 0 && !isLoadingNodes">
             <button
@@ -586,7 +590,7 @@
 
           <div
             class="row g-3"
-            *ngIf="savedDirectionIds.length > 0 || incomingSegments.length > 0 || isLoadingNodes"
+            *ngIf="directions.length > 0 || incomingSegments.length > 0 || isLoadingNodes"
           >
             <!-- Left Panel: Directions List -->
             <div class="col-md-4">
@@ -597,22 +601,25 @@
                 <div class="list-group list-group-flush">
                   <button
                     type="button"
-                    *ngFor="let dir of savedDirectionIds"
+                    *ngFor="let dirGroup of directions.controls; let i = index"
                     class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                    [class.active]="selectedDirectionId === dir.directionId"
-                    (click)="selectedDirectionId = dir.directionId"
+                    [class.active]="selectedDirectionIndex === i"
+                    (click)="selectedDirectionIndex = i"
                   >
                     <span>
                       <mat-icon
                         class="me-2"
-                        [color]="isDirectionBound(dir.directionId) ? 'primary' : 'disabled'"
+                        [color]="isDirectionBound(i) ? 'primary' : 'disabled'"
                         style="vertical-align: middle; font-size: 1.2rem"
                       >
-                        {{ isDirectionBound(dir.directionId) ? 'check_circle' : 'circle' }}
+                        {{ isDirectionBound(i) ? 'check_circle' : 'circle' }}
                       </mat-icon>
-                      {{ dir.name }}
+                      {{
+                        dirGroup.get('name')?.value ||
+                          (isAr ? 'اتجاه ' + (i + 1) : 'Direction ' + (i + 1))
+                      }}
                     </span>
-                    <small class="text-muted">#{{ dir.order }}</small>
+                    <small class="text-muted">#{{ i + 1 }}</small>
                   </button>
                 </div>
               </div>
@@ -650,7 +657,7 @@
               </div>
 
               <!-- Available Segments (Catchy Card List) -->
-              <div class="segments-section" *ngIf="selectedDirectionId">
+              <div class="segments-section" *ngIf="selectedDirectionIndex !== null">
                 <div class="section-badge mb-3">
                   <span
                     class="badge rounded-pill bg-success-subtle text-success border border-success-subtle"
@@ -664,13 +671,15 @@
                     *ngFor="let seg of incomingSegments"
                     class="segment-card"
                     [class.active]="
-                      directionalBindings.get(selectedDirectionId) === seg.roadSegmentId
+                      directions.at(selectedDirectionIndex).get('incomingSegmentId')?.value ===
+                      seg.roadSegmentId
                     "
-                    (click)="onDirectionSegmentSelected(selectedDirectionId, seg.roadSegmentId)"
+                    (click)="onDirectionSegmentSelected(selectedDirectionIndex, seg.roadSegmentId)"
                   >
                     <div class="segment-icon">
                       <mat-icon>{{
-                        directionalBindings.get(selectedDirectionId) === seg.roadSegmentId
+                        directions.at(selectedDirectionIndex).get('incomingSegmentId')?.value ===
+                        seg.roadSegmentId
                           ? 'check_circle'
                           : 'alt_route'
                       }}</mat-icon>
@@ -691,13 +700,21 @@
                     <div class="segment-status">
                       <button
                         mat-icon-button
-                        *ngIf="directionalBindings.get(selectedDirectionId) !== seg.roadSegmentId"
+                        *ngIf="
+                          selectedDirectionIndex !== null &&
+                          directions.at(selectedDirectionIndex).get('incomingSegmentId')?.value !==
+                            seg.roadSegmentId
+                        "
                       >
                         <mat-icon>chevron_right</mat-icon>
                       </button>
                       <span
                         class="bound-text"
-                        *ngIf="directionalBindings.get(selectedDirectionId) === seg.roadSegmentId"
+                        *ngIf="
+                          selectedDirectionIndex !== null &&
+                          directions.at(selectedDirectionIndex).get('incomingSegmentId')?.value ===
+                            seg.roadSegmentId
+                        "
                       >
                         {{ isAr ? 'مرتبط' : 'Bound' }}
                       </span>
@@ -724,7 +741,7 @@
               <!-- No Direction Selected Hint -->
               <div
                 class="alert alert-info"
-                *ngIf="!selectedDirectionId && incomingSegments.length > 0"
+                *ngIf="selectedDirectionIndex === null && incomingSegments.length > 0"
               >
                 {{
                   isAr
@@ -744,12 +761,15 @@
           <button
             mat-flat-button
             color="primary"
-            matStepperNext
             class="btn-next"
-            [disabled]="!allDirectionsBound()"
+            (click)="onSaveDirections(stepper)"
+            [disabled]="!allDirectionsBound() || isSavingDirections"
           >
-            {{ isAr ? 'متابعة' : 'Continue' }}
-            <mat-icon>{{ isAr ? 'arrow_back' : 'arrow_forward' }}</mat-icon>
+            <span *ngIf="!isSavingDirections">
+              {{ isAr ? 'متابعة' : 'Continue' }}
+              <mat-icon>{{ isAr ? 'arrow_back' : 'arrow_forward' }}</mat-icon>
+            </span>
+            <mat-spinner *ngIf="isSavingDirections" diameter="24"></mat-spinner>
           </button>
         </div>
       </mat-step>

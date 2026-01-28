@@ -6,7 +6,7 @@ export interface AddSignBoxCommandDto {
   longitude: string;
   cabinetId: number;
   trafficDepartmentId: string;
-  directions: DirectionWithPatternDto[];
+  directions?: DirectionWithPatternDto[];
 }
 
 export interface DirectionWithPatternDto {
@@ -17,6 +17,34 @@ export interface DirectionWithPatternDto {
   right: boolean;
   isConflict: boolean;
   conflictWith: number;
+}
+
+export interface AddDirectionsDto {
+  cabinetId?: number;
+  directions?: DirectionWithSegmentDto[];
+  CabinetId?: number;
+  Directions?: DirectionWithSegmentDto[];
+}
+
+export interface DirectionWithSegmentDto {
+  name?: string;
+  templateId?: number;
+  order?: number;
+  left?: boolean;
+  right?: boolean;
+  isConflict?: boolean;
+  conflictWith?: number;
+  incomingSegmentId?: string;
+
+  // PascalCase versions
+  Name?: string;
+  TemplateId?: number;
+  Order?: number;
+  Left?: boolean;
+  Right?: boolean;
+  IsConflict?: boolean;
+  ConflictWith?: number;
+  IncomingSegmentId?: string;
 }
 
 export interface AddSignBoxWithUpdateLightPattern {

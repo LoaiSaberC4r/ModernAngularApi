@@ -13,7 +13,10 @@ import { Result } from '../../Domain/ResultPattern/Result';
 import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern';
 
 import { GetAllSignBoxLocation } from '../../Domain/Entity/SignControlBox/GetAllSignBoxLocation';
-import { AddSignBoxCommandDto } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
+import {
+  AddSignBoxCommandDto,
+  AddDirectionsDto,
+} from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
 import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox';
 
 import { PaginateValue } from '../../Domain/ResultPattern/PaginateValue';
@@ -33,12 +36,12 @@ export class ISignBoxControlService {
 
     return this.http.get<PaginateValue<GetAllSignControlBox>>(
       `${environment.baseUrl}/SignControlBox/GetAll`,
-      { params: query }
+      { params: query },
     );
   }
 
   getAllWithLightPattern(
-    params: SearchParameters
+    params: SearchParameters,
   ): Observable<PaginateValue<GetAllSignControlBoxWithLightPattern>> {
     const query = new HttpParams()
       .set('SearchText', params.searchText ?? '')
@@ -48,19 +51,19 @@ export class ISignBoxControlService {
 
     return this.http.get<PaginateValue<GetAllSignControlBoxWithLightPattern>>(
       `${environment.baseUrl}/SignControlBox/GetAllWithLightPatter`,
-      { params: query }
+      { params: query },
     );
   }
 
   getAllLocations(): Observable<GetAllSignBoxLocation[]> {
     return this.http.get<GetAllSignBoxLocation[]>(
-      `${environment.baseUrl}/SignControlBox/GetSignControlBoxLocations`
+      `${environment.baseUrl}/SignControlBox/GetSignControlBoxLocations`,
     );
   }
 
   getById(id: number): Observable<GetAllSignControlBoxWithLightPattern> {
     return this.http.get<GetAllSignControlBoxWithLightPattern>(
-      `${environment.baseUrl}/SignControlBox/GetById/${id}`
+      `${environment.baseUrl}/SignControlBox/GetById/${id}`,
     );
   }
 
@@ -73,12 +76,16 @@ export class ISignBoxControlService {
   AddWithUpdateLightPattern(payload: AddSignBoxWithUpdateLightPattern): Observable<Result> {
     return this.http.post<Result>(
       `${environment.baseUrl}/SignControlBox/AddWithUpdateLightPattern`,
-      payload
+      payload,
     );
   }
 
   AddSignBox(payload: AddSignBoxCommandDto): Observable<Result> {
     return this.http.post<Result>(`${environment.baseUrl}/SignControlBox/Add`, payload);
+  }
+
+  AddDirections(payload: AddDirectionsDto): Observable<Result> {
+    return this.http.post<Result>(`${environment.baseUrl}/SignControlBox/AddDirections`, payload);
   }
 
   Update(payload: UpdateSignControlBox): Observable<Result> {

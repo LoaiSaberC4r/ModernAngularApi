@@ -23,6 +23,13 @@ import { firstValueFrom } from 'rxjs';
 import { MapCacheService } from './map-cache.service';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
 import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
+import {
+  ApplyGreenWaveRequest,
+  GreenWaveApiService,
+  GreenWavePreview,
+  PreviewGreenWaveRequest,
+} from '../../Services/GreenWave/green-wave-api.service';
+import { ToasterService } from '../../Services/Toster/toaster-service';
 
 const defaultIcon = L.icon({
   iconUrl: 'assets/img/marker-green-40.png',
@@ -57,6 +64,8 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   private signalrService = inject(CabinetSignalrService);
   private globalSignalR = inject(ISignalrService);
   private governateService = inject(IGovernateService);
+  private greenWaveApiService = inject(GreenWaveApiService);
+  private toaster = inject(ToasterService);
   roadLoadingMessage = '';
 
   get isAr() {
@@ -91,12 +100,19 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
   // Near-by cabinets on route
   nearByCabinets: any[] = [];
-  readonly NEARBY_DISTANCE_KM = 0.03; // 30 meters
+  readonly NEARBY_DISTANCE_KM = 0.1; // 100 meters
 
   governates: GetAllGovernate[] = [];
   selectedGovernateId: number | null = null;
   private governatesLayer?: L.GeoJSON;
   private selectedFeatureLayer?: L.Layer;
+
+  // Green Wave Preview State
+  routeSegments: string[] = [];
+  currentPreview?: GreenWavePreview;
+  lastPreviewRequest?: PreviewGreenWaveRequest;
+  previewMarkers: L.Marker[] = [];
+  isPreviewLoading = false;
 
   // Fallback coordinates for Egyptian Governorates
 
@@ -759,9 +775,106 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   clearMarkers() {
     this.markers.forEach((m) => this.map.removeLayer(m));
     this.lines.forEach((l) => this.map.removeLayer(l));
+    this.clearPreview();
     this.markers = [];
     this.lines = [];
     this.nearByCabinets = [];
+    this.routeSegments = [];
+  }
+
+  clearPreview() {
+    this.previewMarkers.forEach((m) => this.map.removeLayer(m));
+    this.previewMarkers = [];
+    this.currentPreview = undefined;
+  }
+
+  requestGreenWavePreview() {
+    if (this.routeSegments.length === 0) {
+      this.toaster.warning(
+        this.isAr ? 'الرجاء تحديد مسار أولاً' : 'Please determine a route first',
+      );
+      return;
+    }
+
+    const req: PreviewGreenWaveRequest = {
+      routeSegments: this.routeSegments,
+      speedKmh: 40,
+      greenSeconds: 18,
+      cabinetSearchRadiusMeters: 500, // Default or gathered from UI
+      maxCabinets: 50, // Default or gathered from UI
+    };
+
+    this.lastPreviewRequest = req;
+    this.isPreviewLoading = true;
+    this.greenWaveApiService.preview(req).subscribe({
+      next: (res) => {
+        this.isPreviewLoading = false;
+        this.currentPreview = res;
+        this.visualizePreview(res);
+      },
+      error: (err) => {
+        this.isPreviewLoading = false;
+        this.toaster.errorFromBackend(err);
+      },
+    });
+  }
+
+  private visualizePreview(preview: GreenWavePreview) {
+    this.previewMarkers.forEach((m) => this.map.removeLayer(m));
+    this.previewMarkers = [];
+
+    if (preview.cabinets.length === 0) {
+      this.toaster.warning(
+        this.isAr
+          ? 'لم يتم العثور على كباين على هذا المسار'
+          : 'No mapped cabinets found on this route',
+      );
+      return;
+    }
+
+    preview.cabinets.forEach((cab) => {
+      const marker = L.marker([cab.cabinetLat, cab.cabinetLon], {
+        icon: this.iconGreen, // Representing Green Wave
+      }).addTo(this.map);
+
+      const label = L.divIcon({
+        className: 'green-wave-label',
+        html: `<div style="background: white; border: 2px solid green; padding: 2px 5px; border-radius: 5px; font-weight: bold; position: relative; top: -45px; left: 15px; white-space: nowrap;">
+                D${cab.openDirectionId} | ${cab.offsetSeconds}s
+               </div>`,
+        iconAnchor: [0, 0],
+      });
+
+      const labelMarker = L.marker([cab.cabinetLat, cab.cabinetLon], { icon: label }).addTo(
+        this.map,
+      );
+
+      this.previewMarkers.push(marker, labelMarker);
+    });
+
+    this.toaster.success(
+      this.isAr
+        ? `تم تحميل ${preview.cabinets.length} كباين على المسار`
+        : `Green Wave preview loaded (${preview.cabinets.length} cabinets)`,
+    );
+  }
+
+  applyGreenWavePlan() {
+    if (!this.currentPreview || !this.lastPreviewRequest) return;
+
+    const applyReq: ApplyGreenWaveRequest = {
+      ...this.lastPreviewRequest,
+      planId: this.currentPreview.planId,
+    };
+
+    this.greenWaveApiService.apply(applyReq).subscribe({
+      next: () => {
+        this.toaster.success(
+          this.isAr ? 'تم تطبيق المسار الأخضر' : 'Green Wave applied successfully',
+        );
+      },
+      error: (err) => this.toaster.errorFromBackend(err),
+    });
   }
 
   copyCoordinates() {
@@ -814,6 +927,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
             });
         }
       } else if (type === 'path-found') {
+        console.log('📨 Received path-found payload:', payload);
         const { index, path } = payload;
         const line = this.lines[index];
         if (!line) return;
@@ -832,6 +946,11 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
           // Re-calculate nearby cabinets after route update
           this.findNearbyCabinets();
+
+          // Store route segments for Green Wave preview
+          this.routeSegments = payload.routeSegments || [];
+          console.log('🚗 Route Segments for Green Wave:', this.routeSegments);
+          console.log('🚗 Route Segments Length:', this.routeSegments.length);
         });
       } else if (type === 'error') {
         console.error('Worker error:', payload);
@@ -913,5 +1032,61 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   clearRoadCache() {
     this.mapCache.clearCache();
     console.log('Road cache cleared');
+  }
+
+  async testSegmentIdGeneration() {
+    console.log('🧪 Loading road network from cache...');
+    const cached = await this.mapCache.getProcessedRoadNetwork();
+
+    if (!cached || !cached.roadNetwork || cached.roadNetwork.features.length === 0) {
+      console.error('❌ No road network in cache. Please wait for roads to load first.');
+      return;
+    }
+
+    const roadNetwork = cached.roadNetwork;
+    const firstFeature = roadNetwork.features[0];
+
+    if (firstFeature.geometry.type !== 'LineString') {
+      console.error('❌ First feature is not a LineString');
+      return;
+    }
+
+    const coords = firstFeature.geometry.coordinates;
+    const first = coords[0];
+    const last = coords[coords.length - 1];
+
+    const fromNodeId = `N_${first[1].toFixed(6)}_${first[0].toFixed(6)}`;
+    const toNodeId = `N_${last[1].toFixed(6)}_${last[0].toFixed(6)}`;
+
+    // SHA256 on all points: {lat:F6},{lon:F6};
+    let hashInput = '';
+    for (const p of coords) {
+      hashInput += `${p[1].toFixed(6)},${p[0].toFixed(6)};`;
+    }
+
+    const msgUint8 = new TextEncoder().encode(hashInput);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+      .toUpperCase();
+    const hash12 = hashHex.substring(0, 12);
+
+    const segmentId = `SEG_${fromNodeId}_${toNodeId}_${hash12}`;
+
+    console.log('🧪 Test Segment ID Generation:');
+    console.log('  First Feature:', firstFeature);
+    console.log('  Coordinates Count:', coords.length);
+    console.log('  From Node:', fromNodeId);
+    console.log('  To Node:', toNodeId);
+    console.log('  Hash Input (first 100 chars):', hashInput.substring(0, 100) + '...');
+    console.log('  Full Hash:', hashHex);
+    console.log('  Hash Length:', hashHex.length, '(should be 64)');
+    console.log('  Hash12:', hash12);
+    console.log('  ✅ SEGMENT ID:', segmentId);
+    console.log('  Reverse ID:', segmentId + '_REV');
+    console.log('\n📋 Copy this to compare with backend:');
+    console.log(segmentId);
   }
 }

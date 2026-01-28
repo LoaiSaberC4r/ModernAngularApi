@@ -36,9 +36,9 @@ export class ToasterService {
           return ref.afterDismissed().pipe(
             take(1),
             switchMap(() => timer(120).pipe(mapTo(void 0))),
-            catchError(() => of(void 0))
+            catchError(() => of(void 0)),
           );
-        })
+        }),
       )
       .subscribe();
   }
@@ -175,6 +175,16 @@ export class ToasterService {
 
     if (messages.length === 0 && e?.detail && typeof e.detail === 'string') {
       messages.push(this.cleanMessage(e.detail));
+    }
+
+    // New format support: { errors: [ { message: "..." } ] }
+    if (Array.isArray(e?.errors)) {
+      e.errors.forEach((err: any) => {
+        const msg = err?.message || err?.Message;
+        if (msg && typeof msg === 'string') {
+          messages.push(this.cleanMessage(msg));
+        }
+      });
     }
 
     const uniq = Array.from(new Set(messages.map((x) => String(x).trim()).filter(Boolean)));

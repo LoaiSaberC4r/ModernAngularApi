@@ -14,7 +14,9 @@ html {
         primary: mat.$azure-palette,
         tertiary: mat.$blue-palette,
       ),
-      typography: Roboto,
+      typography: (
+        font-family: 'Cairo',
+      ),
       density: 0,
     )
   );

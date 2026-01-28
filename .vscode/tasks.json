@@ -3,9 +3,13 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Start Angular Server",
       "type": "npm",
       "script": "start",
       "isBackground": true,
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
       "problemMatcher": {
         "owner": "typescript",
         "pattern": "$tsc",
@@ -17,6 +21,26 @@
           "endsPattern": {
             "regexp": "bundle generation complete"
           }
+        }
+      }
+    },
+    {
+      "label": "Start Map Server",
+      "type": "shell",
+      "command": ".\\run-map-server.bat",
+      "isBackground": true,
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^(.*)$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^Starting Map Data Server.*",
+          "endsPattern": "^Available on:.*"
         }
       }
     },

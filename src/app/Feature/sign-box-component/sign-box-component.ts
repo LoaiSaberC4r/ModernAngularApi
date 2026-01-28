@@ -403,7 +403,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   // ===== Popup =====
   showPopup(row: GetAllSignControlBox, event: MouseEvent) {
     const k = this.toKey(row.cabinetId);
-    const live = k !== null ? this.latestByCabinetId[k] ?? null : null;
+    const live = k !== null ? (this.latestByCabinetId[k] ?? null) : null;
 
     const cached = this.dirNamesCache[row.id];
 
@@ -411,7 +411,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
     const missingNames =
       rowDirs.length === 0 ||
       rowDirs.every(
-        (d) => !d.name || !d.name.trim() || /^اتجاه\s+\d+|^Direction\s+\d+/.test(d.name)
+        (d) => !d.name || !d.name.trim() || /^اتجاه\s+\d+|^Direction\s+\d+/.test(d.name),
       );
 
     if (cached && cached.length) {
@@ -465,11 +465,14 @@ export class SignBoxComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          const msg =
-            this.getBackendMessage(err) ??
-            (this.isAr ? 'تعذر تحميل تفاصيل الاتجاهات' : 'Failed to load directions details');
-          this.toaster.error(msg);
-          console.error(err);
+          console.error('Error loading directions:', err);
+          // Suppress toast for 404 on hover/auto-load
+          if (err.status !== 404) {
+            const msg =
+              this.getBackendMessage(err) ??
+              (this.isAr ? 'تعذر تحميل تفاصيل الاتجاهات' : 'Failed to load directions details');
+            this.toaster.error(msg);
+          }
         },
       });
     }
@@ -565,7 +568,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
 
   private toPopup(
     row: GetAllSignControlBox,
-    live?: TrafficBroadcast
+    live?: TrafficBroadcast,
   ): PopUpSignBox & { cabinetId?: number } {
     const directions: PopUpDirection[] = (row.directions ?? []).slice(0, 4).map((d: any, idx) => {
       const ln = `L${idx + 1}` as keyof TrafficBroadcast;
@@ -669,7 +672,7 @@ export class SignBoxComponent implements OnInit, OnDestroy {
   }
 
   private normalizeDirectionsArray(
-    src: any
+    src: any,
   ): Array<{ order: number; name: string; templateId?: number | null }> {
     const raw = src?.directions ?? src?.Directions ?? [];
     if (!Array.isArray(raw)) return [];
