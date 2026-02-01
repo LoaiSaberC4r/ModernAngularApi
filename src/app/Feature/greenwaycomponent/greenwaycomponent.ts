@@ -660,68 +660,51 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Find all cabinets within NEARBY_DISTANCE_KM of any route line
+   * Find all cabinets on the route using Green Wave Preview API
    */
   private findNearbyCabinets() {
-    if (this.lines.length === 0 || this.cabinetLocationsMap.size === 0) {
+    // Check if we have route segments from the worker
+    if (this.routeSegments.length === 0) {
       this.nearByCabinets = [];
-      console.log('No lines or cabinets:', {
-        lines: this.lines.length,
-        cabinets: this.cabinetLocationsMap.size,
-      });
+      console.log('No route segments available for Green Wave preview');
       return;
     }
 
-    const nearby = new Map<number, { cabinet: any; distance: number }>();
+    console.log('Requesting Green Wave preview with segments:', this.routeSegments);
 
-    // For each line (route)
-    this.lines.forEach((line, lineIdx) => {
-      const routeCoords = line.getLatLngs() as L.LatLng[];
-      console.log(`Line ${lineIdx}: ${routeCoords.length} coordinates`);
+    // Call Green Wave Preview API
+    this.greenWaveApiService
+      .preview({
+        routeSegments: this.routeSegments,
+        speedKmh: 40,
+        greenSeconds: 18,
+        cabinetSearchRadiusMeters: 500,
+        maxCabinets: 50,
+      })
+      .subscribe({
+        next: (preview) => {
+          console.log('Green Wave preview response:', preview);
 
-      if (routeCoords.length < 2) return;
+          // Map the API response to the format expected by the UI
+          this.nearByCabinets = preview.cabinets.map((cab, index) => ({
+            id: cab.cabinetId,
+            cabinetId: cab.cabinetId,
+            name: `Cabinet ${cab.cabinetId}`,
+            lat: cab.cabinetLat,
+            lng: cab.cabinetLon,
+            distance: cab.distanceToRouteMeters.toFixed(0),
+            offsetSeconds: cab.offsetSeconds,
+            openDirectionId: cab.openDirectionId,
+            sequence: index + 1,
+          }));
 
-      // For each cabinet
-      this.cabinetLocationsMap.forEach((cabData, cabId) => {
-        const cabPoint = { lat: cabData.lat, lng: cabData.lng };
-
-        // Find minimum distance from cabinet to any point on the route
-        let minDistance = Infinity;
-
-        for (let i = 0; i < routeCoords.length - 1; i++) {
-          const p1 = routeCoords[i];
-          const p2 = routeCoords[i + 1];
-          const dist = this.distancePointToLineSegment(
-            cabPoint,
-            { lat: p1.lat, lng: p1.lng },
-            { lat: p2.lat, lng: p2.lng },
-          );
-          minDistance = Math.min(minDistance, dist);
-        }
-
-        console.log(
-          `Cabinet ${cabId} (${cabData.name}): distance = ${(minDistance * 1000).toFixed(0)}m, threshold = ${this.NEARBY_DISTANCE_KM * 1000}m`,
-        );
-
-        // If within range and not already recorded with a smaller distance
-        if (minDistance <= this.NEARBY_DISTANCE_KM) {
-          if (!nearby.has(cabId) || nearby.get(cabId)!.distance > minDistance) {
-            nearby.set(cabId, { cabinet: cabData, distance: minDistance });
-          }
-        }
+          console.log('Nearby cabinets from API:', this.nearByCabinets.length, this.nearByCabinets);
+        },
+        error: (err) => {
+          console.error('Failed to get Green Wave preview:', err);
+          this.nearByCabinets = [];
+        },
       });
-    });
-
-    // Convert to sorted array
-    this.nearByCabinets = Array.from(nearby.values())
-      .sort((a, b) => a.distance - b.distance)
-      .map((item, index) => ({
-        ...item.cabinet,
-        distance: (item.distance * 1000).toFixed(0), // Convert to meters
-        sequence: index + 1,
-      }));
-
-    console.log('Found nearby cabinets:', this.nearByCabinets.length, this.nearByCabinets);
   }
 
   /**
