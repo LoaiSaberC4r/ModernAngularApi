@@ -10,6 +10,7 @@ export interface NearestRoadNode {
   latitude: number;
   longitude: number;
   distanceMeters: number;
+  incomingSegments: RoadSegment[];
 }
 
 export interface RoadSegment {
@@ -18,6 +19,25 @@ export interface RoadSegment {
   name: string;
   lengthMeters: number;
   speedKmh: number | null;
+  isReverse?: boolean;
+  direction?: number;
+  directionLabel?: string;
+  directionArrow?: string;
+  displayName?: string;
+  outgoingSegments?: RoadSegment[];
+}
+
+export interface ReadableNodeDirection {
+  roadNodeId: string;
+  distanceMeters: number;
+  from: string;
+  to: string;
+  fromIsReverse: boolean;
+  toIsReverse: boolean;
+  fromSampleRoadSegmentId: string;
+  toSampleRoadSegmentId: string;
+  turnType: number;
+  turnLabel: string;
 }
 
 export interface DirectionIdResponse {
@@ -50,6 +70,12 @@ export class IMapAdminService {
 
   bindCabinetToNode(cabinetId: number, roadNodeId: string): Observable<any> {
     return this.http.put(`${this.baseUrl}/cabinets/${cabinetId}/bind-node/${roadNodeId}`, {});
+  }
+
+  getReadableNode(cabinetId: number, roadNodeId?: string): Observable<ReadableNodeDirection[]> {
+    const params: any = { CabinetId: cabinetId.toString() };
+    if (roadNodeId) params.RoadNodeId = roadNodeId;
+    return this.http.get<ReadableNodeDirection[]>(`${this.baseUrl}/GetReadableNode`, { params });
   }
 
   getIncomingSegments(cabinetId: number): Observable<RoadSegment[]> {

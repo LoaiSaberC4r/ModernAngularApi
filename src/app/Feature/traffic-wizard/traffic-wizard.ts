@@ -25,6 +25,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
 import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
@@ -58,9 +59,15 @@ import {
   IMapAdminService,
   NearestRoadNode,
   RoadSegment,
+  ReadableNodeDirection,
 } from '../../Services/MapAdmin/map-admin.service';
 import * as L from 'leaflet';
+import {
+  GreenWaveApiService,
+  GreenWaveCabinetPreview,
+} from '../../Services/GreenWave/green-wave-api.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
+import { TileCacheService } from '../../Services/Map/tile-cache.service';
 
 type RoundDirection = {
   name?: string;
@@ -89,6 +96,7 @@ const STORAGE_KEY = 'TRAFFIC_WIZARD_PERSISTENCE';
     MatDividerModule,
     MatStep,
     MatProgressSpinnerModule,
+    MatTooltipModule,
   ],
   templateUrl: './traffic-wizard.html',
   styleUrl: './traffic-wizard.css',
@@ -97,6 +105,7 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   private readonly governateService = inject(IGovernateService);
   private readonly signBoxService = inject(ISignBoxControlService);
   private readonly areaService = inject(IAreaService);
+  private readonly greenWaveService = inject(GreenWaveApiService);
   public fb = inject(FormBuilder);
   public langService = inject(LanguageService);
   private readonly templateService = inject(ITemplateService);
@@ -106,7 +115,7 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   private readonly mapAdminService = inject(IMapAdminService);
   private readonly ngZone = inject(NgZone);
   private readonly toaster = inject(ToasterService);
-
+  private readonly tileCache = inject(TileCacheService);
   @ViewChild('wizardMap') wizardMapContainer?: ElementRef;
   @ViewChild('step4MapContainer') step4MapContainer?: ElementRef;
   @ViewChild('stepper') private stepper!: MatStepper;
@@ -115,10 +124,15 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
     return this.langService.current === 'ar';
   }
 
+  readonly CairoBounds = L.latLngBounds([29.95, 31.05], [30.2, 31.45]);
+  readonly CAIRO_MAX_ZOOM = 19;
+  readonly DEFAULT_MAX_ZOOM = 14;
+
   private readonly destroy$ = new Subject<void>();
   private readonly softRefresh$ = interval(30000);
   private isRefreshing = false;
   isSavingStep2 = false;
+  isSavingStep3 = false;
   isSavingDirections = false;
 
   // New state for 5-step flow
@@ -127,6 +141,10 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   incomingSegments: RoadSegment[] = [];
   selectedDirectionIndex: number | null = null;
   directionalBindings = new Map<number, string>(); // directionId -> roadSegmentId
+
+  // Green Wave Preview
+  nearbyCabinets: GreenWaveCabinetPreview[] = [];
+  isLoadingCabinets = false;
 
   templates: GetAllTemplate[] = [];
   governates: GetAllGovernate[] = [];
@@ -143,6 +161,10 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   wizardMap: L.Map | null = null;
   cabinetMarker: L.Marker | null = null;
   nodeMarkers: L.Marker[] = [];
+  nodeSegmentLayers: L.Polyline[] = [];
+  readableDirections: ReadableNodeDirection[] = [];
+  isLoadingReadable = false;
+  directionMarkers: L.Layer[] = [];
 
   // Step 4 Map State
   step4Map: L.Map | null = null;
@@ -247,6 +269,25 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
       complete: () => (this.isRefreshing = false),
       error: () => (this.isRefreshing = false),
     });
+  }
+
+  private updateMaxZoomLevel(map: L.Map | null) {
+    if (!map) return;
+    const center = map.getCenter();
+    const isInsideCairo = this.CairoBounds.contains(center);
+
+    if (isInsideCairo) {
+      if (map.getMaxZoom() !== this.CAIRO_MAX_ZOOM) {
+        map.setMaxZoom(this.CAIRO_MAX_ZOOM);
+      }
+    } else {
+      if (map.getMaxZoom() !== this.DEFAULT_MAX_ZOOM) {
+        if (map.getZoom() > this.DEFAULT_MAX_ZOOM) {
+          map.setZoom(this.DEFAULT_MAX_ZOOM);
+        }
+        map.setMaxZoom(this.DEFAULT_MAX_ZOOM);
+      }
+    }
   }
 
   private loadGovernate() {
@@ -619,14 +660,20 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
     const lng = Number(this.trafficForm.get('longitude')?.value);
 
     this.isLoadingNodes = true;
-    setTimeout(() => this.initWizardMap(lat, lng), 100);
+
+    // Initialize map immediately so it's ready when nodes arrive
+    // and fit it to the cabinet location first
+    setTimeout(() => {
+      this.initWizardMap(lat, lng);
+    }, 0);
 
     this.mapAdminService.getNearestNodes(cabinetId, 2000, 15).subscribe({
       next: (nodes) => {
         this.ngZone.run(() => {
           this.nearestNodes = nodes || [];
           this.isLoadingNodes = false;
-          this.displayNodesOnMap();
+          // Small delay to ensure initWizardMap finished if it was in a microtask
+          setTimeout(() => this.displayNodesOnMap(), 100);
         });
       },
       error: (err) => {
@@ -640,45 +687,212 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
     if (!this.wizardMapContainer) return;
     if (this.wizardMap) this.wizardMap.remove();
     this.wizardMap = L.map(this.wizardMapContainer.nativeElement).setView([lat, lng], 16);
-    L.tileLayer('http://localhost:8081/tiles/{z}/{x}/{y}.png').addTo(this.wizardMap);
+    this.tileCache
+      .createCachedTileLayer('http://localhost:8081/tiles/{z}/{x}/{y}.png')
+      .addTo(this.wizardMap);
+
+    this.wizardMap.on('moveend', () => this.updateMaxZoomLevel(this.wizardMap));
+    this.updateMaxZoomLevel(this.wizardMap);
+
     L.marker([lat, lng]).addTo(this.wizardMap).bindPopup('Cabinet').openPopup();
   }
 
   displayNodesOnMap(): void {
     if (!this.wizardMap) return;
+
+    // Clear existing markers
     this.nodeMarkers.forEach((m) => this.wizardMap?.removeLayer(m));
     this.nodeMarkers = [];
+
+    if (this.nearestNodes.length === 0) return;
+
+    const allNodePoints: L.LatLngTuple[] = [];
 
     this.nearestNodes.forEach((node, index) => {
       const marker = L.marker([node.latitude, node.longitude]).addTo(this.wizardMap!);
       marker.bindPopup(
-        `Node #${index + 1}<br><button onclick="window.selectNode(${index})">Select</button>`,
+        `Node #${index + 1}<br><strong>${node.externalNodeId}</strong><br><button class="btn btn-sm btn-primary mt-2" onclick="window.selectNode(${index})">Select Node</button>`,
       );
       this.nodeMarkers.push(marker);
-      (window as any).selectNode = (i: number) => this.onNodeSelected(this.nearestNodes[i]);
+      allNodePoints.push([node.latitude, node.longitude]);
+      (window as any).selectNode = (i: number) => {
+        this.ngZone.run(() => this.onNodeSelected(this.nearestNodes[i]));
+      };
     });
+
+    // Fit map to show all nodes and cabinet
+    if (allNodePoints.length > 0) {
+      const cabinetLat = Number(this.trafficForm.get('latitude')?.value);
+      const cabinetLng = Number(this.trafficForm.get('longitude')?.value);
+      allNodePoints.push([cabinetLat, cabinetLng]);
+
+      const bounds = L.latLngBounds(allNodePoints);
+      this.wizardMap.fitBounds(bounds, { padding: [50, 50] });
+    }
   }
 
   onNodeSelected(node: NearestRoadNode): void {
     const cabinetId = this.savedCabinetId || Number(this.trafficForm.get('cabinetId')?.value);
     this.selectedNodeId = node.roadNodeId;
 
-    if (cabinetId > 0) {
-      this.mapAdminService.bindCabinetToNode(cabinetId, node.roadNodeId).subscribe({
-        next: () => this.toaster.success(this.isAr ? 'تم الربط بنجاح' : 'Bound successfully'),
-        error: (err) => this.toaster.errorFromBackend(err),
+    // Clear previous segments
+    this.clearNodeSegments();
+
+    // Draw incoming segments for the selected node
+    if (node.incomingSegments && node.incomingSegments.length > 0 && this.wizardMap) {
+      const allSegmentPoints: L.LatLngTuple[] = [];
+
+      node.incomingSegments.forEach((seg) => {
+        const points = this.parseSegmentGeometry(seg.externalSegmentId);
+        if (points.length >= 2) {
+          const polyline = L.polyline(points, {
+            color: '#2196f3', // Clearer blue
+            weight: 8, // Thicker
+            opacity: 0.9,
+            lineJoin: 'round',
+          }).addTo(this.wizardMap!);
+
+          polyline.bindTooltip(seg.name || 'Unnamed Segment', {
+            permanent: true,
+            direction: 'center',
+            className: 'segment-tooltip-permanent',
+          });
+          this.nodeSegmentLayers.push(polyline);
+          allSegmentPoints.push(...points);
+        }
       });
-    } else {
-      this.toaster.warning(
-        this.isAr ? 'برجاء حفظ بيانات الكبينة أولاً' : 'Please save cabinet data first',
-      );
+
+      // Fit bounds to include the node and its segments
+      if (allSegmentPoints.length > 0) {
+        const bounds = L.latLngBounds(allSegmentPoints);
+        this.wizardMap.fitBounds(bounds, { padding: [80, 80], maxZoom: 18 });
+      }
     }
+
+    // Fetch readable directions for the selected cabinet and node
+    if (cabinetId) {
+      this.isLoadingReadable = true;
+      this.mapAdminService.getReadableNode(cabinetId, this.selectedNodeId || undefined).subscribe({
+        next: (resp) => {
+          this.readableDirections = (resp || []).map((d) => ({
+            ...d,
+            from: d.from.replace(/[→←↑↓]/g, '').trim(),
+            to: d.to.replace(/[→←↑↓]/g, '').trim(),
+          }));
+          this.isLoadingReadable = false;
+          setTimeout(() => this.drawReadableDirectionsOnMap(), 100);
+        },
+        error: (err) => {
+          console.error('Failed to fetch readable directions', err);
+          this.readableDirections = [];
+          this.isLoadingReadable = false;
+        },
+      });
+    }
+
+    // REMOVED: Immediate API call. Binding now happens in onStep3Next() on Continue.
+  }
+
+  onStep3Next(stepper: any): void {
+    if (this.isSavingStep3) return;
+
+    const cabinetId = this.savedCabinetId || Number(this.trafficForm.get('cabinetId')?.value);
+    if (!cabinetId || !this.selectedNodeId) {
+      this.toaster.warning(
+        this.isAr
+          ? 'برجاء اختيار نقطة على الخريطة أولاً'
+          : 'Please select a road node on the map first',
+      );
+      return;
+    }
+
+    this.isSavingStep3 = true;
+    this.mapAdminService.bindCabinetToNode(cabinetId, this.selectedNodeId).subscribe({
+      next: () => {
+        this.isSavingStep3 = false;
+        this.toaster.success(this.isAr ? 'تم الربط بنجاح' : 'Bound successfully');
+        setTimeout(() => {
+          const st = stepper || this.stepper;
+          if (st) {
+            st.next();
+            // Fallback for linear mode
+            if (st.selectedIndex === 2) {
+              st.selectedIndex = 3;
+            }
+          }
+        }, 100);
+      },
+      error: (err) => {
+        this.isSavingStep3 = false;
+        this.toaster.errorFromBackend(err);
+      },
+    });
+  }
+
+  private clearNodeSegments(): void {
+    if (this.wizardMap) {
+      this.nodeSegmentLayers.forEach((layer) => this.wizardMap?.removeLayer(layer));
+    }
+    this.nodeSegmentLayers = [];
+    this.directionMarkers.forEach((m) => this.wizardMap?.removeLayer(m));
+    this.directionMarkers = [];
   }
 
   clearMapMarkersAndState(): void {
     if (this.wizardMap) this.wizardMap.remove();
+    this.nodeSegmentLayers = [];
+    this.directionMarkers = [];
     this.nearestNodes = [];
     this.selectedNodeId = null;
+    this.readableDirections = [];
+  }
+
+  drawReadableDirectionsOnMap(): void {
+    if (!this.wizardMap || !this.readableDirections.length) return;
+
+    // Clear previous direction markers
+    this.directionMarkers.forEach((m) => this.wizardMap?.removeLayer(m));
+    this.directionMarkers = [];
+
+    // Find node location
+    const node = this.nearestNodes.find((n) => n.roadNodeId === this.selectedNodeId);
+    if (!node) return;
+
+    // We can try to use incoming segments to place "From" markers
+    if (node.incomingSegments && node.incomingSegments.length > 0) {
+      this.readableDirections.forEach((dir, index) => {
+        // Try to match 'from' segment
+        const fromSeg = node.incomingSegments.find(
+          (s) => s.externalSegmentId === dir.fromSampleRoadSegmentId,
+        );
+
+        if (fromSeg) {
+          const points = this.parseSegmentGeometry(fromSeg.externalSegmentId);
+          if (points.length > 0) {
+            // Place marker at the start of the incoming segment (or slightly along it)
+            // Points usually go from start to end (end is the node).
+            // So we take a point near the end but not exactly ON the node to assume "Incoming"
+            const midIndex = Math.floor(points.length / 2);
+            const pos = points[midIndex] || points[0];
+
+            const iconHtml = `<div style="background: white; padding: 2px 6px; border-radius: 4px; border: 1px solid #2196f3; font-size: 10px; font-weight: bold; color: #2196f3; white-space: nowrap;">
+              ${this.isAr ? 'قادم من' : 'From'}: ${dir.from}
+            </div>`;
+
+            const marker = L.marker(pos, {
+              icon: L.divIcon({
+                className: 'custom-label-icon',
+                html: iconHtml,
+                iconSize: [100, 20],
+                iconAnchor: [50, 25],
+              }),
+            }).addTo(this.wizardMap!);
+
+            this.directionMarkers.push(marker);
+          }
+        }
+      });
+    }
   }
 
   // ========= Step 4: Step 4 Methods =========
@@ -803,7 +1017,12 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
     if (!this.step4MapContainer) return;
     if (this.step4Map) this.step4Map.remove();
     this.step4Map = L.map(this.step4MapContainer.nativeElement).setView([lat, lng], 16);
-    L.tileLayer('http://localhost:8081/tiles/{z}/{x}/{y}.png').addTo(this.step4Map);
+    this.tileCache
+      .createCachedTileLayer('http://localhost:8081/tiles/{z}/{x}/{y}.png')
+      .addTo(this.step4Map);
+
+    this.step4Map.on('moveend', () => this.updateMaxZoomLevel(this.step4Map));
+    this.updateMaxZoomLevel(this.step4Map);
 
     // Initial draw if segments exist
     if (this.incomingSegments.length > 0) this.displaySegmentsOnMap();
@@ -818,8 +1037,27 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
       dirGroup.get('incomingSegmentId')?.setValue('');
     } else {
       dirGroup.get('incomingSegmentId')?.setValue(segId);
+
+      // Auto-populate direction name from segment info
+      const seg = this.incomingSegments.find((s) => s.roadSegmentId === segId);
+      if (seg) {
+        const newName = seg.displayName || `${seg.name} ${seg.directionArrow || ''}`.trim();
+        dirGroup.get('name')?.setValue(newName);
+      }
     }
     this.highlightSegmentOnMap(segId);
+  }
+
+  applyMovementToDirection(movement: ReadableNodeDirection): void {
+    if (this.selectedDirectionIndex === null) {
+      this.toaster.warning(
+        this.isAr ? 'برجاء اختيار اتجاه أولاً' : 'Please select a direction first',
+      );
+      return;
+    }
+    const dirGroup = this.directions.at(this.selectedDirectionIndex) as FormGroup;
+    const newName = `${movement.from} → ${movement.to}`;
+    dirGroup.get('name')?.setValue(newName);
   }
 
   isDirectionBound(index: number): boolean {
@@ -832,6 +1070,48 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
       this.directions.length > 0 &&
       this.directions.controls.every((d) => !!d.get('incomingSegmentId')?.value)
     );
+  }
+
+  loadNearbyCabinetsPreview(): void {
+    // Build route segments from the current segments
+    const routeSegments = this.incomingSegments
+      .map((s) => s.externalSegmentId)
+      .filter((id) => !!id);
+
+    if (routeSegments.length === 0) {
+      this.toaster.warning(this.isAr ? 'لا توجد مسارات للمعاينة' : 'No route segments available');
+      return;
+    }
+
+    this.isLoadingCabinets = true;
+
+    this.greenWaveService
+      .preview({
+        routeSegments,
+        speedKmh: 40,
+        greenSeconds: 18,
+        cabinetSearchRadiusMeters: 500,
+        maxCabinets: 50,
+      })
+      .subscribe({
+        next: (preview) => {
+          this.nearbyCabinets = preview.cabinets || [];
+          this.isLoadingCabinets = false;
+          if (this.nearbyCabinets.length > 0) {
+            this.toaster.success(
+              this.isAr
+                ? `تم العثور على ${this.nearbyCabinets.length} كابينة`
+                : `Found ${this.nearbyCabinets.length} cabinets`,
+            );
+          } else {
+            this.toaster.warning(this.isAr ? 'لا توجد كباين قريبة' : 'No nearby cabinets found');
+          }
+        },
+        error: (err) => {
+          this.isLoadingCabinets = false;
+          this.toaster.errorFromBackend(err);
+        },
+      });
   }
 
   clearStep4Map(): void {
@@ -891,6 +1171,40 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
     return this.nearestNodes.find((n) => n.roadNodeId === this.selectedNodeId)?.distanceMeters || 0;
   }
 
+  getSelectedNodeRoadNames(): string[] {
+    const node = this.nearestNodes.find((n) => n.roadNodeId === this.selectedNodeId);
+    return this.getNodeRoadNames(node!);
+  }
+
+  getNodeRoadNames(node: NearestRoadNode): string[] {
+    if (!node || !node.incomingSegments) return [];
+    return [
+      ...new Set(node.incomingSegments.map((s) => s.displayName || s.name).filter((n) => !!n)),
+    ];
+  }
+
+  getNodeIncomingRoadNames(node: NearestRoadNode): string[] {
+    if (!node || !node.incomingSegments) return [];
+    const names = node.incomingSegments
+      .map((s) => (s.displayName || s.name).replace(/[→←↑↓]/g, '').trim())
+      .filter((n) => !!n);
+    return [...new Set(names)];
+  }
+
+  getNodeOutgoingRoadNames(node: NearestRoadNode): string[] {
+    if (!node || !node.incomingSegments) return [];
+    const outgoing = node.incomingSegments.flatMap((s) => s.outgoingSegments || []);
+    const names = outgoing
+      .map((s) => (s.displayName || s.name).replace(/[→←↑↓]/g, '').trim())
+      .filter((n) => !!n);
+    return [...new Set(names)];
+  }
+
+  getOutgoingSegments(node: NearestRoadNode): RoadSegment[] {
+    if (!node || !node.incomingSegments) return [];
+    return node.incomingSegments.flatMap((s) => s.outgoingSegments || []);
+  }
+
   getBoundSegmentName(directionId: number): string {
     const segmentId = this.directionalBindings.get(directionId);
     if (!segmentId) return '';
@@ -940,6 +1254,26 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
 
       // 4. Trigger child data loads
       if (data.formData.governorate) this.getAreas(data.formData.governorate);
+
+      // 5. Trigger readable directions if node selected
+      if (this.selectedNodeId && (this.savedCabinetId || data.formData.cabinetId)) {
+        const cabId = this.savedCabinetId || Number(data.formData.cabinetId);
+        this.isLoadingReadable = true;
+        this.mapAdminService.getReadableNode(cabId, this.selectedNodeId).subscribe({
+          next: (res) => {
+            this.readableDirections = (res || []).map((d) => ({
+              ...d,
+              from: d.from.replace(/[→←↑↓]/g, '').trim(),
+              to: d.to.replace(/[→←↑↓]/g, '').trim(),
+            }));
+            this.isLoadingReadable = false;
+            setTimeout(() => this.drawReadableDirectionsOnMap(), 500);
+          },
+          error: () => {
+            this.isLoadingReadable = false;
+          },
+        });
+      }
 
       // Reconcile visuals if we have directions
       this.reconcileConflicts();

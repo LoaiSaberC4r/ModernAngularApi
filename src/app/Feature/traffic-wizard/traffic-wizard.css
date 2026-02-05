@@ -2,10 +2,10 @@
    Wizard Wrapper
    =========================== */
 .wizard-wrapper {
-  max-width: 1000px;
+  max-width: 1700px;
   margin: 0rem auto;
   padding: 1rem 1rem;
-  height: 100vh !important ;
+  /* height: 100vh !important ; */
 }
 /* ===========================
    Wizard Header (inline)
@@ -1037,4 +1037,52 @@ input[dir='ltr'] {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Movement Cards for Step 3 */
+.movement-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  border-radius: 12px;
+}
+
+.movement-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.smaller-badge {
+  font-size: 0.65rem;
+  padding: 0.2em 0.5em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.turn-badge {
+  color: #4d99b3;
+  max-width: 60px;
+  word-wrap: break-word;
+}
+
+.smaller-text {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.movement-tag {
+  transition: all 0.2s ease;
+  min-width: 180px;
+}
+
+.movement-tag:hover {
+  border-color: #4d99b3 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(77, 153, 179, 0.15) !important;
+}
+
+[dir='rtl'] .movement-tag button {
+  margin-inline-start: auto;
+  margin-inline-end: -8px;
 }

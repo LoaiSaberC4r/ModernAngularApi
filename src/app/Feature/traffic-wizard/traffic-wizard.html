@@ -297,126 +297,342 @@
             </button>
           </div>
 
-          <!-- Map Container -->
-          <div
-            class="map-wrapper"
-            style="height: 500px; position: relative; margin-bottom: 20px"
-            *ngIf="isLoadingNodes || nearestNodes.length > 0"
-          >
-            @if (isLoadingNodes) {
+          <!-- Two-column layout for Map and Nodes List -->
+          <div class="row g-4" *ngIf="isLoadingNodes || nearestNodes.length > 0">
+            <!-- Left Column: Map -->
+            <div class="col-md-6">
+              <!-- Map Container -->
               <div
-                class="loading-overlay"
-                style="
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                  right: 0;
-                  bottom: 0;
-                  background: rgba(255, 255, 255, 0.9);
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  justify-content: center;
-                  z-index: 1000;
-                "
+                class="map-wrapper"
+                style="height: 500px; position: relative; margin-bottom: 20px"
+                *ngIf="isLoadingNodes || nearestNodes.length > 0"
               >
-                <div class="spinner-border text-primary"></div>
-                <p class="mt-2">{{ isAr ? 'جاري تحميل النقاط...' : 'Loading nodes...' }}</p>
-              </div>
-            }
-
-            <div
-              #wizardMap
-              id="wizardMap"
-              style="height: 100%; width: 100%; border-radius: 8px; overflow: hidden"
-            ></div>
-          </div>
-
-          <!-- Nearest Nodes List -->
-          <div class="nodes-list mt-3" *ngIf="nearestNodes.length > 0">
-            <h5>{{ isAr ? 'أقرب النقاط' : 'Nearest Nodes' }} ({{ nearestNodes.length }})</h5>
-            <div class="table-responsive" style="max-height: 300px; overflow-y: auto">
-              <table class="table table-hover table-sm">
-                <thead class="table-light sticky-top">
-                  <tr>
-                    <th>#</th>
-                    <th>{{ isAr ? 'المعرف' : 'Node ID' }}</th>
-                    <th>{{ isAr ? 'المسافة' : 'Distance' }}</th>
-                    <th>{{ isAr ? 'الإحداثيات' : 'Coordinates' }}</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    *ngFor="let node of nearestNodes; let i = index"
-                    [class.table-active]="selectedNodeId === node.roadNodeId"
-                    style="cursor: pointer"
-                    (click)="onNodeSelected(node)"
+                @if (isLoadingNodes) {
+                  <div
+                    class="loading-overlay"
+                    style="
+                      position: absolute;
+                      top: 0;
+                      left: 0;
+                      right: 0;
+                      bottom: 0;
+                      background: rgba(255, 255, 255, 0.9);
+                      display: flex;
+                      flex-direction: column;
+                      align-items: center;
+                      justify-content: center;
+                      z-index: 1000;
+                    "
                   >
-                    <td>{{ i + 1 }}</td>
-                    <td>
-                      <small class="text-muted">{{ node.externalNodeId }}</small>
-                    </td>
-                    <td>
-                      <strong class="text-primary">{{ node.distanceMeters.toFixed(0) }}m</strong>
-                    </td>
-                    <td>
-                      <small>{{ node.latitude.toFixed(6) }}, {{ node.longitude.toFixed(6) }}</small>
-                    </td>
-                    <td>
-                      <button
-                        mat-button
-                        color="primary"
-                        size="small"
-                        (click)="onNodeSelected(node); $event.stopPropagation()"
-                        [disabled]="selectedNodeId === node.roadNodeId"
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2">{{ isAr ? 'جاري تحميل النقاط...' : 'Loading nodes...' }}</p>
+                  </div>
+                }
+
+                <div
+                  #wizardMap
+                  id="wizardMap"
+                  style="height: 100%; width: 100%; border-radius: 8px; overflow: hidden"
+                ></div>
+              </div>
+            </div>
+            <!-- Close Left Column -->
+
+            <!-- Right Column: Nodes List & Info -->
+            <div class="col-md-6">
+              <!-- Nearest Nodes List -->
+              <div class="nodes-list mt-3" *ngIf="nearestNodes.length > 0">
+                <h5>{{ isAr ? 'أقرب النقاط' : 'Nearest Nodes' }} ({{ nearestNodes.length }})</h5>
+                <div class="table-responsive" style="max-height: 300px; overflow-y: auto">
+                  <table class="table table-hover table-sm">
+                    <thead class="table-light sticky-top">
+                      <tr>
+                        <!-- <th>#</th>
+                        <th>{{ isAr ? 'المعرف' : 'Node ID' }}</th> -->
+                        <th>{{ isAr ? 'الطريق' : 'Road' }}</th>
+                        <th>{{ isAr ? 'المسافة' : 'Distance' }}</th>
+                        <th>{{ isAr ? 'الإحداثيات' : 'Coordinates' }}</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        *ngFor="let node of nearestNodes; let i = index"
+                        [class.table-active]="selectedNodeId === node.roadNodeId"
+                        style="cursor: pointer"
+                        (click)="onNodeSelected(node)"
                       >
-                        <mat-icon *ngIf="selectedNodeId === node.roadNodeId">check_circle</mat-icon>
+                        <!-- <td>{{ i + 1 }}</td>
+                        <td>
+                          <small class="text-muted">{{ node.externalNodeId }}</small>
+                        </td> -->
+                        <td>
+                          <div class="d-flex flex-column gap-1">
+                            <!-- From -->
+                            <div
+                              class="d-flex align-items-baseline"
+                              *ngIf="getNodeIncomingRoadNames(node).length > 0"
+                            >
+                              <small
+                                class="text-muted opacity-75 me-1 fw-bold"
+                                style="min-width: 30px"
+                              >
+                                {{ isAr ? 'الفادم من :' : 'coming from:' }}
+                              </small>
+                              <div class="d-flex flex-wrap gap-1">
+                                <span
+                                  class="badge bg-light text-dark border-secondary-subtle fw-normal"
+                                  *ngFor="let road of getNodeIncomingRoadNames(node)"
+                                >
+                                  {{ road }}
+                                </span>
+                              </div>
+                            </div>
+                            <!-- To -->
+                            <div
+                              class="d-flex align-items-baseline"
+                              *ngIf="getNodeOutgoingRoadNames(node).length > 0"
+                            >
+                              <small
+                                class="text-muted opacity-75 me-1 fw-bold"
+                                style="min-width: 30px"
+                              >
+                                {{ isAr ? 'المتجة إلي:' : 'heading to:' }}
+                              </small>
+                              <div class="d-flex flex-wrap gap-1">
+                                <span
+                                  class="badge bg-primary bg-opacity-10 text-primary border fw-normal"
+                                  *ngFor="let road of getNodeOutgoingRoadNames(node)"
+                                >
+                                  {{ road }}
+                                </span>
+                              </div>
+                            </div>
+                            <!-- Fallback -->
+                            <div
+                              *ngIf="
+                                getNodeIncomingRoadNames(node).length === 0 &&
+                                getNodeOutgoingRoadNames(node).length === 0
+                              "
+                            >
+                              <span class="text-muted small">-</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <strong class="text-primary"
+                            >{{ node.distanceMeters.toFixed(0) }}m</strong
+                          >
+                        </td>
+                        <td>
+                          <small
+                            >{{ node.latitude.toFixed(6) }}, {{ node.longitude.toFixed(6) }}</small
+                          >
+                        </td>
+                        <td>
+                          <button
+                            mat-button
+                            color="primary"
+                            size="small"
+                            (click)="onNodeSelected(node); $event.stopPropagation()"
+                            [disabled]="selectedNodeId === node.roadNodeId"
+                          >
+                            <mat-icon *ngIf="selectedNodeId === node.roadNodeId"
+                              >check_circle</mat-icon
+                            >
+                            {{
+                              selectedNodeId === node.roadNodeId
+                                ? isAr
+                                  ? 'محدد'
+                                  : 'Selected'
+                                : isAr
+                                  ? 'اختر'
+                                  : 'Select'
+                            }}
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Selected Node Info -->
+              <div class="alert alert-success mt-3" *ngIf="selectedNodeId">
+                <div class="d-flex align-items-center mb-2">
+                  <mat-icon class="me-2">location_on</mat-icon>
+                  <strong>{{ isAr ? 'تم اختيار النقطة:' : 'Selected Node:' }}</strong>
+                  <span class="ms-1">{{ getSelectedNodeId() }}</span>
+                </div>
+
+                <div class="node-details">
+                  <p class="mb-1">
+                    <small>
+                      {{ isAr ? 'المسافة:' : 'Distance:' }}
+                      {{ getSelectedNodeDistance().toFixed(0) }}m
+                    </small>
+                  </p>
+
+                  <div
+                    class="incoming-segments-info mt-2"
+                    *ngIf="getSelectedNodeRoadNames().length > 0"
+                  >
+                    <label class="d-block small text-muted mb-1">{{
+                      isAr ? 'المسارات المرتبطة:' : 'Connected Routes:'
+                    }}</label>
+                    <div class="d-flex flex-wrap gap-2">
+                      <span
+                        class="badge rounded-pill bg-primary d-flex align-items-center py-2 px-3"
+                        *ngFor="let name of getSelectedNodeRoadNames()"
+                      >
+                        <mat-icon
+                          style="font-size: 16px; height: 16px; width: 16px; margin-inline-end: 4px"
+                          >add_road</mat-icon
+                        >
+                        {{ name }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Readable Directions Refined -->
+                  <div class="readable-directions mt-4">
+                    <label
+                      class="d-block small text-muted mb-3 fw-bold text-uppercase border-bottom pb-1"
+                      style="letter-spacing: 0.5px"
+                    >
+                      {{ isAr ? 'تحركات الطرق المفصلة:' : 'Detailed Road Movements:' }}
+                    </label>
+
+                    <!-- Loading State -->
+                    <div *ngIf="isLoadingReadable" class="text-center py-4">
+                      <mat-spinner diameter="30" class="mx-auto"></mat-spinner>
+                      <p class="mt-2 small text-muted">
+                        {{ isAr ? 'جاري تحميل التفاصيل...' : 'Loading details...' }}
+                      </p>
+                    </div>
+
+                    <!-- Data State -->
+                    <div
+                      class="row g-3"
+                      *ngIf="!isLoadingReadable && readableDirections.length > 0"
+                    >
+                      <div class="col-12" *ngFor="let dir of readableDirections">
+                        <div class="card movement-card border-0 shadow-sm h-100 overflow-hidden">
+                          <div class="card-body p-0">
+                            <div class="d-flex align-items-stretch">
+                              <!-- Origin Side -->
+                              <div class="p-3 flex-grow-1 bg-light bg-opacity-50">
+                                <div class="small text-muted mb-1 d-flex align-items-center">
+                                  <mat-icon
+                                    style="font-size: 14px; width: 14px; height: 14px"
+                                    class="me-1"
+                                    >login</mat-icon
+                                  >
+                                  {{ isAr ? 'القادم من' : 'Coming From' }}
+                                </div>
+                                <div class="fw-bold">{{ dir.from }}</div>
+                                <div class="mt-1" *ngIf="dir.fromIsReverse">
+                                  <span
+                                    class="badge bg-warning-subtle text-warning border border-warning-subtle smaller-badge"
+                                  >
+                                    {{ isAr ? 'عكس الاتجاه' : 'Reverse' }}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <!-- Arrow/Turn Indicator -->
+                              <div
+                                class="d-flex flex-column justify-content-center align-items-center px-2 bg-white border-start border-end"
+                              >
+                                <mat-icon
+                                  class="text-primary"
+                                  style="font-size: 24px; width: 24px; height: 24px"
+                                >
+                                  {{
+                                    dir.turnType === 1
+                                      ? 'straight'
+                                      : dir.turnType === 2
+                                        ? 'turn_left'
+                                        : 'turn_right'
+                                  }}
+                                </mat-icon>
+                                <div
+                                  class="turn-badge mt-1 text-center"
+                                  style="font-size: 10px; font-weight: 500; line-height: 1"
+                                >
+                                  {{ dir.turnLabel }}
+                                </div>
+                              </div>
+
+                              <!-- Destination Side -->
+                              <div class="p-3 flex-grow-1 bg-primary bg-opacity-10 text-end">
+                                <div
+                                  class="small text-muted mb-1 d-flex align-items-center justify-content-end"
+                                >
+                                  {{ isAr ? 'المتجه إلى' : 'Heading To' }}
+                                  <mat-icon
+                                    style="font-size: 14px; width: 14px; height: 14px"
+                                    class="ms-1"
+                                    >logout</mat-icon
+                                  >
+                                </div>
+                                <div class="fw-bold text-primary">{{ dir.to }}</div>
+                                <div class="mt-1" *ngIf="dir.toIsReverse">
+                                  <span
+                                    class="badge bg-warning-subtle text-warning border border-warning-subtle smaller-badge"
+                                  >
+                                    {{ isAr ? 'عكس الاتجاه' : 'Reverse' }}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div
+                      *ngIf="
+                        !isLoadingReadable && readableDirections.length === 0 && selectedNodeId
+                      "
+                      class="alert alert-light border text-center py-4"
+                    >
+                      <mat-icon
+                        class="text-muted mb-2"
+                        style="font-size: 32px; width: 32px; height: 32px"
+                        >info_outline</mat-icon
+                      >
+                      <p class="mb-0 text-muted">
                         {{
-                          selectedNodeId === node.roadNodeId
-                            ? isAr
-                              ? 'محدد'
-                              : 'Selected'
-                            : isAr
-                              ? 'اختر'
-                              : 'Select'
+                          isAr
+                            ? 'لا توجد تفاصيل تحركات متاحة لهذا الموقع.'
+                            : 'No movement details available for this location.'
                         }}
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          <!-- No Nodes Found -->
-          <div
-            class="alert alert-warning mt-3 d-flex align-items-center"
-            *ngIf="!isLoadingNodes && nearestNodes.length === 0 && wizardMap"
-          >
-            <mat-icon class="me-2">warning</mat-icon>
-            <span>
-              {{
-                isAr
-                  ? 'لم يتم العثور على نقاط قريبة. حاول تغيير الإحداثيات.'
-                  : 'No nearby nodes found. Try different coordinates.'
-              }}
-            </span>
-          </div>
-
-          <!-- Selected Node Info -->
-          <div class="alert alert-success mt-3 d-flex align-items-center" *ngIf="selectedNodeId">
-            <mat-icon class="me-2">location_on</mat-icon>
-            <div>
-              <strong>{{ isAr ? 'تم اختيار النقطة:' : 'Selected Node:' }}</strong>
-              {{ getSelectedNodeId() }}
-              <br />
-              <small>
-                {{ isAr ? 'المسافة:' : 'Distance:' }}
-                {{ getSelectedNodeDistance().toFixed(0) }}m
-              </small>
+              <!-- No Nodes Found -->
+              <div
+                class="alert alert-warning mt-3 d-flex align-items-center"
+                *ngIf="!isLoadingNodes && nearestNodes.length === 0"
+              >
+                <mat-icon class="me-2">warning</mat-icon>
+                <span>
+                  {{
+                    isAr
+                      ? 'لم يتم العثور على نقاط قريبة. حاول تغيير الإحداثيات.'
+                      : 'No nearby nodes found. Try different coordinates.'
+                  }}
+                </span>
+              </div>
             </div>
+            <!-- Close Right Column -->
           </div>
+          <!-- Close main Row (Step 3) -->
         </div>
 
         <div class="step-footer">
@@ -427,12 +643,18 @@
           <button
             mat-flat-button
             color="primary"
-            matStepperNext
             class="btn-next"
-            [disabled]="!selectedNodeId"
+            [disabled]="!selectedNodeId || isSavingStep3"
+            (click)="onStep3Next(stepper)"
           >
-            {{ isAr ? 'متابعة' : 'Continue' }}
-            <mat-icon>{{ isAr ? 'arrow_back' : 'arrow_forward' }}</mat-icon>
+            <span *ngIf="!isSavingStep3">
+              {{ isAr ? 'متابعة' : 'Continue' }}
+              <mat-icon>{{ isAr ? 'arrow_back' : 'arrow_forward' }}</mat-icon>
+            </span>
+            <span *ngIf="isSavingStep3">
+              <mat-icon><mat-spinner diameter="18" color="accent"></mat-spinner></mat-icon>
+              {{ isAr ? 'جاري الحفظ...' : 'Saving...' }}
+            </span>
           </button>
         </div>
       </mat-step>
@@ -453,305 +675,401 @@
             </p>
           </div>
 
-          <!-- Traffic Directions Management Section -->
-          <div class="directions-management mb-4" formArrayName="directions">
-            <div class="section-header d-flex justify-content-between align-items-center mb-3">
-              <h5>{{ isAr ? 'إدارة الاتجاهات' : 'Manage Directions' }}</h5>
-              <span class="badge bg-primary">{{ directions.length }}/4</span>
-            </div>
-
-            <!-- Directions List -->
-            <div class="row g-3 mb-3">
+          <!-- Top Panel: Suggested Road Movements (Guide) -->
+          <div class="row g-4 mb-3" *ngIf="readableDirections.length > 0">
+            <div class="col-12">
               <div
-                class="col-md-6"
-                *ngFor="let dir of directions.controls; let i = index"
-                [formGroupName]="i"
+                class="card border-0 shadow-sm bg-primary bg-opacity-10"
+                style="border-radius: 16px; overflow: hidden"
               >
-                <div class="card direction-card h-100">
-                  <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                      <h6 class="mb-0">{{ isAr ? 'اتجاه' : 'Direction' }} {{ i + 1 }}</h6>
+                <div class="card-header bg-white border-0 py-2">
+                  <h6 class="mb-0 d-flex align-items-center text-primary small fw-bold">
+                    <mat-icon class="me-2" style="font-size: 18px; width: 18px; height: 18px"
+                      >alt_route</mat-icon
+                    >
+                    {{
+                      isAr
+                        ? 'تحركات الطرق المفصلة للمساعدة في التسمية'
+                        : 'Detailed Road Movements for Naming Guidance'
+                    }}
+                  </h6>
+                </div>
+                <div class="card-body py-2">
+                  <div class="d-flex flex-wrap gap-3">
+                    <div
+                      *ngFor="let dir of readableDirections"
+                      class="movement-tag px-3 py-2 bg-white rounded border d-flex align-items-center shadow-sm"
+                    >
+                      <div class="small fw-bold text-dark">{{ dir.from }}</div>
+                      <mat-icon
+                        class="text-primary mx-2"
+                        style="font-size: 16px; width: 16px; height: 16px"
+                      >
+                        {{
+                          dir.turnType === 1
+                            ? 'straight'
+                            : dir.turnType === 2
+                              ? 'turn_left'
+                              : 'turn_right'
+                        }}
+                      </mat-icon>
+                      <div class="small fw-bold text-primary">{{ dir.to }}</div>
+
+                      <!-- Action Button to apply name -->
                       <button
                         mat-icon-button
-                        color="warn"
-                        (click)="removeDirection(i)"
-                        [disabled]="directions.length === 1"
+                        class="ms-2 ms-auto"
+                        color="primary"
+                        style="width: 24px; height: 24px; line-height: 24px"
+                        (click)="applyMovementToDirection(dir)"
+                        [matTooltip]="
+                          isAr
+                            ? 'استخدام هذا الاسم للاتجاه الحالي'
+                            : 'Use this name for selected direction'
+                        "
                       >
-                        <mat-icon>delete</mat-icon>
+                        <mat-icon style="font-size: 16px; width: 16px; height: 16px"
+                          >content_copy</mat-icon
+                        >
                       </button>
                     </div>
-
-                    <!-- Direction Name -->
-                    <mat-form-field appearance="outline" class="full-width compact-field mb-2">
-                      <mat-label>{{ isAr ? 'اسم الاتجاه' : 'Direction Name' }}</mat-label>
-                      <input
-                        matInput
-                        formControlName="name"
-                        [placeholder]="isAr ? 'مثال: اتجاه السويس' : 'e.g. Direction: Suez'"
-                      />
-                    </mat-form-field>
-
-                    <!-- Template -->
-                    <mat-form-field appearance="outline" class="full-width compact-field mb-2">
-                      <mat-label>{{ isAr ? 'القالب' : 'Template' }}</mat-label>
-                      <mat-select
-                        formControlName="templateId"
-                        (selectionChange)="onDirectionTemplateChange(i, $event.value)"
-                      >
-                        <mat-option [value]="0">{{
-                          isAr ? '-- اختر القالب --' : '-- Select Template --'
-                        }}</mat-option>
-                        <mat-option *ngFor="let t of templates" [value]="t.id">{{
-                          t.name
-                        }}</mat-option>
-                      </mat-select>
-                    </mat-form-field>
-
-                    <div class="row g-2">
-                      <!-- Order/Lane -->
-                      <div class="col-6">
-                        <mat-form-field appearance="outline" class="full-width compact-field">
-                          <mat-label>{{ isAr ? 'المسار' : 'Lane' }}</mat-label>
-                          <input matInput type="number" formControlName="order" min="1" />
-                        </mat-form-field>
-                      </div>
-
-                      <!-- Conflict With -->
-                      <div class="col-6" *ngIf="directions.length > 1">
-                        <mat-form-field appearance="outline" class="full-width compact-field">
-                          <mat-label>{{ isAr ? 'تقاطع' : 'Conflict' }}</mat-label>
-                          <mat-select
-                            formControlName="conflictWith"
-                            (selectionChange)="onConflictSelected(i, $event.value)"
-                          >
-                            <mat-option [value]="null">None</mat-option>
-                            <mat-option
-                              *ngFor="let other of directions.controls; let j = index"
-                              [value]="other.get('order')?.value"
-                              [disabled]="j === i || other.get('isConflict')?.value === true"
-                            >
-                              L-{{ other.get('order')?.value }}
-                            </mat-option>
-                          </mat-select>
-                        </mat-form-field>
-                      </div>
-                    </div>
-
-                    <!-- Hidden fields -->
-                    <input type="hidden" formControlName="left" />
-                    <input type="hidden" formControlName="right" />
-                    <input type="hidden" formControlName="isConflict" />
                   </div>
                 </div>
               </div>
             </div>
-
-            <!-- Add Direction Button -->
-            <div class="text-center mb-4">
-              <button
-                mat-stroked-button
-                color="primary"
-                (click)="addDirection()"
-                [disabled]="directions.length >= 4"
-                class="btn-add-action"
-              >
-                <mat-icon>add_circle_outline</mat-icon>
-                {{ isAr ? 'إضافة اتجاه' : 'Add Direction' }}
-              </button>
-            </div>
           </div>
 
-          <mat-divider class="my-4"></mat-divider>
-
-          <!-- Segment Binding Section -->
-          <div *ngIf="directions.length > 0" class="segment-binding-section">
-            <div class="section-header mb-3">
-              <h5>{{ isAr ? 'ربط المقاطع' : 'Segment Binding' }}</h5>
-              <p class="text-muted">
-                {{
-                  isAr ? 'اختر كل اتجاه وحدد مقطع الطريق' : 'Bind each direction to a road segment'
-                }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Load Segments Button -->
-          <div class="text-center mb-3" *ngIf="incomingSegments.length === 0 && !isLoadingNodes">
-            <button
-              mat-raised-button
-              color="primary"
-              (click)="loadIncomingSegmentsOnStep4()"
-              class="px-4 py-2"
-            >
-              <mat-icon>alt_route</mat-icon>
-              {{ isAr ? 'تحميل المسارات' : 'Load Road Segments' }}
-            </button>
-          </div>
-
-          <div
-            class="row g-3"
-            *ngIf="directions.length > 0 || incomingSegments.length > 0 || isLoadingNodes"
-          >
-            <!-- Left Panel: Directions List -->
-            <div class="col-md-4">
-              <div class="card h-100 shadow-sm border-0">
-                <div class="card-header bg-light">
-                  <h6 class="mb-0">{{ isAr ? 'الاتجاهات' : 'Directions' }}</h6>
+          <!-- Two-column layout for Manage Directions and Segment Binding -->
+          <div class="row g-4">
+            <!-- Left Column: Manage Directions -->
+            <div class="col-md-6">
+              <!-- Traffic Directions Management Section -->
+              <div class="directions-management mb-4" formArrayName="directions">
+                <div class="section-header d-flex justify-content-between align-items-center mb-3">
+                  <h5>{{ isAr ? 'إدارة الاتجاهات' : 'Manage Directions' }}</h5>
+                  <span class="badge bg-primary">{{ directions.length }}/4</span>
                 </div>
-                <div class="list-group list-group-flush">
-                  <button
-                    type="button"
-                    *ngFor="let dirGroup of directions.controls; let i = index"
-                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                    [class.active]="selectedDirectionIndex === i"
-                    (click)="selectedDirectionIndex = i"
+
+                <!-- Directions List -->
+                <div class="row g-3 mb-3">
+                  <div
+                    class="col-12"
+                    *ngFor="let dir of directions.controls; let i = index"
+                    [formGroupName]="i"
                   >
-                    <span>
-                      <mat-icon
-                        class="me-2"
-                        [color]="isDirectionBound(i) ? 'primary' : 'disabled'"
-                        style="vertical-align: middle; font-size: 1.2rem"
-                      >
-                        {{ isDirectionBound(i) ? 'check_circle' : 'circle' }}
-                      </mat-icon>
-                      {{
-                        dirGroup.get('name')?.value ||
-                          (isAr ? 'اتجاه ' + (i + 1) : 'Direction ' + (i + 1))
-                      }}
-                    </span>
-                    <small class="text-muted">#{{ i + 1 }}</small>
+                    <div class="card direction-card h-100">
+                      <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <h6 class="mb-0">{{ isAr ? 'اتجاه' : 'Direction' }} {{ i + 1 }}</h6>
+                          <button
+                            mat-icon-button
+                            color="warn"
+                            (click)="removeDirection(i)"
+                            [disabled]="directions.length === 1"
+                          >
+                            <mat-icon>delete</mat-icon>
+                          </button>
+                        </div>
+
+                        <!-- Direction Name -->
+                        <mat-form-field appearance="outline" class="full-width compact-field mb-2">
+                          <mat-label>{{ isAr ? 'اسم الاتجاه' : 'Direction Name' }}</mat-label>
+                          <input
+                            matInput
+                            formControlName="name"
+                            [placeholder]="isAr ? 'مثال: اتجاه السويس' : 'e.g. Direction: Suez'"
+                          />
+                        </mat-form-field>
+
+                        <!-- Template -->
+                        <mat-form-field appearance="outline" class="full-width compact-field mb-2">
+                          <mat-label>{{ isAr ? 'القالب' : 'Template' }}</mat-label>
+                          <mat-select
+                            formControlName="templateId"
+                            (selectionChange)="onDirectionTemplateChange(i, $event.value)"
+                          >
+                            <mat-option [value]="0">{{
+                              isAr ? '-- اختر القالب --' : '-- Select Template --'
+                            }}</mat-option>
+                            <mat-option *ngFor="let t of templates" [value]="t.id">{{
+                              t.name
+                            }}</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+
+                        <div class="row g-2">
+                          <!-- Order/Lane -->
+                          <div class="col-6">
+                            <mat-form-field appearance="outline" class="full-width compact-field">
+                              <mat-label>{{ isAr ? 'المسار' : 'Lane' }}</mat-label>
+                              <input matInput type="number" formControlName="order" min="1" />
+                            </mat-form-field>
+                          </div>
+
+                          <!-- Conflict With -->
+                          <div class="col-6" *ngIf="directions.length > 1">
+                            <mat-form-field appearance="outline" class="full-width compact-field">
+                              <mat-label>{{ isAr ? 'تقاطع' : 'Conflict' }}</mat-label>
+                              <mat-select
+                                formControlName="conflictWith"
+                                (selectionChange)="onConflictSelected(i, $event.value)"
+                              >
+                                <mat-option [value]="null">None</mat-option>
+                                <mat-option
+                                  *ngFor="let other of directions.controls; let j = index"
+                                  [value]="other.get('order')?.value"
+                                  [disabled]="j === i || other.get('isConflict')?.value === true"
+                                >
+                                  L-{{ other.get('order')?.value }}
+                                </mat-option>
+                              </mat-select>
+                            </mat-form-field>
+                          </div>
+                        </div>
+
+                        <!-- Hidden fields -->
+                        <input type="hidden" formControlName="left" />
+                        <input type="hidden" formControlName="right" />
+                        <input type="hidden" formControlName="isConflict" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Add Direction Button -->
+                <div class="text-center mb-4">
+                  <button
+                    mat-stroked-button
+                    color="primary"
+                    (click)="addDirection()"
+                    [disabled]="directions.length >= 4"
+                    class="btn-add-action"
+                  >
+                    <mat-icon>add_circle_outline</mat-icon>
+                    {{ isAr ? 'إضافة اتجاه' : 'Add Direction' }}
                   </button>
                 </div>
               </div>
+              <!-- Close directions-management -->
             </div>
+            <!-- Close Left Column -->
 
-            <!-- Right Panel: Map & Segments Table -->
-            <div class="col-md-8">
-              <div
-                class="map-wrapper"
-                style="height: 400px; position: relative; margin-bottom: 20px"
-              >
-                <div
-                  #step4MapContainer
-                  id="step4Map"
-                  style="height: 100%; width: 100%; border-radius: 8px; overflow: hidden"
-                ></div>
-                <div
-                  class="loading-overlay"
-                  *ngIf="isLoadingNodes"
-                  style="
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(255, 255, 255, 0.7);
-                    z-index: 1000;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                  "
-                >
-                  <mat-spinner diameter="40"></mat-spinner>
-                </div>
-              </div>
-
-              <!-- Available Segments (Catchy Card List) -->
-              <div class="segments-section" *ngIf="selectedDirectionIndex !== null">
-                <div class="section-badge mb-3">
-                  <span
-                    class="badge rounded-pill bg-success-subtle text-success border border-success-subtle"
-                  >
-                    {{ isAr ? 'المسارات المتاحة' : 'Available Segments' }}
-                  </span>
-                </div>
-
-                <div class="segments-grid">
-                  <div
-                    *ngFor="let seg of incomingSegments"
-                    class="segment-card"
-                    [class.active]="
-                      directions.at(selectedDirectionIndex).get('incomingSegmentId')?.value ===
-                      seg.roadSegmentId
-                    "
-                    (click)="onDirectionSegmentSelected(selectedDirectionIndex, seg.roadSegmentId)"
-                  >
-                    <div class="segment-icon">
-                      <mat-icon>{{
-                        directions.at(selectedDirectionIndex).get('incomingSegmentId')?.value ===
-                        seg.roadSegmentId
-                          ? 'check_circle'
-                          : 'alt_route'
-                      }}</mat-icon>
-                    </div>
-                    <div class="segment-info">
-                      <div class="segment-name">{{ seg.name }}</div>
-                      <div class="segment-meta">
-                        <span class="meta-item">
-                          <mat-icon>straighten</mat-icon>
-                          {{ seg.lengthMeters.toFixed(0) }}m
-                        </span>
-                        <span class="meta-item" *ngIf="seg.speedKmh">
-                          <mat-icon>speed</mat-icon>
-                          {{ seg.speedKmh }} km/h
-                        </span>
-                      </div>
-                    </div>
-                    <div class="segment-status">
-                      <button
-                        mat-icon-button
-                        *ngIf="
-                          selectedDirectionIndex !== null &&
-                          directions.at(selectedDirectionIndex).get('incomingSegmentId')?.value !==
-                            seg.roadSegmentId
-                        "
-                      >
-                        <mat-icon>chevron_right</mat-icon>
-                      </button>
-                      <span
-                        class="bound-text"
-                        *ngIf="
-                          selectedDirectionIndex !== null &&
-                          directions.at(selectedDirectionIndex).get('incomingSegmentId')?.value ===
-                            seg.roadSegmentId
-                        "
-                      >
-                        {{ isAr ? 'مرتبط' : 'Bound' }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Empty State -->
-                <div
-                  class="empty-segments"
-                  *ngIf="incomingSegments.length === 0 && !isLoadingNodes"
-                >
-                  <mat-icon class="empty-icon">search_off</mat-icon>
-                  <p>
+            <!-- Right Column: Segment Binding -->
+            <div class="col-md-6">
+              <!-- Segment Binding Section -->
+              <div *ngIf="directions.length > 0" class="segment-binding-section">
+                <div class="section-header mb-3">
+                  <h5>{{ isAr ? 'ربط المقاطع' : 'Segment Binding' }}</h5>
+                  <p class="text-muted">
                     {{
                       isAr
-                        ? 'لا توجد مسارات متاحة لهذا الموقع'
-                        : 'No available segments for this location'
+                        ? 'اختر كل اتجاه وحدد مقطع الطريق'
+                        : 'Bind each direction to a road segment'
                     }}
                   </p>
                 </div>
               </div>
 
-              <!-- No Direction Selected Hint -->
+              <!-- Load Segments Button -->
               <div
-                class="alert alert-info"
-                *ngIf="selectedDirectionIndex === null && incomingSegments.length > 0"
+                class="text-center mb-3"
+                *ngIf="incomingSegments.length === 0 && !isLoadingNodes"
               >
-                {{
-                  isAr
-                    ? 'برجاء اختيار اتجاه من القائمة الجانبية للبدء بالربط'
-                    : 'Please select a direction from the left list to start binding'
-                }}
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="loadIncomingSegmentsOnStep4()"
+                  class="px-4 py-2"
+                >
+                  <mat-icon>alt_route</mat-icon>
+                  {{ isAr ? 'تحميل المسارات' : 'Load Road Segments' }}
+                </button>
               </div>
+
+              <div
+                class="row g-3"
+                *ngIf="directions.length > 0 || incomingSegments.length > 0 || isLoadingNodes"
+              >
+                <!-- Panel: Directions List -->
+                <div class="col-12">
+                  <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-light">
+                      <h6 class="mb-0">{{ isAr ? 'الاتجاهات' : 'Directions' }}</h6>
+                    </div>
+                    <div class="list-group list-group-flush">
+                      <button
+                        type="button"
+                        *ngFor="let dirGroup of directions.controls; let i = index"
+                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                        [class.active]="selectedDirectionIndex === i"
+                        (click)="selectedDirectionIndex = i"
+                      >
+                        <span>
+                          <mat-icon
+                            class="me-2"
+                            [color]="isDirectionBound(i) ? 'primary' : 'disabled'"
+                            style="vertical-align: middle; font-size: 1.2rem"
+                          >
+                            {{ isDirectionBound(i) ? 'check_circle' : 'circle' }}
+                          </mat-icon>
+                          {{
+                            dirGroup.get('name')?.value ||
+                              (isAr ? 'اتجاه ' + (i + 1) : 'Direction ' + (i + 1))
+                          }}
+                        </span>
+                        <small class="text-muted">#{{ i + 1 }}</small>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Panel: Map & Segments Table -->
+                <div class="col-12">
+                  <div
+                    class="map-wrapper"
+                    style="height: 400px; position: relative; margin-bottom: 20px"
+                  >
+                    <div
+                      #step4MapContainer
+                      id="step4Map"
+                      style="height: 100%; width: 100%; border-radius: 8px; overflow: hidden"
+                    ></div>
+                    <div
+                      class="loading-overlay"
+                      *ngIf="isLoadingNodes"
+                      style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(255, 255, 255, 0.7);
+                        z-index: 1000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                      "
+                    >
+                      <mat-spinner diameter="40"></mat-spinner>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-12">
+                  <!-- Available Segments (Catchy Card List) -->
+                  <div class="segments-section" *ngIf="selectedDirectionIndex !== null">
+                    <div class="section-badge mb-3">
+                      <span
+                        class="badge rounded-pill bg-success-subtle text-success border border-success-subtle"
+                      >
+                        {{ isAr ? 'المسارات المتاحة' : 'Available Segments' }}
+                      </span>
+                    </div>
+
+                    <div class="segments-grid">
+                      <div
+                        *ngFor="let seg of incomingSegments"
+                        class="segment-card"
+                        [class.active]="
+                          directions.at(selectedDirectionIndex).get('incomingSegmentId')?.value ===
+                          seg.roadSegmentId
+                        "
+                        (click)="
+                          onDirectionSegmentSelected(selectedDirectionIndex, seg.roadSegmentId)
+                        "
+                      >
+                        <div class="segment-icon">
+                          <mat-icon>{{
+                            directions.at(selectedDirectionIndex).get('incomingSegmentId')
+                              ?.value === seg.roadSegmentId
+                              ? 'check_circle'
+                              : 'alt_route'
+                          }}</mat-icon>
+                        </div>
+                        <div class="segment-info">
+                          <div class="segment-name">
+                            {{ seg.displayName || seg.name }}
+                            <span class="text-primary fw-bold ms-1" *ngIf="seg.directionArrow">{{
+                              seg.directionArrow
+                            }}</span>
+                          </div>
+                          <div class="segment-meta">
+                            <span class="meta-item">
+                              <mat-icon>straighten</mat-icon>
+                              {{ seg.lengthMeters.toFixed(0) }}m
+                            </span>
+                            <span class="meta-item" *ngIf="seg.speedKmh">
+                              <mat-icon>speed</mat-icon>
+                              {{ seg.speedKmh }} km/h
+                            </span>
+                            <span class="meta-item" *ngIf="seg.directionLabel">
+                              <mat-icon>explore</mat-icon>
+                              {{ seg.directionLabel }}
+                            </span>
+                          </div>
+                        </div>
+                        <div class="segment-status">
+                          <button
+                            mat-icon-button
+                            *ngIf="
+                              selectedDirectionIndex !== null &&
+                              directions.at(selectedDirectionIndex).get('incomingSegmentId')
+                                ?.value !== seg.roadSegmentId
+                            "
+                          >
+                            <mat-icon>chevron_right</mat-icon>
+                          </button>
+                          <span
+                            class="bound-text"
+                            *ngIf="
+                              selectedDirectionIndex !== null &&
+                              directions.at(selectedDirectionIndex).get('incomingSegmentId')
+                                ?.value === seg.roadSegmentId
+                            "
+                          >
+                            {{ isAr ? 'مرتبط' : 'Bound' }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div
+                      class="empty-segments"
+                      *ngIf="incomingSegments.length === 0 && !isLoadingNodes"
+                    >
+                      <mat-icon class="empty-icon">search_off</mat-icon>
+                      <p>
+                        {{
+                          isAr
+                            ? 'لا توجد مسارات متاحة لهذا الموقع'
+                            : 'No available segments for this location'
+                        }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- No Direction Selected Hint -->
+                  <div
+                    class="alert alert-info"
+                    *ngIf="selectedDirectionIndex === null && incomingSegments.length > 0"
+                  >
+                    {{
+                      isAr
+                        ? 'برجاء اختيار اتجاه من القائمة الجانبية للبدء بالربط'
+                        : 'Please select a direction from the left list to start binding'
+                    }}
+                  </div>
+                </div>
+                <!-- Close inner col-12 -->
+              </div>
+              <!-- Close inner row g-3 -->
             </div>
+            <!-- Close Right Column (col-md-6) -->
           </div>
+          <!-- Close main Row (row g-4) -->
         </div>
+        <!-- Close Step Content -->
 
         <div class="step-footer">
           <button mat-button matStepperPrevious class="btn-back">

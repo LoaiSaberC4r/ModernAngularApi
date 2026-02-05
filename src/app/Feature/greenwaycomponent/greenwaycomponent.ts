@@ -30,6 +30,9 @@ import {
   PreviewGreenWaveRequest,
 } from '../../Services/GreenWave/green-wave-api.service';
 import { ToasterService } from '../../Services/Toster/toaster-service';
+import { TileCacheService } from '../../Services/Map/tile-cache.service';
+import { OfflineWarmupService } from '../../Services/Map/offline-warmup.service';
+import { Subscription } from 'rxjs';
 
 const defaultIcon = L.icon({
   iconUrl: 'assets/img/marker-green-40.png',
@@ -66,7 +69,11 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   private governateService = inject(IGovernateService);
   private greenWaveApiService = inject(GreenWaveApiService);
   private toaster = inject(ToasterService);
+  private tileCache = inject(TileCacheService);
+  private warmupService = inject(OfflineWarmupService);
   roadLoadingMessage = '';
+
+  private workerSubscription?: Subscription;
 
   get isAr() {
     return this.langService.current === 'ar';
@@ -91,7 +98,6 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   cabinetMarkersMap = new Map<number, L.Marker>();
   private cabinetLocationsMap = new Map<number, any>();
 
-  private worker?: Worker;
   private updateLinesTimeout?: any;
 
   isLoadingRoads = false;
@@ -120,6 +126,10 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   readonly defaultZoom = 13;
 
   // Custom Icons
+  readonly CairoBounds = L.latLngBounds([29.95, 31.05], [30.2, 31.45]);
+  readonly CAIRO_MAX_ZOOM = 19;
+  readonly DEFAULT_MAX_ZOOM = 14;
+
   readonly iconGray = L.icon({
     iconUrl: 'assets/img/r.png',
     iconSize: [35, 35],
@@ -213,6 +223,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     this.initMap();
     this.observeResize();
     this.loadCabinetLocations();
+    this.initWorkerSubscription();
     this.loadRoadNetwork();
     this.loadGovernates();
   }
@@ -403,11 +414,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.signalrService.disconnect();
-
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = undefined;
-    }
+    this.workerSubscription?.unsubscribe();
 
     if (this.map) this.map.remove();
     if (this.resizeObserver) this.resizeObserver.disconnect();
@@ -435,12 +442,15 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
         maxBoundsViscosity: 1.0,
       });
 
-      const tileLayer = L.tileLayer('http://localhost:8081/tiles/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        minZoom: 6,
-        attribution: 'Offline Map',
-        errorTileUrl: 'assets/img/no-tile.png',
-      });
+      const tileLayer = this.tileCache.createCachedTileLayer(
+        'http://localhost:8081/tiles/{z}/{x}/{y}.png',
+        {
+          maxZoom: 19,
+          minZoom: 6,
+          attribution: 'Offline Map',
+          errorTileUrl: 'assets/img/no-tile.png',
+        },
+      );
 
       tileLayer.on('tileerror', (error) => {
         console.warn('Tile not found:', error);
@@ -451,6 +461,10 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
       L.control.scale({ position: 'bottomleft' }).addTo(this.map);
 
       this.map.on('click', (e: L.LeafletMouseEvent) => this.addMarker(e.latlng));
+
+      // Dynamic Zoom Limiting:
+      this.map.on('moveend', () => this.updateMaxZoomLevel());
+      this.updateMaxZoomLevel(); // Initial check
 
       const updateCenter = () => {
         this.ngZone.run(() => {
@@ -470,6 +484,26 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
       console.error(err);
       this.mapError = 'Map failed to load';
       this.isLoading = false;
+    }
+  }
+
+  private updateMaxZoomLevel() {
+    if (!this.map) return;
+    const center = this.map.getCenter();
+    const isInsideCairo = this.CairoBounds.contains(center);
+
+    if (isInsideCairo) {
+      if (this.map.getMaxZoom() !== this.CAIRO_MAX_ZOOM) {
+        this.map.setMaxZoom(this.CAIRO_MAX_ZOOM);
+      }
+    } else {
+      if (this.map.getMaxZoom() !== this.DEFAULT_MAX_ZOOM) {
+        // If we are currently deeper than 14, zoom out first
+        if (this.map.getZoom() > this.DEFAULT_MAX_ZOOM) {
+          this.map.setZoom(this.DEFAULT_MAX_ZOOM);
+        }
+        this.map.setMaxZoom(this.DEFAULT_MAX_ZOOM);
+      }
     }
   }
 
@@ -621,28 +655,15 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   }
 
   public updateLines() {
-    if (!this.routingEnabled || !this.worker) {
+    if (!this.routingEnabled) {
       this.updateLinesStraight();
       return;
     }
 
-    this.lines.forEach((line, i) => {
-      const m1 = this.markers[i * 2];
-      const m2 = this.markers[i * 2 + 1];
-      if (m1 && m2) {
-        const start = m1.getLatLng();
-        const end = m2.getLatLng();
-
-        this.worker!.postMessage({
-          type: 'findPath',
-          payload: {
-            index: i,
-            start: { lat: start.lat, lng: start.lng },
-            end: { lat: end.lat, lng: end.lng },
-          },
-        });
-      }
-    });
+    const mCount = this.markers.length;
+    for (let i = 0; i < Math.floor(mCount / 2); i++) {
+      this.calculateRoute(i);
+    }
   }
 
   private updateLinesStraight() {
@@ -867,23 +888,8 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     }
   }
 
-  async loadRoadNetwork() {
-    if (typeof Worker === 'undefined') {
-      console.warn('Web Workers are not supported in this environment.');
-      return;
-    }
-
-    this.isLoadingRoads = true;
-
-    // Init worker
-    if (this.worker) {
-      this.worker.terminate();
-    }
-    this.worker = new Worker(new URL('./routing.worker', import.meta.url));
-
-    this.worker.onmessage = ({ data }) => {
-      const { type, payload } = data;
-
+  initWorkerSubscription() {
+    this.workerSubscription = this.warmupService.workerMessages$.subscribe(({ type, payload }) => {
       if (type === 'init-complete') {
         this.ngZone.run(() => {
           this.isLoadingRoads = false;
@@ -891,26 +897,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
           this.roadLoadingMessage = this.isAr ? 'جاهز ✅' : 'Ready ✅';
           this.updateLines();
         });
-
-        // If this is from fresh load (not cache), save the processed data
-        if (payload && payload.roadNetwork && payload.nodesCache && !payload.isFromCache) {
-          console.log(
-            'Saving processed road data to cache, roadNetwork size:',
-            payload.roadNetwork?.features?.length || 'unknown',
-            'nodesCache size:',
-            payload.nodesCache?.length || 'unknown',
-          );
-          this.mapCache
-            .saveProcessedRoadNetwork({
-              roadNetwork: payload.roadNetwork,
-              nodesCache: payload.nodesCache,
-            })
-            .then(({ savedTo }) => {
-              console.log('Processed road data saved to:', savedTo);
-            });
-        }
       } else if (type === 'path-found') {
-        console.log('📨 Received path-found payload:', payload);
         const { index, path } = payload;
         const line = this.lines[index];
         if (!line) return;
@@ -926,81 +913,43 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
             if (m1 && m2) line.setLatLngs([m1.getLatLng(), m2.getLatLng()]);
             line.setStyle({ color: 'red', weight: 3, opacity: 0.6, dashArray: '10, 10' });
           }
-
-          // Re-calculate nearby cabinets after route update
           this.findNearbyCabinets();
-
-          // Store route segments for Green Wave preview
           this.routeSegments = payload.routeSegments || [];
-          console.log('🚗 Route Segments for Green Wave:', this.routeSegments);
-          console.log('🚗 Route Segments Length:', this.routeSegments.length);
         });
       } else if (type === 'error') {
-        console.error('Worker error:', payload);
         this.ngZone.run(() => {
           this.isLoadingRoads = false;
-          this.roadLoadingMessage = this.isAr
-            ? 'خطأ أثناء تجهيز المسارات'
-            : 'Error while preparing routing';
+          this.roadLoadingMessage = this.isAr ? 'خطأ' : 'Error';
         });
       }
-    };
+    });
+  }
 
-    try {
-      // 1) Try cache (localStorage OR IndexedDB)
-      this.ngZone.run(() => {
-        this.roadLoadingMessage = this.isAr ? 'تحميل من الكاش...' : 'Loading from cache...';
-      });
-
-      console.log('Attempting to get processed road network from cache...');
-      const cached = await this.mapCache.getProcessedRoadNetwork();
-      if (cached) {
-        console.log(
-          'Processed road network found in cache, roadNetwork size:',
-          cached.roadNetwork?.features?.length || 'unknown',
-          'nodesCache size:',
-          cached.nodesCache?.length || 'unknown',
-        );
-        this.isFromCache = true;
-        this.worker.postMessage({
-          type: 'init-from-cache',
-          payload: { roadNetwork: cached.roadNetwork, nodesCache: cached.nodesCache },
-        });
-        return;
-      }
-      console.log('Processed road network NOT found in cache. Proceeding to download.');
-
-      // 2) Cache miss -> download (Service Worker handles HTTP caching)
-      this.ngZone.run(() => {
-        this.roadLoadingMessage = this.isAr ? 'تنزيل بيانات الطرق...' : 'Downloading road data...';
-      });
-
-      const roadNetwork = await firstValueFrom(this.http.get<any>('assets/roads.geojson'));
-      console.log('Road network downloaded, features:', roadNetwork?.features?.length);
-
-      // 3) Process in Worker (no main thread blocking)
-      this.ngZone.run(() => {
-        this.roadLoadingMessage = this.isAr ? 'معالجة البيانات...' : 'Processing data...';
-      });
-
-      this.isFromCache = false;
-      this.worker.postMessage({ type: 'init-raw', payload: { roadNetwork } });
-
-      // 4) Cache processed data for next reload
-      setTimeout(() => {
-        // Save processed data after worker starts (fire & forget)
-        if (this.worker) {
-          // We'll save in the worker message handler when init-complete is received
-        }
-      }, 0);
-    } catch (err) {
-      console.error('Failed to initialize road network worker', err);
-      this.ngZone.run(() => {
-        this.isLoadingRoads = false;
-        this.mapError = 'فشل تحميل بيانات الطرق / Failed to load road data';
-        this.roadLoadingMessage = this.isAr ? 'فشل تحميل بيانات الطرق' : 'Failed to load road data';
-      });
+  async loadRoadNetwork() {
+    if (this.warmupService.getIsWarmedUp()) {
+      this.isLoadingRoads = false;
+      this.routingEnabled = true;
+      this.roadLoadingMessage = this.isAr ? 'جاهز ✅' : 'Ready ✅';
+      this.updateLines();
+      return;
     }
+
+    this.isLoadingRoads = true;
+    this.roadLoadingMessage = this.isAr
+      ? 'جاري التجهيز في الخلفية...'
+      : 'Preparing in background...';
+  }
+
+  calculateRoute(index: number) {
+    const m1 = this.markers[index * 2];
+    const m2 = this.markers[index * 2 + 1];
+    if (!m1 || !m2) return;
+
+    this.warmupService.requestPath({
+      index,
+      start: { lat: m1.getLatLng().lat, lng: m1.getLatLng().lng },
+      end: { lat: m2.getLatLng().lat, lng: m2.getLatLng().lng },
+    });
   }
 
   toggleRouting() {

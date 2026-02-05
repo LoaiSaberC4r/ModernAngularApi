@@ -1,5 +1,4 @@
-/// <reference lib="webworker" />
-
+import { openDB } from 'idb';
 import PathFinder from 'geojson-path-finder';
 import * as turf from '@turf/turf';
 
@@ -7,10 +6,111 @@ let pathFinder: any;
 let roadNetwork: any;
 let nodesCache: number[][] = [];
 
+const DB_NAME = 'greenway-cache-db';
+const STORE_NAME = 'key-value';
+const KEY_PROCESSED_ROADS = 'processed-roads';
+const RAW_ASSETS_CACHE = 'road-assets-cache';
+const PROCESSED_VERSION = '1.0';
+
 addEventListener('message', async ({ data }) => {
   const { type, payload } = data;
 
   switch (type) {
+    case 'init-smart':
+      try {
+        const url = payload.url;
+        console.log('Worker: Starting smart init for', url);
+        const totalStart = performance.now();
+
+        // 1. Try Processed Cache (IndexedDB)
+        const cached = await getProcessedFromDB();
+        if (cached) {
+          console.log('Worker: Loaded FROM PROCESSED CACHE (IndexedDB)');
+          roadNetwork = cached.roadNetwork;
+          nodesCache = cached.nodesCache;
+
+          const pfStart = performance.now();
+          pathFinder = new PathFinder(roadNetwork);
+          console.log(
+            `Worker: PathFinder re-init took ${(performance.now() - pfStart).toFixed(2)}ms`,
+          );
+
+          buildEdgeMap();
+          postMessage({ type: 'init-complete', payload: { isFromCache: true } });
+          console.log(
+            `Worker: Total warmth reload took ${(performance.now() - totalStart).toFixed(2)}ms`,
+          );
+          return;
+        }
+
+        // 2. Try Raw Cache (Cache API) or Download
+        const ioStart = performance.now();
+        let rawData = await getRawFromCache(url);
+        if (rawData) {
+          console.log(
+            `Worker: Loaded FROM RAW CACHE (Cache API) in ${(performance.now() - ioStart).toFixed(2)}ms`,
+          );
+        } else {
+          console.log('Worker: Downloading raw GeoJSON...');
+          const response = await fetch(url);
+          rawData = await response.json();
+          await saveRawToCache(url, rawData);
+          console.log(
+            `Worker: Download + Raw Cache took ${(performance.now() - ioStart).toFixed(2)}ms`,
+          );
+        }
+
+        // 3. Process
+        console.log('Worker: Processing raw network...');
+        roadNetwork = optimizeRoadNetworkInWorker(rawData);
+
+        const pfStart = performance.now();
+        pathFinder = new PathFinder(roadNetwork);
+        console.log(
+          `Worker: PathFinder fresh init took ${(performance.now() - pfStart).toFixed(2)}ms`,
+        );
+
+        const snapStart = performance.now();
+        const nodes = new Set<string>();
+        roadNetwork.features.forEach((f: any) => {
+          if (f.geometry.type === 'LineString') {
+            f.geometry.coordinates.forEach((c: number[]) => {
+              nodes.add(`${c[0].toFixed(5)},${c[1].toFixed(5)}`);
+            });
+          }
+        });
+        nodesCache = Array.from(nodes).map((s) => s.split(',').map(Number));
+        console.log(
+          `Worker: Nodes Cache built with ${nodesCache.length} nodes in ${(performance.now() - snapStart).toFixed(2)}ms`,
+        );
+
+        buildEdgeMap();
+
+        // 4. Save to Processed Cache
+        const saveStart = performance.now();
+        console.log('Worker: Saving processed data to IndexedDB...');
+        await saveProcessedToDB({ roadNetwork, nodesCache });
+        console.log(
+          `Worker: Saving to IndexedDB took ${(performance.now() - saveStart).toFixed(2)}ms`,
+        );
+
+        postMessage({
+          type: 'init-complete',
+          payload: {
+            roadNetwork: roadNetwork,
+            nodesCache: nodesCache,
+            isFromCache: false,
+          },
+        });
+        console.log(
+          `Worker: Total fresh init took ${(performance.now() - totalStart).toFixed(2)}ms`,
+        );
+      } catch (err) {
+        console.error('Worker Smart Init Error:', err);
+        postMessage({ type: 'error', payload: 'Failed to initialize routing engine (smart)' });
+      }
+      break;
+
     case 'init':
       try {
         roadNetwork = payload.roadNetwork;
@@ -131,9 +231,12 @@ addEventListener('message', async ({ data }) => {
 
 function optimizeRoadNetworkInWorker(roadNetwork: any): any {
   const MIN_LENGTH_KM = 0.1;
-  const COORDINATE_PRECISION = 6;
+  const COORDINATE_PRECISION = 5; // 5 decimal places is approx 1.1m, sufficient for routing
 
-  return {
+  console.log('Worker: Optimizing road network features...');
+  const start = performance.now();
+
+  const optimized = {
     type: 'FeatureCollection',
     features: roadNetwork.features
       .filter((feature: any) => {
@@ -158,50 +261,58 @@ function optimizeRoadNetworkInWorker(roadNetwork: any): any {
         return length >= MIN_LENGTH_KM;
       })
       .map((feature: any) => ({
-        ...feature,
+        type: 'Feature',
+        properties: {}, // STRIP ALL PROPERTIES TO SAVE MEMORY
         geometry: {
-          ...feature.geometry,
+          type: 'LineString',
           coordinates: feature.geometry.coordinates.map((coord: number[]) => [
-            Math.round(coord[0] * Math.pow(10, COORDINATE_PRECISION)) /
-              Math.pow(10, COORDINATE_PRECISION),
-            Math.round(coord[1] * Math.pow(10, COORDINATE_PRECISION)) /
-              Math.pow(10, COORDINATE_PRECISION),
+            Math.round(coord[0] * 100000) / 100000,
+            Math.round(coord[1] * 100000) / 100000,
           ]),
         },
       })),
   };
+
+  console.log(
+    `Worker: Optimization took ${(performance.now() - start).toFixed(2)}ms. Features remained: ${optimized.features.length}`,
+  );
+  return optimized;
 }
 
-const edgeMap = new Map<string, { feature: any; forward: boolean }>();
+const edgeMap = new Map<string, { coords: number[][]; forward: boolean }>();
 
 function buildEdgeMap() {
+  console.log('Worker: Building Edge Map...');
+  const start = performance.now();
   edgeMap.clear();
   if (!roadNetwork) return;
 
-  roadNetwork.features.forEach((f: any) => {
+  const features = roadNetwork.features;
+  for (let fIdx = 0; fIdx < features.length; fIdx++) {
+    const f = features[fIdx];
     if (f.geometry.type === 'LineString') {
       const coords = f.geometry.coordinates;
-
       for (let i = 0; i < coords.length - 1; i++) {
-        const start = coords[i];
-        const end = coords[i + 1];
+        const p1 = coords[i];
+        const p2 = coords[i + 1];
 
-        // Round to 6 decimal places for consistent matching
-        const startKey = `${start[0].toFixed(6)},${start[1].toFixed(6)}`;
-        const endKey = `${end[0].toFixed(6)},${end[1].toFixed(6)}`;
+        // Faster key generation
+        const k1 = `${Math.round(p1[0] * 100000)},${Math.round(p1[1] * 100000)}`;
+        const k2 = `${Math.round(p2[0] * 100000)},${Math.round(p2[1] * 100000)}`;
 
-        // Index this specific sub-segment
-        // We store the whole feature so we can get its ID later
-        edgeMap.set(`${startKey}->${endKey}`, { feature: f, forward: true });
-        edgeMap.set(`${endKey}->${startKey}`, { feature: f, forward: false });
+        edgeMap.set(`${k1}->${k2}`, { coords, forward: true });
+        edgeMap.set(`${k2}->${k1}`, { coords, forward: false });
       }
     }
-  });
-  console.log('🗺️ Edge Map built with', edgeMap.size, 'sub-segments');
+  }
+  console.log(
+    `Worker: Edge Map built with ${edgeMap.size} sub-segments in ${(performance.now() - start).toFixed(2)}ms`,
+  );
 }
 
 async function generateRouteSegments(path: number[][]): Promise<string[]> {
-  console.log('🔍 Generating segments for path with', path.length, 'points');
+  console.log(`🔍 Generating segments for path with ${path.length} points`);
+  const start = performance.now();
   const result: string[] = [];
   let lastSegId = '';
 
@@ -209,14 +320,13 @@ async function generateRouteSegments(path: number[][]): Promise<string[]> {
     const p1 = path[i];
     const p2 = path[i + 1];
 
-    // Round to 6 decimal places to match edge map keys
-    const p1Key = `${p1[0].toFixed(6)},${p1[1].toFixed(6)}`;
-    const p2Key = `${p2[0].toFixed(6)},${p2[1].toFixed(6)}`;
-    const key = `${p1Key}->${p2Key}`;
+    const k1 = `${Math.round(p1[0] * 100000)},${Math.round(p1[1] * 100000)}`;
+    const k2 = `${Math.round(p2[0] * 100000)},${Math.round(p2[1] * 100000)}`;
+    const key = `${k1}->${k2}`;
     const edge = edgeMap.get(key);
 
     if (edge) {
-      const segId = await getExternalSegmentId(edge.feature.geometry.coordinates, edge.forward);
+      const segId = await getExternalSegmentId(edge.coords, edge.forward);
       if (segId !== lastSegId) {
         result.push(segId);
         lastSegId = segId;
@@ -225,7 +335,9 @@ async function generateRouteSegments(path: number[][]): Promise<string[]> {
       console.warn('⚠️ No edge found for:', key);
     }
   }
-  console.log('✅ Generated', result.length, 'unique segments');
+  console.log(
+    `✅ Generated ${result.length} unique segments in ${(performance.now() - start).toFixed(2)}ms`,
+  );
   return result;
 }
 
@@ -281,4 +393,61 @@ function getSnapPoint(latLng: { lat: number; lng: number }): number[] {
   }
 
   return closestPoint;
+}
+
+// --- Helper Functions for Caching inside Worker ---
+
+async function getProcessedFromDB() {
+  try {
+    const db = await openDB(DB_NAME, 2);
+    const envelope = await db.get(STORE_NAME, KEY_PROCESSED_ROADS);
+    if (envelope && envelope.v === PROCESSED_VERSION) {
+      return envelope.data;
+    }
+  } catch (err) {
+    console.warn('Worker: Failed to read from IndexedDB', err);
+  }
+  return null;
+}
+
+async function saveProcessedToDB(data: any) {
+  try {
+    const db = await openDB(DB_NAME, 2);
+    const envelope = {
+      v: PROCESSED_VERSION,
+      t: Date.now(),
+      data: data,
+    };
+    await db.put(STORE_NAME, envelope, KEY_PROCESSED_ROADS);
+  } catch (err) {
+    console.warn('Worker: Failed to save to IndexedDB', err);
+  }
+}
+
+async function getRawFromCache(url: string) {
+  try {
+    const cache = await caches.open(RAW_ASSETS_CACHE);
+    const response = await cache.match(url);
+    if (response) {
+      return await response.json();
+    }
+  } catch (err) {
+    console.warn('Worker: Failed to read from Cache API', err);
+  }
+  return null;
+}
+
+async function saveRawToCache(url: string, data: any) {
+  try {
+    const cache = await caches.open(RAW_ASSETS_CACHE);
+    const response = new Response(JSON.stringify(data), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=7776000',
+      },
+    });
+    await cache.put(url, response);
+  } catch (err) {
+    console.warn('Worker: Failed to save to Cache API', err);
+  }
 }
