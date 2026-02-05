@@ -13,16 +13,16 @@ import { ITemplateService } from '../../Services/Template/itemplate-service';
 import { ITemplatePatternService } from '../../Services/TemplatePattern/itemplate-pattern-service';
 import { LightPatternService } from '../../Services/LightPattern/light-pattern-service';
 
-import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
-import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern';
-import { AddLightPatternCommand } from '../../Domain/Entity/LightPattern/AddLightPattern';
+import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate/GetAllTemplate';
+import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern/GetAllLightPattern';
+import { AddLightPatternCommand } from '../../Domain/Entity/LightPattern/AddLightPattern/AddLightPattern';
 import {
   LightPatternForTemplatePattern,
   TemplatePattern,
-} from '../../Domain/Entity/TemplatePattern/TemplatePattern';
+} from '../../Domain/Entity/TemplatePattern/TemplatePattern/TemplatePattern';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
 import { IAreaService } from '../../Services/Area/iarea-service';
-import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate/GetAllGovernate';
 
 import { LanguageService } from '../../Services/Language/language-service';
 import { ToasterService } from '../../Services/Toster/toaster-service';
@@ -237,7 +237,7 @@ export class Templatecomponent implements OnInit {
       isOverLap: [false],
       overLapTime: [null, [Validators.min(0)]],
     },
-    { validators: [this.atLeastOneLightValidator(), this.overlapNotExceedGreenValidator()] }
+    { validators: [this.atLeastOneLightValidator(), this.overlapNotExceedGreenValidator()] },
   );
 
   get rows(): FormArray<FormGroup> {
@@ -314,7 +314,7 @@ export class Templatecomponent implements OnInit {
               isOverLap: p.isOverLap,
               overLapTime: p.overLapTime,
             },
-            { emitEvent: false }
+            { emitEvent: false },
           );
           this.showPatternFields = true;
           setTimeout(() => this.patternNameRef?.nativeElement?.focus(), 0);
@@ -327,7 +327,7 @@ export class Templatecomponent implements OnInit {
       if (val === 0) {
         this.patternForm.patchValue(
           { blinkGreen: false, blinkYellow: false, blinkRed: false },
-          { emitEvent: false }
+          { emitEvent: false },
         );
       }
     });
@@ -499,7 +499,7 @@ export class Templatecomponent implements OnInit {
         startFrom: '00:00',
         finishBy: '00:00',
         isDefault: false,
-      } as any)
+      } as any),
     );
   }
 
@@ -532,7 +532,7 @@ export class Templatecomponent implements OnInit {
     const defaultRow = this.rows.controls.find((g) => !!g.get('isDefault')?.value);
     if (!defaultRow) {
       this.toaster.warning(
-        this.isAr ? 'اختر نمط افتراضي واحد على الأقل' : 'Select one default pattern'
+        this.isAr ? 'اختر نمط افتراضي واحد على الأقل' : 'Select one default pattern',
       );
       return;
     }
@@ -624,7 +624,7 @@ export class Templatecomponent implements OnInit {
         isOverLap: false,
         overLapTime: null,
       },
-      { emitEvent: false }
+      { emitEvent: false },
     );
 
     this.showPatternFields = true;

@@ -1,10 +1,17 @@
 import {
-  Component, AfterViewInit, ViewChild, ElementRef, Renderer2,
-  ViewEncapsulation, Input, Output, EventEmitter
+  Component,
+  AfterViewInit,
+  ViewChild,
+  ElementRef,
+  Renderer2,
+  ViewEncapsulation,
+  Input,
+  Output,
+  EventEmitter,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { CommonModule } from '@angular/common';
-import { SignDirection } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
+import { SignDirection } from '../../Domain/Entity/SignControlBox/SignDirection/SignDirection';
 
 type DirectionKey = 'north' | 'south' | 'east' | 'west';
 type Side = 'left' | 'right';
@@ -59,14 +66,18 @@ export class RoundaboutComponent implements AfterViewInit {
 
     this.emitChange(); // نبعث فقط الفعّال
   }
-  get directions(): SignDirection[] { return this._dtoFull.filter((_, i) => this._activeMask[i]); }
+  get directions(): SignDirection[] {
+    return this._dtoFull.filter((_, i) => this._activeMask[i]);
+  }
 
   @Output() directionsChange = new EventEmitter<SignDirection[]>();
 
   constructor(private renderer: Renderer2) {}
   ngAfterViewInit(): void {}
 
-  isActive(index: number): boolean { return !!this._activeMask[index]; }
+  isActive(index: number): boolean {
+    return !!this._activeMask[index];
+  }
 
   getDirectionName(index: number): string {
     return this._dtoFull[index]?.name ?? `اتجاه ${index + 1}`;
@@ -89,18 +100,20 @@ export class RoundaboutComponent implements AfterViewInit {
   }
 
   private emitChange(): void {
-    const out = this._dtoFull
-      .map((x) => ({ ...x }))
-      .filter((_, i) => this._activeMask[i]);
+    const out = this._dtoFull.map((x) => ({ ...x })).filter((_, i) => this._activeMask[i]);
     this.directionsChange.emit(out);
   }
 
   private keyToIndex(key: DirectionKey): number {
     switch (key) {
-      case 'north': return 0;
-      case 'south': return 1;
-      case 'east':  return 2;
-      case 'west':  return 3;
+      case 'north':
+        return 0;
+      case 'south':
+        return 1;
+      case 'east':
+        return 2;
+      case 'west':
+        return 3;
     }
   }
 }

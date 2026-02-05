@@ -6,7 +6,7 @@ import { environment } from '../../Shared/environment/environment';
 import {
   LightPatternForTemplatePattern,
   TemplatePattern,
-} from '../../Domain/Entity/TemplatePattern/TemplatePattern';
+} from '../../Domain/Entity/TemplatePattern/TemplatePattern/TemplatePattern';
 import { Result } from '../../Domain/ResultPattern/Result';
 
 @Injectable({ providedIn: 'root' })
@@ -17,14 +17,14 @@ export class ITemplatePatternService {
     return this.http
       .post<TemplatePattern>(
         `${environment.baseUrl}/TemplatePattern/AddOrUpdateTemplatePattern`,
-        payload
+        payload,
       )
       .pipe(
         map((resp) => resp),
         catchError((err) => {
           console.error('[TemplatePattern:AddOrUpdate] failed:', err);
           return throwError(() => err);
-        })
+        }),
       );
   }
 
@@ -32,17 +32,16 @@ export class ITemplatePatternService {
     const query = new HttpParams().set('templateId', String(Id));
 
     return this.http
-      .get<LightPatternForTemplatePattern[]>(
-        `${environment.baseUrl}/TemplatePattern/GetAllByTemplateId`,
-        { params: query }
-      )
+      .get<
+        LightPatternForTemplatePattern[]
+      >(`${environment.baseUrl}/TemplatePattern/GetAllByTemplateId`, { params: query })
       .pipe(
         map((resp) => resp || []),
         catchError((err) => {
           console.error('[TemplatePattern:GetAllByTemplateId] failed:', err);
           return throwError(() => err);
         }),
-        shareReplay({ bufferSize: 1, refCount: true })
+        shareReplay({ bufferSize: 1, refCount: true }),
       );
   }
 
@@ -59,7 +58,7 @@ export class ITemplatePatternService {
         catchError((err) => {
           console.error('[TemplatePattern:DeleteTemplate] failed:', err);
           return throwError(() => err);
-        })
+        }),
       );
   }
 }

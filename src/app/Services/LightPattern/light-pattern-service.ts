@@ -3,10 +3,10 @@ import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, of, shareReplay, tap, throwError } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
 
-import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern';
-import { AddLightPatternCommand } from '../../Domain/Entity/LightPattern/AddLightPattern';
+import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern/GetAllLightPattern';
+import { AddLightPatternCommand } from '../../Domain/Entity/LightPattern/AddLightPattern/AddLightPattern';
 import { Result } from '../../Domain/ResultPattern/Result';
-import { GetLightPattern } from '../../Domain/Entity/LightPattern/GetLightPattern';
+import { GetLightPattern } from '../../Domain/Entity/LightPattern/GetLightPattern/GetLightPattern';
 import { ToasterService } from '../Toster/toaster-service';
 
 @Injectable({ providedIn: 'root' })
@@ -58,7 +58,7 @@ export class LightPatternService {
           return resp.map((p: any) => this.normalizePattern(p));
         }),
         catchError(this.handleError<GetAllLightPattern[]>('LightPattern:GetAll', [])),
-        shareReplay(1)
+        shareReplay(1),
       );
   }
 
@@ -70,7 +70,7 @@ export class LightPatternService {
       .pipe(
         map((resp) => this.normalizePattern(resp)),
         catchError(this.handleError<GetLightPattern>('LightPattern:GetById', {} as any)),
-        shareReplay(1)
+        shareReplay(1),
       );
   }
 
@@ -108,7 +108,7 @@ export class LightPatternService {
           }
           return res.body;
         }),
-        catchError(this.handleError<Result>('LightPattern:Add', undefined as any, true))
+        catchError(this.handleError<Result>('LightPattern:Add', undefined as any, true)),
       );
   }
 
@@ -117,7 +117,7 @@ export class LightPatternService {
 
     return this.http.delete<Result>(`${environment.baseUrl}/LightPattern/Delete`, { params }).pipe(
       map((resp) => resp ?? ({ isSuccess: false } as any)),
-      catchError(this.handleError<Result>('LightPattern:Delete', undefined as any, true))
+      catchError(this.handleError<Result>('LightPattern:Delete', undefined as any, true)),
     );
   }
 }

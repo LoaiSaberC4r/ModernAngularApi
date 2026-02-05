@@ -1,4 +1,4 @@
-import { TokenData } from './TokenData';
+import { TokenData } from '../TokenData/TokenData';
 
 export interface LoginResponse {
   requiresPasswordChange: boolean;

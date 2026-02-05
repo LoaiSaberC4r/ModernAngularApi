@@ -1,23 +1,21 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Pagination } from '../../Domain/ResultPattern/Pagination';
-import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBox';
+import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBox/GetAllSignControlBox';
 import { SearchParameters } from '../../Domain/ResultPattern/SearchParameters';
 import { catchError, map, Observable, of, throwError, tap } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
 import {
   ApplySignBox,
   GetAllSignControlBoxWithLightPattern,
-} from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
+} from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern/GetAllSignControlBoxWithLightPattern';
 import { Result } from '../../Domain/ResultPattern/Result';
-import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern';
+import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern/AddSignBoxWithUpdateLightPattern';
 
-import { GetAllSignBoxLocation } from '../../Domain/Entity/SignControlBox/GetAllSignBoxLocation';
-import {
-  AddSignBoxCommandDto,
-  AddDirectionsDto,
-} from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
-import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox';
+import { GetAllSignBoxLocation } from '../../Domain/Entity/SignControlBox/GetAllSignBoxLocation/GetAllSignBoxLocation';
+import { AddSignBoxCommandDto } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto/AddSignBoxCommandDto';
+import { AddDirectionsDto } from '../../Domain/Entity/SignControlBox/AddDirectionsDto/AddDirectionsDto';
+import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox/UpdateSignBox';
 
 import { PaginateValue } from '../../Domain/ResultPattern/PaginateValue';
 

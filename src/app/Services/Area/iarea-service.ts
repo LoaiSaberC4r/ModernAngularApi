@@ -2,8 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, of, shareReplay, tap, throwError } from 'rxjs';
 import { IGovernateService } from '../Governate/igovernate-service';
 
-import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
-import { CreateAreaCommand } from '../../Domain/Entity/Area/CreateAreaCommand';
+import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea/GetAllArea';
+import { CreateAreaCommand } from '../../Domain/Entity/Area/CreateAreaCommand/CreateAreaCommand';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../Shared/environment/environment';
 import { ToasterService } from '../Toster/toaster-service';
@@ -28,7 +28,7 @@ export class IAreaService {
           '[AreaService] Looking for governateId:',
           governateId,
           'Found:',
-          governate?.name
+          governate?.name,
         );
         const list = (governate?.areas ?? []).map((area) => ({
           ...area,
@@ -41,7 +41,7 @@ export class IAreaService {
         console.error('[Area:GetAll] failed:', err);
         return of([] as GetAllArea[]);
       }),
-      shareReplay(1)
+      shareReplay(1),
     );
   }
 
@@ -51,7 +51,7 @@ export class IAreaService {
         const msg = this.extractErrorMessage(err, 'Add Area');
         // this.toast.error(msg);
         return throwError(() => err);
-      })
+      }),
     );
   }
 

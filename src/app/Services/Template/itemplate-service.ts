@@ -6,7 +6,7 @@ import { catchError, map, shareReplay } from 'rxjs/operators';
 import { environment } from '../../Shared/environment/environment';
 import { ToasterService } from '../Toster/toaster-service';
 
-import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
+import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate/GetAllTemplate';
 
 @Injectable({ providedIn: 'root' })
 export class ITemplateService {
@@ -49,7 +49,7 @@ export class ITemplateService {
           // this.toast.error(msg);
           return of([] as GetAllTemplate[]);
         }),
-        shareReplay(1)
+        shareReplay(1),
       );
   }
 }

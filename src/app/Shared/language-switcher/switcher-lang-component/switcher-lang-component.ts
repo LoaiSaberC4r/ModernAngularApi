@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AppLang, LanguageService } from '../../../Services/Language/language-service';
+import { LanguageService } from '../../../Services/Language/language-service';
+import { AppLang } from '../../../Domain/Entity/Language/AppLang/AppLang';
 
 @Component({
   selector: 'app-switcher-lang-component',

@@ -13,24 +13,24 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-controlService';
-import { GetAllSignControlBoxWithLightPattern } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
+import { GetAllSignControlBoxWithLightPattern } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern/GetAllSignControlBoxWithLightPattern';
 import { LightPatternService } from '../../Services/LightPattern/light-pattern-service';
 import { ResultV } from '../../Domain/ResultPattern/ResultV';
-import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern';
+import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern/GetAllLightPattern';
 
 import { IAreaService } from '../../Services/Area/iarea-service';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
-import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
-import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate/GetAllGovernate';
+import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea/GetAllArea';
 
-import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox';
-import { SignDirection } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
+import { UpdateSignControlBox } from '../../Domain/Entity/SignControlBox/UpdateSignBox/UpdateSignBox';
+import { SignDirection } from '../../Domain/Entity/SignControlBox/SignDirection/SignDirection';
 import { LanguageService } from '../../Services/Language/language-service';
 import { ToasterService } from '../../Services/Toster/toaster-service';
 import { ITemplateService } from '../../Services/Template/itemplate-service';
 import { ITemplatePatternService } from '../../Services/TemplatePattern/itemplate-pattern-service';
-import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
-import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
+import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate/GetAllTemplate';
+import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern/TemplatePattern';
 
 import { EMPTY, catchError, concatMap, from, map, of, tap, Observable } from 'rxjs';
 
@@ -165,7 +165,7 @@ export class SignBoxEditComponent implements OnInit {
       // resp is now the array directly, but keeping defensive check just in case
       const arr = Array.isArray(resp)
         ? resp
-        : resp?.value?.data ?? resp?.value ?? resp?.data ?? resp?.items ?? [];
+        : (resp?.value?.data ?? resp?.value ?? resp?.data ?? resp?.items ?? []);
       this.lightPatterns = arr.map((x: any) => ({
         id: Number(x.id ?? x.Id),
         name: String(x.name ?? x.Name ?? `#${x.id ?? x.Id}`),
@@ -198,7 +198,7 @@ export class SignBoxEditComponent implements OnInit {
         anyData.governId ??
         anyData.governorId ??
         anyData.governate?.id ??
-        anyData.governorate?.id
+        anyData.governorate?.id,
     );
 
     const areaId = this.toNumber(anyData.areaId ?? anyData.area?.id);
@@ -238,8 +238,8 @@ export class SignBoxEditComponent implements OnInit {
             lightPatternId: [d.lightPatternId ?? null],
             lightPatternName: [d.lightPatternName ?? ''],
             templateId: [d.templateId ?? null],
-          })
-        )
+          }),
+        ),
       );
     }
 
@@ -315,7 +315,7 @@ export class SignBoxEditComponent implements OnInit {
         lightPatternId: [null],
         lightPatternName: [''],
         templateId: [null],
-      })
+      }),
     );
     this.directions.updateValueAndValidity({ onlySelf: true });
   }
@@ -339,7 +339,7 @@ export class SignBoxEditComponent implements OnInit {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.toaster.warning(
-        this.isAr ? 'يرجى ملء الحقول المطلوبة' : 'Please fill all required fields'
+        this.isAr ? 'يرجى ملء الحقول المطلوبة' : 'Please fill all required fields',
       );
       return;
     }
@@ -378,7 +378,7 @@ export class SignBoxEditComponent implements OnInit {
         this.toaster.errorFromBackend(err);
         this.isApplying = false;
         return EMPTY;
-      })
+      }),
     );
 
     // 2) Apply (Only if forced)
@@ -389,16 +389,16 @@ export class SignBoxEditComponent implements OnInit {
             tap((resp) =>
               this.toaster.successFromBackend(resp, {
                 fallback: this.isAr ? 'تم التطبيق بنجاح' : 'Applied successfully!',
-              })
+              }),
             ),
             map(() => ({ ok: true as const })),
             catchError((err) => {
               this.toaster.errorFromBackend(err);
               return of({ ok: false as const, err });
-            })
-          )
+            }),
+          ),
         ),
-        map((res) => res)
+        map((res) => res),
       );
     }
 

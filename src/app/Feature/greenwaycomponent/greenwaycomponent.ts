@@ -22,13 +22,11 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { MapCacheService } from './map-cache.service';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
-import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
-import {
-  ApplyGreenWaveRequest,
-  GreenWaveApiService,
-  GreenWavePreview,
-  PreviewGreenWaveRequest,
-} from '../../Services/GreenWave/green-wave-api.service';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate/GetAllGovernate';
+import { GreenWaveApiService } from '../../Services/GreenWave/green-wave-api.service';
+import { ApplyGreenWaveRequest } from '../../Domain/Entity/GreenWave/ApplyGreenWaveRequest/ApplyGreenWaveRequest';
+import { GreenWavePreview } from '../../Domain/Entity/GreenWave/GreenWavePreview/GreenWavePreview';
+import { PreviewGreenWaveRequest } from '../../Domain/Entity/GreenWave/PreviewGreenWaveRequest/PreviewGreenWaveRequest';
 import { ToasterService } from '../../Services/Toster/toaster-service';
 import { TileCacheService } from '../../Services/Map/tile-cache.service';
 import { OfflineWarmupService } from '../../Services/Map/offline-warmup.service';
@@ -98,7 +96,8 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   cabinetMarkersMap = new Map<number, L.Marker>();
   private cabinetLocationsMap = new Map<number, any>();
 
-  private updateLinesTimeout?: any;
+  private updateLinesTimeout: any;
+  private cabinetSearchTimeout: any;
 
   isLoadingRoads = false;
   routingEnabled = false;
@@ -368,7 +367,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
       await this.signalrService.connect();
       await this.globalSignalR.connect();
     } catch (err) {
-      console.error('SignalR Connection Error:', err);
+      this.toaster.error(this.isAr ? 'فشل الاتصال بـ SignalR' : 'SignalR Connection Error');
     }
 
     this.signBoxService.getAll({ pageSize: 10000 }).subscribe({
@@ -408,11 +407,13 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
           });
         }
       },
-      error: (err) => console.error('Failed to load cabinets', err),
+      error: (err) => this.toaster.errorFromBackend(err),
     });
   }
 
   ngOnDestroy(): void {
+    if (this.updateLinesTimeout) clearTimeout(this.updateLinesTimeout);
+    if (this.cabinetSearchTimeout) clearTimeout(this.cabinetSearchTimeout);
     this.signalrService.disconnect();
     this.workerSubscription?.unsubscribe();
 
@@ -481,7 +482,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
         setTimeout(() => this.map.invalidateSize(), 200);
       });
     } catch (err) {
-      console.error(err);
+      this.toaster.errorFromBackend(err);
       this.mapError = 'Map failed to load';
       this.isLoading = false;
     }
@@ -683,15 +684,17 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   /**
    * Find all cabinets on the route using Green Wave Preview API
    */
+  private debouncedCabinetSearch() {
+    if (this.cabinetSearchTimeout) clearTimeout(this.cabinetSearchTimeout);
+    this.cabinetSearchTimeout = setTimeout(() => this.findNearbyCabinets(), 500);
+  }
+
   private findNearbyCabinets() {
     // Check if we have route segments from the worker
     if (this.routeSegments.length === 0) {
       this.nearByCabinets = [];
-      console.log('No route segments available for Green Wave preview');
       return;
     }
-
-    console.log('Requesting Green Wave preview with segments:', this.routeSegments);
 
     // Call Green Wave Preview API
     this.greenWaveApiService
@@ -704,8 +707,6 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
       })
       .subscribe({
         next: (preview) => {
-          console.log('Green Wave preview response:', preview);
-
           // Map the API response to the format expected by the UI
           this.nearByCabinets = preview.cabinets.map((cab, index) => ({
             id: cab.cabinetId,
@@ -719,10 +720,10 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
             sequence: index + 1,
           }));
 
-          console.log('Nearby cabinets from API:', this.nearByCabinets.length, this.nearByCabinets);
+          this.visualizePreview(preview);
         },
         error: (err) => {
-          console.error('Failed to get Green Wave preview:', err);
+          this.toaster.errorFromBackend(err);
           this.nearByCabinets = [];
         },
       });
@@ -790,6 +791,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     this.previewMarkers.forEach((m) => this.map.removeLayer(m));
     this.previewMarkers = [];
     this.currentPreview = undefined;
+    this.nearByCabinets = [];
   }
 
   requestGreenWavePreview() {
@@ -814,6 +816,28 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
       next: (res) => {
         this.isPreviewLoading = false;
         this.currentPreview = res;
+
+        // Populate nearByCabinets from preview response
+        this.nearByCabinets = res.cabinets.map((cab, index) => ({
+          id: cab.cabinetId,
+          cabinetId: cab.cabinetId,
+          name: `Cabinet ${cab.cabinetId}`,
+          lat: cab.cabinetLat,
+          lng: cab.cabinetLon,
+          distance: cab.distanceToRouteMeters.toFixed(0),
+          offsetSeconds: cab.offsetSeconds,
+          openDirectionId: cab.openDirectionId,
+          sequence: index + 1,
+        }));
+
+        if (res.cabinets.length === 0) {
+          this.toaster.warning(
+            this.isAr
+              ? 'لم يتم العثور على كباين على هذا المسار'
+              : 'No mapped cabinets found on this route',
+          );
+        }
+
         this.visualizePreview(res);
       },
       error: (err) => {
@@ -826,13 +850,9 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   private visualizePreview(preview: GreenWavePreview) {
     this.previewMarkers.forEach((m) => this.map.removeLayer(m));
     this.previewMarkers = [];
+    this.cabinetMarkersMap.clear();
 
     if (preview.cabinets.length === 0) {
-      this.toaster.warning(
-        this.isAr
-          ? 'لم يتم العثور على كباين على هذا المسار'
-          : 'No mapped cabinets found on this route',
-      );
       return;
     }
 
@@ -840,6 +860,17 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
       const marker = L.marker([cab.cabinetLat, cab.cabinetLon], {
         icon: this.iconGreen, // Representing Green Wave
       }).addTo(this.map);
+
+      marker.bindPopup(`
+        <div style="font-family: inherit;">
+          <strong>Cabinet: ${cab.cabinetId}</strong><br/>
+          Direction: ${cab.openDirectionId}<br/>
+          Offset: ${cab.offsetSeconds}s
+        </div>
+      `);
+
+      this.cabinetMarkersMap.set(cab.cabinetId, marker);
+      this.previewMarkers.push(marker);
 
       const label = L.divIcon({
         className: 'green-wave-label',
@@ -913,8 +944,14 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
             if (m1 && m2) line.setLatLngs([m1.getLatLng(), m2.getLatLng()]);
             line.setStyle({ color: 'red', weight: 3, opacity: 0.6, dashArray: '10, 10' });
           }
-          this.findNearbyCabinets();
-          this.routeSegments = payload.routeSegments || [];
+
+          // Accumulate segments for Green Wave preview (union of all segments from all pairs)
+          const allSegments = new Set<string>();
+          this.routeSegments.forEach((s) => allSegments.add(s));
+          (payload.routeSegments || []).forEach((s: string) => allSegments.add(s));
+          this.routeSegments = Array.from(allSegments);
+
+          this.debouncedCabinetSearch();
         });
       } else if (type === 'error') {
         this.ngZone.run(() => {
@@ -959,19 +996,19 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
   // Optional debug helpers (uncomment in HTML if needed)
   debugCacheInfo() {
-    console.log(this.mapCache.getCacheInfo());
+    // Hidden in production
   }
   clearRoadCache() {
     this.mapCache.clearCache();
-    console.log('Road cache cleared');
   }
 
   async testSegmentIdGeneration() {
-    console.log('🧪 Loading road network from cache...');
     const cached = await this.mapCache.getProcessedRoadNetwork();
 
     if (!cached || !cached.roadNetwork || cached.roadNetwork.features.length === 0) {
-      console.error('❌ No road network in cache. Please wait for roads to load first.');
+      this.toaster.warning(
+        this.isAr ? 'بيانات الطرق غير متوفرة حالياً' : 'Road network data not available',
+      );
       return;
     }
 
@@ -979,7 +1016,6 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
     const firstFeature = roadNetwork.features[0];
 
     if (firstFeature.geometry.type !== 'LineString') {
-      console.error('❌ First feature is not a LineString');
       return;
     }
 
@@ -1007,18 +1043,8 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
     const segmentId = `SEG_${fromNodeId}_${toNodeId}_${hash12}`;
 
-    console.log('🧪 Test Segment ID Generation:');
-    console.log('  First Feature:', firstFeature);
-    console.log('  Coordinates Count:', coords.length);
-    console.log('  From Node:', fromNodeId);
-    console.log('  To Node:', toNodeId);
-    console.log('  Hash Input (first 100 chars):', hashInput.substring(0, 100) + '...');
-    console.log('  Full Hash:', hashHex);
-    console.log('  Hash Length:', hashHex.length, '(should be 64)');
-    console.log('  Hash12:', hash12);
-    console.log('  ✅ SEGMENT ID:', segmentId);
-    console.log('  Reverse ID:', segmentId + '_REV');
-    console.log('\n📋 Copy this to compare with backend:');
-    console.log(segmentId);
+    // For debugging, we can copy to clipboard or show a toast
+    this.clipboard.copy(segmentId);
+    this.toaster.success(`Segment ID: ${segmentId} (Copied)`);
   }
 }

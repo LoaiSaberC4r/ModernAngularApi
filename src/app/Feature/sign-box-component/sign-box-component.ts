@@ -14,7 +14,7 @@ import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-
 import { ISignalrService } from '../../Services/Signalr/isignalr-service';
 
 import { PaginateValue } from '../../Domain/ResultPattern/PaginateValue';
-import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBox';
+import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBox/GetAllSignControlBox';
 import { ResultError } from '../../Domain/ResultPattern/Error';
 
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
@@ -27,8 +27,8 @@ import { TrafficBroadcast } from '../../Domain/SignalR/TrafficBroadcast';
 import { SignalRStatusDto } from '../../Domain/SignalR/SignalRStatusDto';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
-import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate/GetAllGovernate';
+import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea/GetAllArea';
 import { IAreaService } from '../../Services/Area/iarea-service';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
 import { OverlayModule } from '@angular/cdk/overlay';

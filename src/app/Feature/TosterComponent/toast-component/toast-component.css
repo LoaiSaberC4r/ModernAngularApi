@@ -31,7 +31,11 @@
 
   /* motion */
   will-change: transform, opacity, filter;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.2s ease, filter 0.2s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    opacity 0.2s ease,
+    filter 0.2s ease;
 
   /* progress */
   --toast-duration: 4s;
@@ -80,7 +84,9 @@
   opacity: 0.6;
   font-size: 16px;
   line-height: 1;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
   color: var(--toast-fg);
 }
 .toast__close:hover {
@@ -177,11 +183,15 @@
    Enter/Exit Animations
    ========================= */
 .toast--enter {
-  animation: toast-fade-in 0.3s ease, toast-slide-up 0.3s ease;
+  animation:
+    toast-fade-in 0.3s ease,
+    toast-slide-up 0.3s ease;
 }
 
 .toast--exit {
-  animation: toast-fade-out 0.2s ease-out, toast-slide-down 0.2s ease-out forwards;
+  animation:
+    toast-fade-out 0.2s ease-out,
+    toast-slide-down 0.2s ease-out forwards;
 }
 
 @keyframes toast-fade-in {

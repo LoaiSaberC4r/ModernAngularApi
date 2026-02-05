@@ -8,19 +8,19 @@ import { ISignalrService } from '../../Services/Signalr/isignalr-service';
 
 import { SearchParameters } from '../../Domain/ResultPattern/SearchParameters';
 import { PaginateValue } from '../../Domain/ResultPattern/PaginateValue';
-import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBox';
+import { GetAllSignControlBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBox/GetAllSignControlBox';
 import { ResultError } from '../../Domain/ResultPattern/Error';
 
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { PopUpSignBox } from '../../Domain/PopUpSignBox/PopUpSignBox';
-import { ApplySignBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
+import { ApplySignBox } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern/GetAllSignControlBoxWithLightPattern';
 
 import { LanguageService } from '../../Services/Language/language-service';
 import { debounceTime, Subject, Subscription, timer } from 'rxjs';
 import { IAreaService } from '../../Services/Area/iarea-service';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
-import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
-import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate/GetAllGovernate';
+import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea/GetAllArea';
 
 import { HubConnectionStatus } from '../../Domain/SignalR/HubConnectionStatus';
 import { ToasterService } from '../../Services/Toster/toaster-service';
@@ -36,7 +36,6 @@ export interface ReceiveMessage {
   T4?: number;
 
   /**
-   * ✅ IMPORTANT:
    * الباك عندك بيستخدم ID كـ CabinetId
    */
   ID: number;
@@ -194,7 +193,7 @@ export class SignBoxController implements OnInit, OnDestroy {
           if (!this._wasDisconnected) {
             this._wasDisconnected = true;
             this.toaster.warning(
-              this.isAr ? '⚠️ انقطع الاتصال بالـ Live' : '⚠️ Live connection disconnected'
+              this.isAr ? '⚠️ انقطع الاتصال بالـ Live' : '⚠️ Live connection disconnected',
             );
           }
 
@@ -209,7 +208,7 @@ export class SignBoxController implements OnInit, OnDestroy {
           if (this._wasDisconnected) {
             this._wasDisconnected = false;
             this.toaster.success(
-              this.isAr ? '✅ تم إعادة الاتصال بالـ Live' : '✅ Live reconnected'
+              this.isAr ? '✅ تم إعادة الاتصال بالـ Live' : '✅ Live reconnected',
             );
           }
         }
@@ -222,16 +221,12 @@ export class SignBoxController implements OnInit, OnDestroy {
       .pipe(takeUntilDestroyed())
       .subscribe((err: any) => {
         if (!err) return;
-        const msg = this.extractBackendMessage(err);
-        if (msg) this.toaster.error(msg);
+        this.toaster.errorFromBackend(err);
       });
   }
 
   ngOnInit(): void {
-    this.signalr.connect().catch((e) => {
-      this.toaster.error(this.isAr ? '❌ فشل الاتصال بالـ Live' : '❌ Failed to connect to Live');
-      console.error(e);
-    });
+    this.signalr.connect().catch(() => {});
 
     this.loadData();
     this.loadGovernates();
@@ -269,11 +264,7 @@ export class SignBoxController implements OnInit, OnDestroy {
         this.hasNextPage = data.hasNextPage;
       },
       error: (err) => {
-        const msg =
-          this.extractBackendMessage(err) ||
-          (this.isAr ? 'حدث خطأ أثناء تحميل البيانات' : 'Failed to load data');
-        this.toaster.error(msg);
-        console.error(err);
+        this.toaster.errorFromBackend(err);
       },
     });
   }
@@ -392,15 +383,11 @@ export class SignBoxController implements OnInit, OnDestroy {
     this.signBoxControlService.applySignBox(payload).subscribe({
       next: () => {
         this.toaster.success(
-          this.isAr ? '✅ تم تطبيق النمط بنجاح' : '✅ Pattern applied successfully'
+          this.isAr ? '✅ تم تطبيق النمط بنجاح' : '✅ Pattern applied successfully',
         );
       },
       error: (err) => {
-        const msg =
-          this.extractBackendMessage(err) ||
-          (this.isAr ? 'فشل تطبيق النمط' : 'Failed to apply pattern');
-        this.toaster.error(msg);
-        console.error(err);
+        this.toaster.errorFromBackend(err);
       },
     });
   }
@@ -433,11 +420,7 @@ export class SignBoxController implements OnInit, OnDestroy {
         this.governates = Array.isArray(res) ? res : [];
       },
       error: (err) => {
-        const msg =
-          this.extractBackendMessage(err) ||
-          (this.isAr ? 'فشل تحميل المحافظات' : 'Failed to load governorates');
-        this.toaster.error(msg);
-        console.error(err);
+        this.toaster.errorFromBackend(err);
       },
     });
   }
@@ -448,11 +431,7 @@ export class SignBoxController implements OnInit, OnDestroy {
         this.areas = Array.isArray(res) ? res : [];
       },
       error: (err) => {
-        const msg =
-          this.extractBackendMessage(err) ||
-          (this.isAr ? 'فشل تحميل الأحياء' : 'Failed to load areas');
-        this.toaster.error(msg);
-        console.error(err);
+        this.toaster.errorFromBackend(err);
       },
     });
   }
@@ -469,30 +448,5 @@ export class SignBoxController implements OnInit, OnDestroy {
 
   onAreaChangeValue(id: number | null): void {
     this.selectedAreaId = id;
-  }
-
-  // ==========================
-  // Backend message extractor
-  // ==========================
-  private extractBackendMessage(err: any): string {
-    const e = err?.error ?? err;
-
-    if (e?.errors && typeof e.errors === 'object') {
-      const firstKey = Object.keys(e.errors)[0];
-      const arr = e.errors[firstKey];
-      const firstMsg = Array.isArray(arr) ? arr[0] : String(arr);
-      return String(firstMsg || '');
-    }
-
-    if (Array.isArray(e?.errorMessages) && e.errorMessages.length) {
-      return String(e.errorMessages[0] || '');
-    }
-
-    if (e?.message) return String(e.message);
-    if (e?.title) return String(e.title);
-    if (e?.detail) return String(e.detail);
-    if (typeof e === 'string') return e;
-
-    return '';
   }
 }

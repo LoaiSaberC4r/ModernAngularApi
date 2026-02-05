@@ -3,42 +3,10 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
 
-export interface PreviewGreenWaveRequest {
-  routeSegments: string[];
-  speedKmh?: number;
-  greenSeconds?: number;
-  cabinetSearchRadiusMeters?: number;
-  maxCabinets?: number;
-}
-
-export interface ApplyGreenWaveRequest extends PreviewGreenWaveRequest {
-  planId: string;
-}
-
-export interface GreenWaveCabinetPreview {
-  cabinetId: number;
-  roadNodeId: string;
-  roadNodeLat: number;
-  roadNodeLon: number;
-  cabinetLat: number;
-  cabinetLon: number;
-  distanceToRouteMeters: number;
-  incomingSegmentIdOnRoute: string;
-  incomingExternalSegmentIdOnRoute: string;
-  openDirectionId: number;
-  blockedDirectionIds: number[];
-  offsetSeconds: number;
-  missingDirectionMapping?: boolean;
-  selectedIncomingSegmentId?: string;
-  selectedIncomingExternalSegmentId?: string;
-}
-
-export interface GreenWavePreview {
-  planId: string;
-  speedKmh: number;
-  greenSeconds: number;
-  cabinets: GreenWaveCabinetPreview[];
-}
+import { PreviewGreenWaveRequest } from '../../Domain/Entity/GreenWave/PreviewGreenWaveRequest/PreviewGreenWaveRequest';
+import { ApplyGreenWaveRequest } from '../../Domain/Entity/GreenWave/ApplyGreenWaveRequest/ApplyGreenWaveRequest';
+import { GreenWaveCabinetPreview } from '../../Domain/Entity/GreenWave/GreenWaveCabinetPreview/GreenWaveCabinetPreview';
+import { GreenWavePreview } from '../../Domain/Entity/GreenWave/GreenWavePreview/GreenWavePreview';
 
 @Injectable({ providedIn: 'root' })
 export class GreenWaveApiService {

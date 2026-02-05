@@ -131,60 +131,28 @@ export class ToasterService {
       }
     });
 
-    if (Array.isArray(e?.errors)) {
-      e.errors.forEach((err: any) => {
+    // Unified error array handling (handles { errors: [ { message: "..." } ] })
+    const nestedErrors = e?.errors || data?.errors;
+    if (Array.isArray(nestedErrors)) {
+      nestedErrors.forEach((err: any) => {
         if (err && typeof err === 'object') {
-          if (err.message) {
-            messages.push(this.cleanMessage(String(err.message)));
-          } else {
-            for (const [f, msgs] of Object.entries(err)) {
-              const list = Array.isArray(msgs) ? msgs : [String(msgs)];
-              fieldMap[String(f)] = list.map((m) => this.cleanMessage(String(m)));
-              list.forEach((m) => messages.push(this.cleanMessage(String(m))));
-            }
+          const msg = err.message || err.Message || err.detail || err.description;
+          if (msg && typeof msg === 'string') {
+            messages.push(this.cleanMessage(msg));
+          } else if (typeof err === 'string') {
+            messages.push(this.cleanMessage(err));
           }
         } else if (typeof err === 'string') {
           messages.push(this.cleanMessage(err));
         }
       });
-    } else if (e?.errors && typeof e.errors === 'object') {
-      for (const [field, arr] of Object.entries(e.errors)) {
+    } else if (nestedErrors && typeof nestedErrors === 'object') {
+      // Handle key-value pair errors (e.g., validation field errors)
+      for (const [field, arr] of Object.entries(nestedErrors)) {
         const list = Array.isArray(arr) ? arr : [String(arr)];
         fieldMap[String(field)] = list.map((m) => this.cleanMessage(String(m)));
         list.forEach((m) => messages.push(this.cleanMessage(String(m))));
       }
-    }
-
-    if (Array.isArray(e?.errorMessages) && e.errorMessages.length) {
-      const errs = e.errorMessages.map((x: any) => this.cleanMessage(String(x)));
-      const props = Array.isArray(e?.propertyNames)
-        ? e.propertyNames.map((x: any) => String(x))
-        : [];
-
-      if (props.length === errs.length && props.length) {
-        for (let i = 0; i < props.length; i++) {
-          const field = props[i] || 'General';
-          const msg = errs[i] || '';
-          fieldMap[field] = [...(fieldMap[field] || []), msg];
-          messages.push(msg);
-        }
-      } else {
-        errs.forEach((m: string) => messages.push(m));
-      }
-    }
-
-    if (messages.length === 0 && e?.detail && typeof e.detail === 'string') {
-      messages.push(this.cleanMessage(e.detail));
-    }
-
-    // New format support: { errors: [ { message: "..." } ] }
-    if (Array.isArray(e?.errors)) {
-      e.errors.forEach((err: any) => {
-        const msg = err?.message || err?.Message;
-        if (msg && typeof msg === 'string') {
-          messages.push(this.cleanMessage(msg));
-        }
-      });
     }
 
     const uniq = Array.from(new Set(messages.map((x) => String(x).trim()).filter(Boolean)));

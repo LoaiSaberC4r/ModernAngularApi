@@ -8,12 +8,12 @@ import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-
 import { ITemplatePatternService } from '../../Services/TemplatePattern/itemplate-pattern-service';
 import { ITemplateService } from '../../Services/Template/itemplate-service';
 import { LightPatternService } from '../../Services/LightPattern/light-pattern-service';
-import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
-import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
-import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
-import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
-import { GetLightPattern } from '../../Domain/Entity/LightPattern/GetLightPattern';
-import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate/GetAllGovernate';
+import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea/GetAllArea';
+import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate/GetAllTemplate';
+import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern/TemplatePattern';
+import { GetLightPattern } from '../../Domain/Entity/LightPattern/GetLightPattern/GetLightPattern';
+import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern/AddSignBoxWithUpdateLightPattern';
 import { LanguageService } from '../../Services/Language/language-service';
 
 @Component({

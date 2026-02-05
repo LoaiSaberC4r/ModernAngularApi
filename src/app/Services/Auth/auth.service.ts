@@ -3,10 +3,10 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, catchError, of } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
-import { LoginRequest } from '../../Domain/Entity/Auth/LoginRequest';
-import { LoginResponse } from '../../Domain/Entity/Auth/LoginResponse';
-import { ChangePasswordRequest } from '../../Domain/Entity/Auth/ChangePasswordRequest';
-import { TokenData } from '../../Domain/Entity/Auth/TokenData';
+import { LoginRequest } from '../../Domain/Entity/Auth/LoginRequest/LoginRequest';
+import { LoginResponse } from '../../Domain/Entity/Auth/LoginResponse/LoginResponse';
+import { ChangePasswordRequest } from '../../Domain/Entity/Auth/ChangePasswordRequest/ChangePasswordRequest';
+import { TokenData } from '../../Domain/Entity/Auth/TokenData/TokenData';
 import { ToasterService } from '../Toster/toaster-service';
 
 interface UserData {
@@ -73,7 +73,7 @@ export class AuthService {
         this.toaster.errorFromBackend(error);
         console.error('Login error:', error);
         return of(null as any);
-      })
+      }),
     );
   }
 
@@ -92,7 +92,7 @@ export class AuthService {
         this.toaster.errorFromBackend(error);
         console.error('Change password error:', error);
         return of(null);
-      })
+      }),
     );
   }
 

@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
-export type AppLang = 'ar' | 'en';
+import { AppLang } from '../../Domain/Entity/Language/AppLang/AppLang';
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class LanguageService {
   private readonly LS_KEY = 'app.lang';

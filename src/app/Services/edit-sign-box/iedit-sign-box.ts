@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { GetAllSignControlBoxWithLightPattern } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern';
+import { GetAllSignControlBoxWithLightPattern } from '../../Domain/Entity/SignControlBox/GetAllSignControlBoxWithLightPattern/GetAllSignControlBoxWithLightPattern';
 import { environment } from '../../Shared/environment/environment';
 import { Observable } from 'rxjs';
 import { Pagination } from '../../Domain/ResultPattern/Pagination';
@@ -22,15 +22,13 @@ export class IeditSignBox {
     }
     return this.http.get<Pagination<GetAllSignControlBoxWithLightPattern>>(
       `${environment.baseUrl}/SignControlBox/GetAll`,
-      { params: httpParams }
+      { params: httpParams },
     );
   }
 
   getById(id: number): Observable<GetAllSignControlBoxWithLightPattern> {
     return this.http.get<GetAllSignControlBoxWithLightPattern>(
-      `${environment.baseUrl}/SignControlBox/GetById/${id}`
+      `${environment.baseUrl}/SignControlBox/GetById/${id}`,
     );
   }
-  
-
 }

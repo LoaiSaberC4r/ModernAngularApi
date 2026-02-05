@@ -3,50 +3,10 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../Shared/environment/environment';
 
-// Interface for nearest node response
-export interface NearestRoadNode {
-  roadNodeId: string;
-  externalNodeId: string;
-  latitude: number;
-  longitude: number;
-  distanceMeters: number;
-  incomingSegments: RoadSegment[];
-}
-
-export interface RoadSegment {
-  roadSegmentId: string;
-  externalSegmentId: string;
-  name: string;
-  lengthMeters: number;
-  speedKmh: number | null;
-  isReverse?: boolean;
-  direction?: number;
-  directionLabel?: string;
-  directionArrow?: string;
-  displayName?: string;
-  outgoingSegments?: RoadSegment[];
-}
-
-export interface ReadableNodeDirection {
-  roadNodeId: string;
-  distanceMeters: number;
-  from: string;
-  to: string;
-  fromIsReverse: boolean;
-  toIsReverse: boolean;
-  fromSampleRoadSegmentId: string;
-  toSampleRoadSegmentId: string;
-  turnType: number;
-  turnLabel: string;
-}
-
-export interface DirectionIdResponse {
-  directions: {
-    directionId: number;
-    name: string;
-    order: number;
-  }[];
-}
+import { NearestRoadNode } from '../../Domain/Entity/MapAdmin/NearestRoadNode/NearestRoadNode';
+import { RoadSegment } from '../../Domain/Entity/MapAdmin/RoadSegment/RoadSegment';
+import { ReadableNodeDirection } from '../../Domain/Entity/MapAdmin/ReadableNodeDirection/ReadableNodeDirection';
+import { DirectionIdResponse } from '../../Domain/Entity/MapAdmin/DirectionIdResponse/DirectionIdResponse';
 
 @Injectable({
   providedIn: 'root',

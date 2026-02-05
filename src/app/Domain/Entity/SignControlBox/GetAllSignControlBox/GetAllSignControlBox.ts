@@ -1,3 +1,5 @@
+import { DirectionDto } from '../DirectionDto/DirectionDto';
+
 export interface GetAllSignControlBox {
   id: number;
   name: string;
@@ -12,16 +14,4 @@ export interface GetAllSignControlBox {
   trafficDepartmentNameAr?: string;
   trafficDepartmentNameEn?: string;
   directions?: DirectionDto[];
-}
-
-export interface DirectionDto {
-  id?: number;
-  name: string;
-  order: number;
-  templateId: number;
-  templateName: string;
-  isConflict: boolean;
-  left: boolean;
-  right: boolean;
-  conflictWith: string;
 }

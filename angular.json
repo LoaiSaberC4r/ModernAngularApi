@@ -21,21 +21,6 @@
                 "glob": "**/*",
                 "input": "src/assets",
                 "output": "assets"
-              },
-              {
-                "glob": "favicon.ico",
-                "input": "src",
-                "output": "/"
-              },
-              {
-                "glob": "manifest.webmanifest",
-                "input": "src",
-                "output": "/"
-              },
-              {
-                "glob": "**/*",
-                "input": "map-data",
-                "output": "/map-data"
               }
             ],
             "styles": [

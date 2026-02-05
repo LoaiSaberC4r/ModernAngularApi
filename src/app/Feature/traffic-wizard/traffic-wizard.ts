@@ -28,9 +28,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
-import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate/GetAllGovernate';
 import { IAreaService } from '../../Services/Area/iarea-service';
-import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
+import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea/GetAllArea';
 
 import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-controlService';
 
@@ -41,31 +41,25 @@ import { MatDividerModule } from '@angular/material/divider';
 import { LanguageService } from '../../Services/Language/language-service';
 import { Subscription, Subject, fromEvent, interval } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, takeUntil } from 'rxjs/operators';
-import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate';
+import { GetAllTemplate } from '../../Domain/Entity/Template/GetAllTemplate/GetAllTemplate';
 import { ITemplateService } from '../../Services/Template/itemplate-service';
 import { ITemplatePatternService } from '../../Services/TemplatePattern/itemplate-pattern-service';
-import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern';
-import {
-  AddSignBoxCommandDto,
-  DirectionWithPatternDto,
-  AddDirectionsDto,
-  DirectionWithSegmentDto,
-} from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto';
+import { LightPatternForTemplatePattern } from '../../Domain/Entity/TemplatePattern/TemplatePattern/TemplatePattern';
+import { AddSignBoxCommandDto } from '../../Domain/Entity/SignControlBox/AddSignBoxCommandDto/AddSignBoxCommandDto';
+import { DirectionWithPatternDto } from '../../Domain/Entity/SignControlBox/DirectionWithPatternDto/DirectionWithPatternDto';
+import { AddDirectionsDto } from '../../Domain/Entity/SignControlBox/AddDirectionsDto/AddDirectionsDto';
+import { DirectionWithSegmentDto } from '../../Domain/Entity/SignControlBox/DirectionWithSegmentDto/DirectionWithSegmentDto';
 import { Router } from '@angular/router';
 import { ToasterService } from '../../Services/Toster/toaster-service';
 import { ITrafficDepartmentService } from '../../Services/TrafficDepartment/itraffic-department-service';
-import { TrafficDepartment } from '../../Domain/Entity/TrafficDepartment/TrafficDepartment';
-import {
-  IMapAdminService,
-  NearestRoadNode,
-  RoadSegment,
-  ReadableNodeDirection,
-} from '../../Services/MapAdmin/map-admin.service';
+import { TrafficDepartment } from '../../Domain/Entity/TrafficDepartment/TrafficDepartment/TrafficDepartment';
+import { IMapAdminService } from '../../Services/MapAdmin/map-admin.service';
+import { NearestRoadNode } from '../../Domain/Entity/MapAdmin/NearestRoadNode/NearestRoadNode';
+import { RoadSegment } from '../../Domain/Entity/MapAdmin/RoadSegment/RoadSegment';
+import { ReadableNodeDirection } from '../../Domain/Entity/MapAdmin/ReadableNodeDirection/ReadableNodeDirection';
 import * as L from 'leaflet';
-import {
-  GreenWaveApiService,
-  GreenWaveCabinetPreview,
-} from '../../Services/GreenWave/green-wave-api.service';
+import { GreenWaveApiService } from '../../Services/GreenWave/green-wave-api.service';
+import { GreenWaveCabinetPreview } from '../../Domain/Entity/GreenWave/GreenWaveCabinetPreview/GreenWaveCabinetPreview';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { TileCacheService } from '../../Services/Map/tile-cache.service';
 
@@ -447,11 +441,9 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
     return null;
   }
 
-  // Step 2 Save Logic
   onStep2Next(stepper: any): void {
     if (this.isSavingStep2) return;
 
-    // Validate only Step 2 fields
     const step2Invalid =
       !this.trafficForm.get('name')?.valid ||
       !this.trafficForm.get('cabinetId')?.valid ||
@@ -480,24 +472,20 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
       longitude: String(v.longitude),
       cabinetId: cabinetId,
       trafficDepartmentId: v.trafficDepartment,
-      directions: [], // Empty directions - will be added in Step 4
+      directions: [],
     };
 
     this.isSavingStep2 = true;
     this.signBoxService.AddSignBox(payload).subscribe({
       next: (resp) => {
         this.isSavingStep2 = false;
-        // resp can be null if API returns 204
         if (!resp || resp.isSuccess) {
           this.savedCabinetId = cabinetId;
           this.toaster.success(this.isAr ? 'تم الحفظ' : 'Saved');
-
-          // Navigate to next step
           setTimeout(() => {
             const st = stepper || this.stepper;
             if (st) {
               st.next();
-              // Fallback if next() is blocked by linear mode or validation
               if (st.selectedIndex === 1) {
                 st.selectedIndex = 2;
               }
@@ -569,12 +557,10 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
         this.isSavingDirections = false;
         if (!resp || resp.isSuccess) {
           this.toaster.success(this.isAr ? 'تم حفظ بيانات الخطوة الرابعة' : 'Step 4 data saved');
-          // Navigate to final step (Review)
           setTimeout(() => {
             const st = stepper || this.stepper;
             if (st) {
               st.next();
-              // Fallback for linear mode
               if (st.selectedIndex === 3) {
                 st.selectedIndex = 4;
               }
@@ -594,7 +580,6 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   private fetchDirectionIds(cabinetId: number) {
     this.mapAdminService.getDirectionIds(cabinetId).subscribe((res) => {
       this.savedDirectionIds = res.directions || [];
-      // selection logic moved to index-based management
     });
   }
 
@@ -661,8 +646,6 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
 
     this.isLoadingNodes = true;
 
-    // Initialize map immediately so it's ready when nodes arrive
-    // and fit it to the cabinet location first
     setTimeout(() => {
       this.initWizardMap(lat, lng);
     }, 0);
@@ -672,7 +655,6 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
         this.ngZone.run(() => {
           this.nearestNodes = nodes || [];
           this.isLoadingNodes = false;
-          // Small delay to ensure initWizardMap finished if it was in a microtask
           setTimeout(() => this.displayNodesOnMap(), 100);
         });
       },
@@ -700,7 +682,6 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   displayNodesOnMap(): void {
     if (!this.wizardMap) return;
 
-    // Clear existing markers
     this.nodeMarkers.forEach((m) => this.wizardMap?.removeLayer(m));
     this.nodeMarkers = [];
 
@@ -720,7 +701,6 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
       };
     });
 
-    // Fit map to show all nodes and cabinet
     if (allNodePoints.length > 0) {
       const cabinetLat = Number(this.trafficForm.get('latitude')?.value);
       const cabinetLng = Number(this.trafficForm.get('longitude')?.value);
@@ -735,10 +715,8 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
     const cabinetId = this.savedCabinetId || Number(this.trafficForm.get('cabinetId')?.value);
     this.selectedNodeId = node.roadNodeId;
 
-    // Clear previous segments
     this.clearNodeSegments();
 
-    // Draw incoming segments for the selected node
     if (node.incomingSegments && node.incomingSegments.length > 0 && this.wizardMap) {
       const allSegmentPoints: L.LatLngTuple[] = [];
 
@@ -746,8 +724,8 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
         const points = this.parseSegmentGeometry(seg.externalSegmentId);
         if (points.length >= 2) {
           const polyline = L.polyline(points, {
-            color: '#2196f3', // Clearer blue
-            weight: 8, // Thicker
+            color: '#2196f3',
+            weight: 8,
             opacity: 0.9,
             lineJoin: 'round',
           }).addTo(this.wizardMap!);
@@ -762,14 +740,12 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
         }
       });
 
-      // Fit bounds to include the node and its segments
       if (allSegmentPoints.length > 0) {
         const bounds = L.latLngBounds(allSegmentPoints);
         this.wizardMap.fitBounds(bounds, { padding: [80, 80], maxZoom: 18 });
       }
     }
 
-    // Fetch readable directions for the selected cabinet and node
     if (cabinetId) {
       this.isLoadingReadable = true;
       this.mapAdminService.getReadableNode(cabinetId, this.selectedNodeId || undefined).subscribe({
@@ -783,14 +759,12 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
           setTimeout(() => this.drawReadableDirectionsOnMap(), 100);
         },
         error: (err) => {
-          console.error('Failed to fetch readable directions', err);
+          this.toaster.errorFromBackend(err);
           this.readableDirections = [];
           this.isLoadingReadable = false;
         },
       });
     }
-
-    // REMOVED: Immediate API call. Binding now happens in onStep3Next() on Continue.
   }
 
   onStep3Next(stepper: any): void {
@@ -1275,10 +1249,7 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
         });
       }
 
-      // Reconcile visuals if we have directions
       this.reconcileConflicts();
-    } catch (e) {
-      console.warn('Failed to load persistence', e);
-    }
+    } catch (e) {}
   }
 }

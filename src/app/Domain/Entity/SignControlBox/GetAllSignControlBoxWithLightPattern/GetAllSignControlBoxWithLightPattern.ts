@@ -1,4 +1,4 @@
-import { SignDirection } from './AddSignBoxCommandDto';
+import { SignDirection } from '../SignDirection/SignDirection';
 
 export interface GetAllSignControlBoxWithLightPattern {
   id: number;

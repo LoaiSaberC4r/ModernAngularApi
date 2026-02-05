@@ -2,12 +2,12 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { IGovernateService } from '../../Services/Governate/igovernate-service';
-import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate/GetAllGovernate';
 import { IAreaService } from '../../Services/Area/iarea-service';
-import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea';
-import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern';
+import { GetAllArea } from '../../Domain/Entity/Area/GetAllArea/GetAllArea';
+import { GetAllLightPattern } from '../../Domain/Entity/LightPattern/GetAllLightPattern/GetAllLightPattern';
 import { LightPatternService } from '../../Services/LightPattern/light-pattern-service';
-import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern';
+import { AddSignBoxWithUpdateLightPattern } from '../../Domain/Entity/SignControlBox/AddSignBoxWithUpdateLightPattern/AddSignBoxWithUpdateLightPattern';
 import { ISignBoxControlService } from '../../Services/SignControlBox/isign-box-controlService';
 
 @Component({

@@ -230,7 +230,7 @@ addEventListener('message', async ({ data }) => {
 });
 
 function optimizeRoadNetworkInWorker(roadNetwork: any): any {
-  const MIN_LENGTH_KM = 0.1;
+  const MIN_LENGTH_KM = 0.01;
   const COORDINATE_PRECISION = 5; // 5 decimal places is approx 1.1m, sufficient for routing
 
   console.log('Worker: Optimizing road network features...');

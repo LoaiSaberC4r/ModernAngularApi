@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
-import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate';
-import { CreateGovernateCommand } from '../../Domain/Entity/Governate/CreateGovernateCommand';
+import { GetAllGovernate } from '../../Domain/Entity/Governate/GetAllGovernate/GetAllGovernate';
+import { CreateGovernateCommand } from '../../Domain/Entity/Governate/CreateGovernateCommand/CreateGovernateCommand';
 
 import { SearchParameters } from '../../Domain/ResultPattern/SearchParameters';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -36,7 +36,7 @@ export class IGovernateService {
           this.governates$ = undefined; // Reset cache on error
           return of([] as GetAllGovernate[]);
         }),
-        shareReplay({ bufferSize: 1, refCount: false })
+        shareReplay({ bufferSize: 1, refCount: false }),
       );
 
     return this.governates$;
@@ -48,7 +48,7 @@ export class IGovernateService {
         const msg = this.extractErrorMessage(err, 'Add Governate');
         // this.toast.error(msg);
         return throwError(() => err);
-      })
+      }),
     );
   }
 
