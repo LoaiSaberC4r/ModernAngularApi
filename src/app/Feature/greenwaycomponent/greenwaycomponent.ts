@@ -126,8 +126,8 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
   // Custom Icons
   readonly HighZoomAreas = [
-    L.latLngBounds([29.95, 31.05], [30.2, 31.45]), // Cairo
-    L.latLngBounds([30.74, 30.54], [30.86, 31.06]), // Delta Strip (Tanta to West)
+    L.latLngBounds([29.95, 31.05], [30.2, 31.45]),
+    L.latLngBounds([30.74, 30.54], [30.86, 31.06]),
   ];
   readonly CAIRO_MAX_ZOOM = 19;
   readonly DEFAULT_MAX_ZOOM = 14;

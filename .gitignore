@@ -58,6 +58,7 @@ Thumbs.db
 
 # Local Database & Map Data
 /map-data/
+/map-data-server/
 /run-map-server.bat
 /src/assets/egypt-governorates.geojson
 
