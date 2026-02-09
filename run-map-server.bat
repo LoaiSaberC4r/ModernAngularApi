@@ -1,0 +1,3 @@
+@echo off
+echo Starting Map Data Server on Port 8081...
+npx http-server ./map-data -p 8081 --cors

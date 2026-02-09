@@ -56,9 +56,9 @@ Thumbs.db
 /src.rar
 /src_backup.rar
 
-# Local Database & Map Data
+# Local Database & Map Data (Keep Data Ignored, but Include Scripts)
 /map-data/
 /map-data-server/
-/run-map-server.bat
-/src/assets/egypt-governorates.geojson
+
+# Note: /run-map-server.bat, egypt-governorates.geojson, and *.py scripts are now INCLUDED for GitHub
 
