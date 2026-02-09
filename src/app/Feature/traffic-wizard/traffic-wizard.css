@@ -1086,3 +1086,94 @@ input[dir='ltr'] {
   margin-inline-start: auto;
   margin-inline-end: -8px;
 }
+
+/* ===========================
+   Custom Map Markers (Step 3)
+   =========================== */
+.custom-cabinet-marker,
+.custom-node-marker {
+  background: transparent;
+  border: none;
+}
+
+.marker-pin {
+  width: 30px;
+  height: 30px;
+  border-radius: 50% 50% 50% 0;
+  background: #4caf50;
+  position: absolute;
+  transform: rotate(-45deg);
+  left: 50%;
+  top: 50%;
+  margin: -15px 0 0 -15px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid white;
+}
+
+.marker-pin i {
+  transform: rotate(45deg);
+  color: white;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Current Cabinet Specific Style */
+.cabinet-pin {
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  background: linear-gradient(135deg, #4d99b3, #3a7a8f) !important;
+  z-index: 1000;
+  border-width: 3px;
+}
+
+.cabinet-pin i {
+  font-size: 26px;
+}
+
+/* Pulsing effect for the current cabinet for maximum "distinction" */
+.cabinet-pin::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #4d99b3;
+  opacity: 0.5;
+  animation: marker-pulse 2s infinite;
+  z-index: -1;
+  top: 0;
+  left: 0;
+}
+
+@keyframes marker-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Road Node Specific Style */
+.node-pin {
+  background: #8bc34a; /* Light green for nodes */
+}
+
+.node-pin i {
+  font-size: 16px;
+}
+
+.custom-node-marker:hover .node-pin {
+  transform: rotate(-45deg) scale(1.2);
+  background: #4caf50;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+}

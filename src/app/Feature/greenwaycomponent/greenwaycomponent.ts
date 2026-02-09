@@ -125,7 +125,10 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   readonly defaultZoom = 13;
 
   // Custom Icons
-  readonly CairoBounds = L.latLngBounds([29.95, 31.05], [30.2, 31.45]);
+  readonly HighZoomAreas = [
+    L.latLngBounds([29.95, 31.05], [30.2, 31.45]), // Cairo
+    L.latLngBounds([30.74, 30.54], [30.86, 31.06]), // Delta Strip (Tanta to West)
+  ];
   readonly CAIRO_MAX_ZOOM = 19;
   readonly DEFAULT_MAX_ZOOM = 14;
 
@@ -431,33 +434,47 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
       this.isLoading = true;
       this.mapError = null;
 
+      // Layer 1: Base Layer (Scales up from level 14 to avoid "MISSING TILE")
+      const baseLayer = this.tileCache.createCachedTileLayer(
+        'http://localhost:8081/tiles/{z}/{x}/{y}.png',
+        {
+          maxZoom: 19,
+          maxNativeZoom: 14,
+          minZoom: 6,
+          attribution: 'Offline Map (Base)',
+        },
+      );
+
+      // Layer 2: High-Zoom Data Layer (Shows native level 19 where available)
+      const dataLayer = this.tileCache.createCachedTileLayer(
+        'http://localhost:8081/tiles/{z}/{x}/{y}.png',
+        {
+          maxZoom: 19,
+          maxNativeZoom: 19,
+          minZoom: 15,
+          attribution: 'Offline Map (High Detail)',
+          errorTileUrl:
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', // Transparent
+        },
+      );
+
       this.map = L.map(this.mapContainer.nativeElement, {
         center: this.defaultCenter,
         zoom: this.defaultZoom,
         minZoom: 6,
         maxZoom: 19,
+        layers: [baseLayer, dataLayer],
         maxBounds: [
           [22.0, 24.0],
           [32.0, 37.0],
         ],
         maxBoundsViscosity: 1.0,
+        zoomControl: false,
       });
 
-      const tileLayer = this.tileCache.createCachedTileLayer(
-        'http://localhost:8081/tiles/{z}/{x}/{y}.png',
-        {
-          maxZoom: 19,
-          minZoom: 6,
-          attribution: 'Offline Map',
-          errorTileUrl: 'assets/img/no-tile.png',
-        },
-      );
-
-      tileLayer.on('tileerror', (error) => {
+      baseLayer.on('tileerror', (error) => {
         console.warn('Tile not found:', error);
       });
-
-      tileLayer.addTo(this.map);
 
       L.control.scale({ position: 'bottomleft' }).addTo(this.map);
 
@@ -491,9 +508,9 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
   private updateMaxZoomLevel() {
     if (!this.map) return;
     const center = this.map.getCenter();
-    const isInsideCairo = this.CairoBounds.contains(center);
+    const isInsideHighZoomArea = this.HighZoomAreas.some((bounds) => bounds.contains(center));
 
-    if (isInsideCairo) {
+    if (isInsideHighZoomArea) {
       if (this.map.getMaxZoom() !== this.CAIRO_MAX_ZOOM) {
         this.map.setMaxZoom(this.CAIRO_MAX_ZOOM);
       }

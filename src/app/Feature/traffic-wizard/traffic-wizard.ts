@@ -118,7 +118,10 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
     return this.langService.current === 'ar';
   }
 
-  readonly CairoBounds = L.latLngBounds([29.95, 31.05], [30.2, 31.45]);
+  readonly HighZoomAreas = [
+    L.latLngBounds([29.95, 31.05], [30.2, 31.45]), // Cairo
+    L.latLngBounds([30.74, 30.54], [30.86, 31.06]), // Delta Strip (Tanta to West)
+  ];
   readonly CAIRO_MAX_ZOOM = 19;
   readonly DEFAULT_MAX_ZOOM = 14;
 
@@ -163,6 +166,31 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   // Step 4 Map State
   step4Map: L.Map | null = null;
   segmentLayers = new Map<string, L.Polyline>();
+
+  // Custom Icons for Step 3
+  private readonly cabinetIcon = L.divIcon({
+    className: 'custom-cabinet-marker',
+    html: `
+      <div class="marker-pin cabinet-pin">
+        <i class="material-icons">developer_board</i>
+      </div>
+    `,
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40],
+  });
+
+  private readonly roadNodeIcon = L.divIcon({
+    className: 'custom-node-marker',
+    html: `
+      <div class="marker-pin node-pin">
+        <i class="material-icons">location_on</i>
+      </div>
+    `,
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30],
+  });
 
   constructor() {
     this.trafficForm = this.fb.group({
@@ -268,9 +296,9 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   private updateMaxZoomLevel(map: L.Map | null) {
     if (!map) return;
     const center = map.getCenter();
-    const isInsideCairo = this.CairoBounds.contains(center);
+    const isInsideHighZoomArea = this.HighZoomAreas.some((bounds) => bounds.contains(center));
 
-    if (isInsideCairo) {
+    if (isInsideHighZoomArea) {
       if (map.getMaxZoom() !== this.CAIRO_MAX_ZOOM) {
         map.setMaxZoom(this.CAIRO_MAX_ZOOM);
       }
@@ -668,15 +696,44 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   initWizardMap(lat: number, lng: number): void {
     if (!this.wizardMapContainer) return;
     if (this.wizardMap) this.wizardMap.remove();
-    this.wizardMap = L.map(this.wizardMapContainer.nativeElement).setView([lat, lng], 16);
-    this.tileCache
-      .createCachedTileLayer('http://localhost:8081/tiles/{z}/{x}/{y}.png')
-      .addTo(this.wizardMap);
+    this.wizardMap = L.map(this.wizardMapContainer.nativeElement, {
+      maxZoom: this.CAIRO_MAX_ZOOM,
+    }).setView([lat, lng], 16);
+    // Layer 1: Base Layer (Scales up from level 14 to avoid "MISSING TILE")
+    const baseLayer = this.tileCache.createCachedTileLayer(
+      'http://localhost:8081/tiles/{z}/{x}/{y}.png',
+      {
+        maxZoom: 19,
+        maxNativeZoom: 14,
+        minZoom: 6,
+        attribution: 'Offline Map (Base)',
+      },
+    );
+
+    // Layer 2: High-Zoom Data Layer (Shows native level 19 where available)
+    const dataLayer = this.tileCache.createCachedTileLayer(
+      'http://localhost:8081/tiles/{z}/{x}/{y}.png',
+      {
+        maxZoom: 19,
+        maxNativeZoom: 19,
+        minZoom: 15, // Only useful when zoomed in
+        attribution: 'Offline Map (High Detail)',
+        errorTileUrl:
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', // Transparent 1x1 png
+      },
+    );
+
+    this.wizardMap.addLayer(baseLayer);
+    this.wizardMap.addLayer(dataLayer);
 
     this.wizardMap.on('moveend', () => this.updateMaxZoomLevel(this.wizardMap));
     this.updateMaxZoomLevel(this.wizardMap);
 
-    L.marker([lat, lng]).addTo(this.wizardMap).bindPopup('Cabinet').openPopup();
+    this.cabinetMarker = L.marker([lat, lng], { icon: this.cabinetIcon })
+      .addTo(this.wizardMap)
+      .bindPopup(this.isAr ? 'الكبينة الحالية' : 'Current Cabinet');
+
+    this.cabinetMarker.openPopup();
   }
 
   displayNodesOnMap(): void {
@@ -690,9 +747,11 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
     const allNodePoints: L.LatLngTuple[] = [];
 
     this.nearestNodes.forEach((node, index) => {
-      const marker = L.marker([node.latitude, node.longitude]).addTo(this.wizardMap!);
+      const marker = L.marker([node.latitude, node.longitude], { icon: this.roadNodeIcon }).addTo(
+        this.wizardMap!,
+      );
       marker.bindPopup(
-        `Node #${index + 1}<br><strong>${node.externalNodeId}</strong><br><button class="btn btn-sm btn-primary mt-2" onclick="window.selectNode(${index})">Select Node</button>`,
+        `Node #${index + 1}<br><strong>${node.externalNodeId}</strong><br><button class="btn btn-sm btn-primary mt-2" onclick="window.selectNode(${index})">${this.isAr ? 'اختر النقطة' : 'Select Node'}</button>`,
       );
       this.nodeMarkers.push(marker);
       allNodePoints.push([node.latitude, node.longitude]);
@@ -990,9 +1049,13 @@ export class TrafficWizard implements OnInit, OnDestroy, AfterViewInit {
   initStep4Map(lat: number, lng: number): void {
     if (!this.step4MapContainer) return;
     if (this.step4Map) this.step4Map.remove();
-    this.step4Map = L.map(this.step4MapContainer.nativeElement).setView([lat, lng], 16);
+    this.step4Map = L.map(this.step4MapContainer.nativeElement, {
+      maxZoom: this.CAIRO_MAX_ZOOM,
+    }).setView([lat, lng], 16);
     this.tileCache
-      .createCachedTileLayer('http://localhost:8081/tiles/{z}/{x}/{y}.png')
+      .createCachedTileLayer('http://localhost:8081/tiles/{z}/{x}/{y}.png', {
+        maxZoom: this.CAIRO_MAX_ZOOM,
+      })
       .addTo(this.step4Map);
 
     this.step4Map.on('moveend', () => this.updateMaxZoomLevel(this.step4Map));
