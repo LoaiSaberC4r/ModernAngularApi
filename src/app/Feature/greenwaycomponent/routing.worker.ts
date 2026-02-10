@@ -10,7 +10,7 @@ const DB_NAME = 'greenway-cache-db';
 const STORE_NAME = 'key-value';
 const KEY_PROCESSED_ROADS = 'processed-roads';
 const RAW_ASSETS_CACHE = 'road-assets-cache';
-const PROCESSED_VERSION = '1.0';
+const PROCESSED_VERSION = '1.1';
 
 addEventListener('message', async ({ data }) => {
   const { type, payload } = data;
@@ -75,7 +75,7 @@ addEventListener('message', async ({ data }) => {
         roadNetwork.features.forEach((f: any) => {
           if (f.geometry.type === 'LineString') {
             f.geometry.coordinates.forEach((c: number[]) => {
-              nodes.add(`${c[0].toFixed(5)},${c[1].toFixed(5)}`);
+              nodes.add(`${c[0].toFixed(6)},${c[1].toFixed(6)}`);
             });
           }
         });
@@ -231,7 +231,7 @@ addEventListener('message', async ({ data }) => {
 
 function optimizeRoadNetworkInWorker(roadNetwork: any): any {
   const MIN_LENGTH_KM = 0.01;
-  const COORDINATE_PRECISION = 5; // 5 decimal places is approx 1.1m, sufficient for routing
+  const COORDINATE_PRECISION = 6; 
 
   console.log('Worker: Optimizing road network features...');
   const start = performance.now();
@@ -266,8 +266,8 @@ function optimizeRoadNetworkInWorker(roadNetwork: any): any {
         geometry: {
           type: 'LineString',
           coordinates: feature.geometry.coordinates.map((coord: number[]) => [
-            Math.round(coord[0] * 100000) / 100000,
-            Math.round(coord[1] * 100000) / 100000,
+            Math.round(coord[0] * 1000000) / 1000000,
+            Math.round(coord[1] * 1000000) / 1000000,
           ]),
         },
       })),
@@ -297,8 +297,8 @@ function buildEdgeMap() {
         const p2 = coords[i + 1];
 
         // Faster key generation
-        const k1 = `${Math.round(p1[0] * 100000)},${Math.round(p1[1] * 100000)}`;
-        const k2 = `${Math.round(p2[0] * 100000)},${Math.round(p2[1] * 100000)}`;
+        const k1 = `${Math.round(p1[0] * 1000000)},${Math.round(p1[1] * 1000000)}`;
+        const k2 = `${Math.round(p2[0] * 1000000)},${Math.round(p2[1] * 1000000)}`;
 
         edgeMap.set(`${k1}->${k2}`, { coords, forward: true });
         edgeMap.set(`${k2}->${k1}`, { coords, forward: false });
@@ -320,8 +320,8 @@ async function generateRouteSegments(path: number[][]): Promise<string[]> {
     const p1 = path[i];
     const p2 = path[i + 1];
 
-    const k1 = `${Math.round(p1[0] * 100000)},${Math.round(p1[1] * 100000)}`;
-    const k2 = `${Math.round(p2[0] * 100000)},${Math.round(p2[1] * 100000)}`;
+    const k1 = `${Math.round(p1[0] * 1000000)},${Math.round(p1[1] * 1000000)}`;
+    const k2 = `${Math.round(p2[0] * 1000000)},${Math.round(p2[1] * 1000000)}`;
     const key = `${k1}->${k2}`;
     const edge = edgeMap.get(key);
 
