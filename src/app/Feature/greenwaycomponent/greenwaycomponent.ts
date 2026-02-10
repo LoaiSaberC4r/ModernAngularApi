@@ -126,8 +126,17 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
 
   // Custom Icons
   readonly HighZoomAreas = [
-    L.latLngBounds([29.95, 31.05], [30.2, 31.45]),
-    L.latLngBounds([30.74, 30.54], [30.86, 31.06]),
+    L.latLngBounds([29.95, 31.05], [30.2, 31.45]), // Greater Cairo & Giza
+    L.latLngBounds([30.75, 30.55], [30.85, 31.05]), // Precise Tanta/Delta Strip (Zoom 19)
+    L.latLngBounds([31.1, 29.8], [31.3, 30.05]), // Alexandria
+    L.latLngBounds([31.15, 32.2], [31.35, 32.4]), // Port Said
+    L.latLngBounds([30.5, 32.15], [30.7, 32.4]), // Ismailia
+    L.latLngBounds([29.85, 32.45], [30.1, 32.65]), // Suez
+    L.latLngBounds([30.95, 31.25], [31.15, 31.5]), // Mansoura (Dakahlia)
+    L.latLngBounds([27.05, 31.05], [27.3, 31.3]), // Asyut
+    L.latLngBounds([26.45, 31.55], [26.7, 31.85]), // Sohag
+    L.latLngBounds([25.55, 32.5], [25.8, 32.75]), // Luxor
+    L.latLngBounds([23.95, 32.8], [24.2, 33.0]), // Aswan
   ];
   readonly CAIRO_MAX_ZOOM = 19;
   readonly DEFAULT_MAX_ZOOM = 14;
@@ -434,13 +443,14 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
       this.isLoading = true;
       this.mapError = null;
 
-      // Layer 1: Base Layer (Scales up from level 14 to avoid "MISSING TILE")
+      // Layer 1: Base Layer (Stopped at 14 to avoid stretching)
       const baseLayer = this.tileCache.createCachedTileLayer(
         'http://localhost:8081/tiles/{z}/{x}/{y}.png',
         {
-          maxZoom: 19,
-          maxNativeZoom: 14,
+          maxZoom: 19, // Allow map to zoom higher
+          maxNativeZoom: 14, // But fetch only up to level 14
           minZoom: 6,
+          zIndex: 1, // Base layer
           attribution: 'Offline Map (Base)',
         },
       );
@@ -452,6 +462,7 @@ export class Greenwaycomponent implements OnInit, OnDestroy {
           maxZoom: 19,
           maxNativeZoom: 19,
           minZoom: 15,
+          zIndex: 2, // Must be higher than baseLayer
           attribution: 'Offline Map (High Detail)',
           errorTileUrl:
             'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', // Transparent
